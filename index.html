@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Anuvad</title>
+<meta name="description" content="Translate Hindi syllabus PDFs into structured English, page by page. Free, runs in your browser.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%233a3fb0'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%23fff' font-family='serif'%3E%E0%A4%85%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Tiro+Devanagari+Hindi&display=swap">
+<style>
+/* Layout: a control rail on the left, a ledger of pages on the right — each row pairs the original page with its English text. */
+:root {
+  --bg: #f6f7fb;
+  --surface: #ffffff;
+  --ink: #1b1d33;
+  --muted: #5d6079;
+  --line: #dfe1ec;
+  --accent: #3a3fb0;
+  --accent-ink: #ffffff;
+  --marigold: #c98a12;
+  --marigold-soft: #fbf1dc;
+  --ok: #1f7a4d;
+  --bad: #b3261e;
+  --bad-soft: #fbe9e7;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-read: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-hi: "Tiro Devanagari Hindi", "Nirmala UI", "Mangal", serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12131f; --surface: #1b1d2d; --ink: #e8e9f3; --muted: #9a9db8; --line: #2e3048;
+    --accent: #8c90ff; --accent-ink: #12131f; --marigold: #e7b04a; --marigold-soft: #2c2616;
+    --ok: #5fcf96; --bad: #ff8a80; --bad-soft: #3a1f1f; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 48px;
+}
+a { color: var(--accent); }
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 24px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+h1 { font-family: var(--font-read); font-weight: 600; font-size: 2rem; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h1 .hi { font-family: var(--font-hi); font-weight: 400; color: var(--marigold); margin-right: 10px; }
+header p { margin: 0; color: var(--muted); max-width: 62ch; }
+
+.grid { display: grid; grid-template-columns: 310px minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.rail { display: grid; gap: 16px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; }
+.panel.key-needed { border-color: var(--marigold); box-shadow: 0 0 0 3px var(--marigold-soft); }
+.label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.help { font-size: 0.86rem; color: var(--muted); margin: 0; }
+
+.steps { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; font-size: 0.88rem; }
+.steps b { font-weight: 600; }
+details summary { cursor: pointer; font-size: 0.88rem; font-weight: 500; color: var(--accent); }
+details[open] summary { margin-bottom: 8px; }
+.keyrow { display: flex; gap: 8px; }
+.keyrow input { flex: 1; min-width: 0; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 0.86rem; }
+.saved { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; font-size: 0.9rem; }
+.saved b { font-family: ui-monospace, Consolas, monospace; font-weight: 500; }
+
+.drop { position: relative; border: 1.5px dashed var(--line); border-radius: 8px; padding: 20px 12px; text-align: center; cursor: pointer; display: grid; gap: 4px; transition: border-color .15s, background .15s; }
+.drop:hover, .drop.over, .drop:focus-within { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.drop strong { font-weight: 600; }
+.drop small { color: var(--muted); }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.file { font-size: 0.9rem; word-break: break-word; }
+.file b { font-weight: 600; }
+
+.field { display: grid; gap: 4px; }
+.field > span { font-size: 0.85rem; font-weight: 500; }
+select, input[type=text], input[type=password], textarea {
+  font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; width: 100%;
+}
+select:focus-visible, input:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+button, .btnlink { font: inherit; cursor: pointer; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 7px 12px; font-weight: 500; text-decoration: none; display: inline-block; text-align: center; }
+button:hover:not(:disabled), .btnlink:hover { border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.primary, .btnlink.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; padding: 9px 14px; }
+button.small { font-size: 0.82rem; padding: 4px 9px; }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.progress { display: grid; gap: 6px; }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+.status { font-size: 0.86rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.notice { border-radius: 8px; padding: 10px 12px; font-size: 0.88rem; background: var(--marigold-soft); color: var(--ink); border: 1px solid color-mix(in srgb, var(--marigold) 40%, transparent); }
+.notice.bad { background: var(--bad-soft); border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
+
+.pages { display: grid; gap: 16px; min-width: 0; }
+.page { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; display: grid; grid-template-columns: 180px minmax(0, 1fr); overflow: hidden; }
+@media (max-width: 600px) { .page { grid-template-columns: minmax(0, 1fr); } }
+.page.example { border-style: dashed; }
+.orig { background: var(--bg); border-right: 1px solid var(--line); padding: 12px; display: grid; gap: 8px; align-content: start; }
+@media (max-width: 600px) { .orig { border-right: 0; border-bottom: 1px solid var(--line); } }
+.orig img { width: 100%; border: 1px solid var(--line); border-radius: 4px; background: #fff; cursor: zoom-in; display: block; }
+.orig .hi-text { font-family: var(--font-hi); font-size: 0.92rem; line-height: 1.7; }
+.pnum { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; white-space: nowrap; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chip { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.chip.working { color: var(--accent); border-color: var(--accent); }
+.chip.done { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+.chip.failed { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 50%, transparent); }
+.chip.ex { color: var(--marigold); border-color: var(--marigold); }
+
+.trans { padding: 16px 20px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.trans .tools { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.md { font-family: var(--font-read); font-size: 1.06rem; line-height: 1.6; max-width: 72ch; min-width: 0; overflow-wrap: anywhere; }
+.md h1, .md h2, .md h3, .md h4 { font-family: var(--font-read); font-weight: 600; line-height: 1.25; margin: 0.9em 0 0.35em; text-wrap: balance; }
+.md h1 { font-size: 1.4rem; } .md h2 { font-size: 1.22rem; } .md h3 { font-size: 1.08rem; } .md h4 { font-size: 1rem; }
+.md > :first-child { margin-top: 0; }
+.md p { margin: 0.45em 0; }
+.md ul, .md ol { margin: 0.4em 0; padding-left: 1.4em; }
+.md li { margin: 0.15em 0; }
+.md .tbl { overflow-x: auto; margin: 0.6em 0; }
+.md table { border-collapse: collapse; font-family: var(--font-ui); font-size: 0.88rem; min-width: 100%; }
+.md th, .md td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+.md th { background: var(--bg); font-weight: 600; }
+.md hr { border: 0; border-top: 1px solid var(--line); margin: 1em 0; }
+.placeholder { color: var(--muted); font-style: italic; font-family: var(--font-read); margin: 0; }
+.err { color: var(--bad); font-size: 0.9rem; margin: 0; }
+.trans textarea { min-height: 260px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.85rem; line-height: 1.5; resize: vertical; }
+
+footer { color: var(--muted); font-size: 0.85rem; text-align: center; }
+dialog { border: 0; padding: 0; background: transparent; max-width: min(96vw, 900px); }
+dialog::backdrop { background: rgba(10, 10, 20, 0.7); }
+dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; border-radius: 6px; background: #fff; }
+.toast { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 6px; font-size: 0.88rem; max-width: calc(100vw - 32px); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="hi">अनुवाद</span>Anuvad</h1>
+    <p>Upload a Hindi syllabus PDF. Each page is read as an image, so scanned pages and old Hindi fonts work too, and translated into structured English with headings, lists and tables kept.</p>
+  </header>
+
+  <div class="grid">
+    <aside class="rail">
+      <section class="panel" id="keyPanel">
+        <span class="label">Your free Google access code</span>
+        <div id="keyEmpty">
+          <div style="display:grid;gap:10px">
+            <p class="help">Anuvad uses Google's Gemini AI to read and translate pages. It's free: you only need an access code (called an "API key") from your Google account. You do this once.</p>
+            <a class="btnlink primary" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Get my free code from Google ↗</a>
+            <details>
+              <summary>How do I get it? (2 minutes)</summary>
+              <ol class="steps">
+                <li>Click <b>Get my free code from Google</b>. A Google page opens in a new tab.</li>
+                <li>Sign in with your Google (Gmail) account if asked.</li>
+                <li>If a box asks you to accept the terms, tick it and click <b>Continue</b>.</li>
+                <li>Click <b>Create API key</b>. If it asks for a project, pick any one shown or let it create one.</li>
+                <li>A long code starting with <b>AIza</b> appears. Click <b>Copy</b> next to it.</li>
+                <li>Come back to this tab, paste it in the box below and click <b>Save</b>.</li>
+              </ol>
+              <p class="help" style="margin-top:8px">No card or payment is needed. Keep the code private like a password.</p>
+            </details>
+            <div class="keyrow">
+              <input type="password" id="keyIn" placeholder="Paste your code here (AIza…)" autocomplete="off" spellcheck="false" aria-label="Google access code">
+              <button id="keySave">Save</button>
+            </div>
+            <label class="check"><input type="checkbox" id="keyRemember" checked> Remember on this device</label>
+            <div id="keyMsg" class="status" hidden></div>
+          </div>
+        </div>
+        <div id="keyFull" hidden>
+          <div style="display:grid;gap:10px">
+            <div class="saved"><span>Code saved <b id="keyMask"></b></span><button class="small" id="keyRemove">Remove</button></div>
+            <label class="field"><span>AI model</span><select id="model"></select></label>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <span class="label">1 · Upload</span>
+        <label class="drop" id="drop">
+          <input type="file" id="fileIn" accept="application/pdf,.pdf">
+          <strong>Choose a PDF</strong>
+          <small>or drop it here</small>
+        </label>
+        <div class="file" id="fileInfo" hidden></div>
+      </section>
+
+      <section class="panel">
+        <span class="label">2 · Options</span>
+        <label class="field"><span>Subject (helps with terms)</span>
+          <input type="text" id="subject" placeholder="e.g. MA Music, 3rd semester">
+        </label>
+        <label class="field"><span>Technical terms</span>
+          <select id="terms">
+            <option value="explain">Keep term, add English meaning</option>
+            <option value="keep">Keep term only (Raag, Taal…)</option>
+            <option value="translate">Translate to English</option>
+          </select>
+        </label>
+        <label class="field"><span>Output</span>
+          <select id="layout">
+            <option value="en">English only</option>
+            <option value="bi">Hindi line, then English</option>
+          </select>
+        </label>
+        <div class="row2">
+          <label class="field"><span>From page</span><input type="text" inputmode="numeric" id="from" value="1"></label>
+          <label class="field"><span>To page</span><input type="text" inputmode="numeric" id="to" value=""></label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <span class="label">3 · Translate</span>
+        <div class="btns">
+          <button class="primary" id="go" disabled>Translate pages</button>
+          <button id="stop" hidden>Stop</button>
+        </div>
+        <p class="help" id="goHint">Save your access code and choose a PDF to start.</p>
+        <div class="progress" id="prog" hidden>
+          <div class="bar"><i id="barFill"></i></div>
+          <div class="status" id="status"></div>
+        </div>
+        <div id="runMsg" class="notice" hidden></div>
+      </section>
+
+      <section class="panel">
+        <span class="label">4 · Export</span>
+        <div class="btns">
+          <button id="exHtml" disabled>Download .html</button>
+          <button id="exMd" disabled>Download .md</button>
+          <button id="copyAll" disabled>Copy all</button>
+        </div>
+        <p class="help">The .html file opens in Word or a browser, where you can print or save it as PDF.</p>
+      </section>
+    </aside>
+
+    <main class="pages" id="pages"></main>
+  </div>
+
+  <footer>Your PDF and access code stay in your browser and are sent only to Google for translation. On Google's free plan, Google may use what you send to improve its services, so don't upload private documents.</footer>
+</div>
+
+<dialog id="zoom"><img id="zoomImg" alt="Original page, enlarged"></dialog>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const API = "https://generativelanguage.googleapis.com/v1beta";
+const KEY_STORE = "anuvad.key", MODEL_STORE = "anuvad.model";
+const FALLBACK_MODEL = "models/gemini-2.5-flash";
+
+let apiKey = "";
+let pdf = null, fileName = "";
+let pages = [];            // {num, thumb, status: idle|working|done|failed, md, error, editing}
+let ctl = null, running = false;
+
+const EXAMPLE = {
+  hi: "संगीत प्रवीण — प्रथम वर्ष\nक्रियात्मक (Practical)\n१. राग यमन, भूपाली एवं बिहाग में छोटा ख्याल\n२. तीनताल, एकताल व झपताल का ठाह एवं दुगुन",
+  md: "## Sangeet Praveen — First Year\n### Practical\n1. Chhota Khayal (fast-tempo composition) in Raag Yaman, Bhupali and Bihag\n2. Thah (base tempo) and Dugun (double tempo) of Teentaal, Ektaal and Jhaptaal",
+};
+
+const store = {
+  get(k) { try { return localStorage.getItem(k) || ""; } catch { return ""; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+};
+
+/* ---------- Markdown ---------- */
+function renderMd(md) {
+  const safe = md.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  const html = marked.parse(safe, { mangle: false, headerIds: false });
+  return html.replace(/<table>/g, '<div class="tbl"><table>').replace(/<\/table>/g, "</table></div>");
+}
+
+/* ---------- UI helpers ---------- */
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 2600);
+}
+function chip(status) {
+  const map = { idle: ["Not translated", ""], working: ["Translating", "working"], done: ["Translated", "done"], failed: ["Failed", "failed"] };
+  const [text, cls] = map[status];
+  return `<span class="chip ${cls}">${text}</span>`;
+}
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function renderExample() {
+  $("#pages").innerHTML = `
+    <article class="page example">
+      <div class="orig">
+        <div class="pnum"><span>Example page</span><span class="chip ex">Example</span></div>
+        <div class="hi-text">${esc(EXAMPLE.hi).replace(/\n/g, "<br>")}</div>
+      </div>
+      <div class="trans">
+        <div class="md">${renderMd(EXAMPLE.md)}</div>
+        <p class="status">This is a sample of the output. Upload your PDF to see your own pages here.</p>
+      </div>
+    </article>`;
+}
+
+function renderPage(p) {
+  let el = document.getElementById("pg" + p.num);
+  if (!el) {
+    el = document.createElement("article");
+    el.className = "page"; el.id = "pg" + p.num;
+    el.innerHTML = `
+      <div class="orig">
+        <div class="pnum"><span>Page ${p.num}</span><span class="st"></span></div>
+        <img alt="Page ${p.num} of the original PDF" src="${p.thumb}">
+      </div>
+      <div class="trans">
+        <div class="tools"></div>
+        <div class="body"></div>
+      </div>`;
+    el.querySelector("img").addEventListener("click", () => openZoom(p.num));
+    $("#pages").appendChild(el);
+  }
+  el.querySelector(".st").innerHTML = chip(p.status);
+  const tools = el.querySelector(".tools");
+  const body = el.querySelector(".body");
+  tools.innerHTML = "";
+  if (p.status === "done" && !p.editing) {
+    tools.append(btn("Edit", () => { p.editing = true; renderPage(p); }));
+    tools.append(btn("Copy", () => copyText(p.md)));
+  }
+  if ((p.status === "done" || p.status === "failed") && !p.editing) {
+    tools.append(btn("Translate again", () => runPages([p.num])));
+  }
+  if (p.editing) {
+    body.innerHTML = `<textarea id="ed${p.num}" aria-label="Edit translation for page ${p.num}"></textarea>`;
+    body.querySelector("textarea").value = p.md;
+    tools.append(btn("Save", () => { p.md = body.querySelector("textarea").value; p.editing = false; renderPage(p); }));
+    tools.append(btn("Cancel", () => { p.editing = false; renderPage(p); }));
+  } else if (p.status === "done") {
+    body.innerHTML = `<div class="md">${renderMd(p.md)}</div>`;
+  } else if (p.status === "working") {
+    body.innerHTML = p.md ? `<div class="md">${renderMd(p.md)}</div>` : `<p class="placeholder">${esc(p.waitMsg || "Reading the page…")}</p>`;
+  } else if (p.status === "failed") {
+    body.innerHTML = (p.md ? `<div class="md">${renderMd(p.md)}</div>` : "") + `<p class="err">${esc(p.error || "Translation failed.")}</p>`;
+  } else {
+    body.innerHTML = `<p class="placeholder">Not translated yet.</p>`;
+  }
+  updateButtons();
+}
+function btn(label, fn) {
+  const b = document.createElement("button"); b.className = "small"; b.textContent = label; b.onclick = fn;
+  b.disabled = (running && label !== "Copy") || (label === "Translate again" && !apiKey);
+  return b;
+}
+
+function updateButtons() {
+  const any = pages.some((p) => p.status === "done");
+  $("#exHtml").disabled = !any;
+  $("#exMd").disabled = !any;
+  $("#copyAll").disabled = !any;
+  $("#go").disabled = !pdf || !apiKey || running;
+  $("#goHint").hidden = !!(pdf && apiKey);
+  $("#goHint").textContent = !apiKey && !pdf ? "Save your access code and choose a PDF to start."
+    : !apiKey ? "Save your access code (at the top) to start." : "Choose a PDF to start.";
+}
+
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); toast("Copied"); }
+  catch { toast("Copy was blocked. Use Edit and select the text instead."); }
+}
+
+/* ---------- Access code (API key) ---------- */
+async function apiFetch(path, init = {}) {
+  return fetch(API + path, { ...init, headers: { ...(init.headers || {}), "x-goog-api-key": apiKey } });
+}
+
+async function readError(res) {
+  let body = null;
+  try { body = await res.json(); } catch {}
+  const err = Array.isArray(body) ? body[0]?.error : body?.error;
+  const reason = (err?.details || []).map((d) => d.reason).find(Boolean) || err?.status || "";
+  const retry = (err?.details || []).map((d) => d.retryDelay).find(Boolean);
+  return { status: res.status, reason, message: err?.message || res.statusText, retrySec: retry ? parseFloat(retry) : null };
+}
+
+function keyProblem(e) {
+  if (e.reason === "API_KEY_INVALID" || e.status === 400 && /API key/i.test(e.message)) return "This code doesn't work. Check that you copied the whole code, starting with AIza.";
+  if (e.status === 403) return "Google refused this code. Make sure it's an API key from aistudio.google.com.";
+  return null;
+}
+
+// Prefer the newest stable Flash model: fast, good at reading images, and the most generous on the free plan.
+function rankModels(models) {
+  const usable = models.filter((m) =>
+    (m.supportedGenerationMethods || []).includes("generateContent") &&
+    /^models\/gemini-[\d.]+-(flash|pro)/.test(m.name) &&
+    !/(tts|image|audio|live|embedding|thinking|exp)/.test(m.name));
+  const ver = (n) => parseFloat((n.match(/gemini-([\d.]+)/) || [])[1] || 0);
+  const score = (m) => {
+    const n = m.name;
+    return ver(n) * 100 + (/-flash$/.test(n) ? 30 : /-flash/.test(n) ? 10 : 0) + (/preview/.test(n) ? -50 : 0) + (/lite/.test(n) ? -15 : 0) + (/-pro/.test(n) ? 5 : 0);
+  };
+  return usable.sort((a, b) => score(b) - score(a));
+}
+
+async function loadModels() {
+  const res = await apiFetch("/models?pageSize=200");
+  if (!res.ok) throw await readError(res);
+  const data = await res.json();
+  return rankModels(data.models || []);
+}
+
+function fillModels(models) {
+  const sel = $("#model");
+  const saved = store.get(MODEL_STORE);
+  const list = models.length ? models : [{ name: FALLBACK_MODEL, displayName: "Gemini 2.5 Flash" }];
+  sel.innerHTML = list.map((m, i) => `<option value="${esc(m.name)}">${esc(m.displayName || m.name.replace("models/", ""))}${i === 0 ? " (recommended)" : ""}</option>`).join("");
+  if (saved && list.some((m) => m.name === saved)) sel.value = saved;
+}
+
+function showKeyState() {
+  $("#keyEmpty").hidden = !!apiKey;
+  $("#keyFull").hidden = !apiKey;
+  $("#keyPanel").classList.toggle("key-needed", !apiKey);
+  $("#keyMask").textContent = apiKey ? "••••" + apiKey.slice(-4) : "";
+  updateButtons();
+  pages.forEach(renderPage);
+}
+
+async function saveKey() {
+  const k = $("#keyIn").value.trim().replace(/\s+/g, "");
+  const msg = $("#keyMsg");
+  msg.hidden = false; msg.className = "status";
+  if (!k) { msg.textContent = "Paste your code first."; return; }
+  msg.textContent = "Checking the code with Google…";
+  $("#keySave").disabled = true;
+  apiKey = k;
+  try {
+    const models = await loadModels();
+    fillModels(models);
+    if ($("#keyRemember").checked) store.set(KEY_STORE, k); else store.del(KEY_STORE);
+    $("#keyIn").value = ""; msg.hidden = true;
+    showKeyState();
+    toast("Code saved. You're ready to translate.");
+  } catch (e) {
+    apiKey = "";
+    msg.className = "err";
+    msg.textContent = e instanceof TypeError ? "Couldn't reach Google. Check your internet connection." : (keyProblem(e) || `Google said: ${e.message}`);
+  } finally {
+    $("#keySave").disabled = false;
+  }
+}
+$("#keySave").onclick = saveKey;
+$("#keyIn").addEventListener("keydown", (e) => { if (e.key === "Enter") saveKey(); });
+$("#keyRemove").onclick = () => {
+  if (running) { toast("Stop the translation first."); return; }
+  apiKey = ""; store.del(KEY_STORE); showKeyState();
+};
+$("#model").addEventListener("change", (e) => store.set(MODEL_STORE, e.target.value));
+
+/* ---------- PDF ---------- */
+async function loadFile(file) {
+  if (!file) return;
+  if (running) { toast("Stop the current translation first."); return; }
+  if (!/\.pdf$/i.test(file.name) && file.type !== "application/pdf") { toast("Choose a PDF file."); return; }
+  fileName = file.name.replace(/\.pdf$/i, "");
+  $("#fileInfo").hidden = false;
+  $("#fileInfo").innerHTML = `<b>${esc(file.name)}</b><br><span class="status">Opening…</span>`;
+  try {
+    pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  } catch (e) {
+    pdf = null;
+    $("#fileInfo").innerHTML = `<b>${esc(file.name)}</b><br><span class="err">This PDF could not be opened. It may be damaged or password-protected.</span>`;
+    updateButtons(); return;
+  }
+  $("#fileInfo").innerHTML = `<b>${esc(file.name)}</b><br><span class="status">${pdf.numPages} page${pdf.numPages > 1 ? "s" : ""}</span>`;
+  $("#from").value = 1; $("#to").value = pdf.numPages;
+  pages = []; $("#pages").innerHTML = "";
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const canvas = await renderCanvas(i, 360);
+    const p = { num: i, thumb: canvas.toDataURL("image/jpeg", 0.75), status: "idle", md: "" };
+    pages.push(p); renderPage(p);
+  }
+  updateButtons();
+}
+
+async function renderCanvas(num, longSide) {
+  const page = await pdf.getPage(num);
+  const vp1 = page.getViewport({ scale: 1 });
+  const scale = longSide / Math.max(vp1.width, vp1.height);
+  const vp = page.getViewport({ scale });
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // "print" intent renders without requestAnimationFrame, so pages keep rendering while the tab is in the background.
+  await page.render({ canvasContext: ctx, viewport: vp, intent: "print" }).promise;
+  return canvas;
+}
+const toB64 = (c) => c.toDataURL("image/jpeg", 0.9).split(",")[1];
+
+// Split the page into overlapping halves so small Devanagari stays sharp.
+async function pageImages(num) {
+  const full = await renderCanvas(num, 2400);
+  const tall = full.height >= full.width;
+  const parts = [];
+  for (const [a, b] of [[0, 0.56], [0.44, 1]]) {
+    const c = document.createElement("canvas");
+    if (tall) {
+      const y0 = Math.round(full.height * a), h = Math.round(full.height * (b - a));
+      c.width = full.width; c.height = h;
+      c.getContext("2d").drawImage(full, 0, y0, full.width, h, 0, 0, full.width, h);
+    } else {
+      const x0 = Math.round(full.width * a), w = Math.round(full.width * (b - a));
+      c.width = w; c.height = full.height;
+      c.getContext("2d").drawImage(full, x0, 0, w, full.height, 0, 0, w, full.height);
+    }
+    parts.push(toB64(c));
+  }
+  return { parts, tall };
+}
+
+async function textLayer(num) {
+  try {
+    const page = await pdf.getPage(num);
+    const tc = await page.getTextContent();
+    let out = "";
+    for (const it of tc.items) out += it.str + (it.hasEOL ? "\n" : " ");
+    return out.replace(/[ \t]+/g, " ").trim().slice(0, 6000);
+  } catch { return ""; }
+}
+
+/* ---------- Translation ---------- */
+function buildPrompt(num, hint, tall) {
+  const subject = $("#subject").value.trim();
+  const terms = {
+    explain: "Keep Indian / Sanskrit technical terms in standard roman transliteration and add a short English meaning in parentheses the first time each appears on the page, e.g. Alaap (slow melodic introduction), Taal (rhythmic cycle). Use consistent spellings: Raag, Taal, Teentaal, Ektaal, Jhaptaal, Khayal, Dhrupad, Thaat, Swar, Sargam, Aroh, Avroh, Pakad, Matra, Bol, Theka, Laya, Dugun, Tigun, Chaugun.",
+    keep: "Keep Indian / Sanskrit technical terms in standard roman transliteration without explanation (e.g. Raag, Taal, Alaap, Thaat, Aroh, Avroh, Pakad).",
+    translate: "Translate technical terms into their closest English equivalents; keep proper names of ragas, talas and compositions transliterated.",
+  }[$("#terms").value];
+  const layout = $("#layout").value === "bi"
+    ? "Write the output bilingually: for every heading, list item, paragraph and table cell group, first give the original Hindi text exactly as printed (in Devanagari), then the English translation on the next line in italics. Keep the Markdown structure."
+    : "Write only the English translation.";
+  return [
+    `Translate page ${num} of ${pdf.numPages} of a Hindi syllabus document into English.`,
+    `The page is attached as two overlapping images (${tall ? "top part first, then bottom part" : "left part first, then right part"}). Text in the overlapping strip appears in both: include it only once.`,
+    subject ? `Subject of the syllabus: ${subject}.` : "",
+    "",
+    "Rules:",
+    "- Read every piece of Hindi (Devanagari) text on the page: titles, headings, numbering, units, marks, credits, time allotments, tables, notes and footnotes.",
+    "- Translate faithfully into clear, correct academic English. Do not summarise, skip, reorder or add content.",
+    "- Keep the structure in Markdown: # / ## / ### headings, numbered and bulleted lists with the original numbering, and Markdown tables for tables (same rows and columns).",
+    "- Convert Devanagari digits (०१२३४५६७८९) to 0-9. Keep marks, years and numbers exactly.",
+    "- Names of people, books, institutions and places: standard roman transliteration (e.g. Pt. Vishnu Narayan Bhatkhande).",
+    "- " + terms,
+    "- Text already in English stays as is.",
+    "- Write [illegible] for anything you cannot read. If the page has no text, reply only: (blank page)",
+    "- " + layout,
+    "Reply with the Markdown only: no preface, no notes, no code fences.",
+    hint ? `\nText layer extracted from the PDF by software. It may have broken or reordered Devanagari characters or legacy-font gibberish, so trust the images; use this only to confirm spellings and numbers:\n"""\n${hint}\n"""` : "",
+  ].join("\n");
+}
+
+class RunError extends Error {
+  constructor(message, { stopAll = false, rate = null } = {}) { super(message); this.stopAll = stopAll; this.rate = rate; }
+}
+
+// Streams one Gemini answer; calls onText with the whole text so far.
+async function gemini(prompt, images, signal, onText) {
+  const body = {
+    contents: [{ role: "user", parts: [{ text: prompt }, ...images.map((d) => ({ inline_data: { mime_type: "image/jpeg", data: d } }))] }],
+    generationConfig: { temperature: 0.2, maxOutputTokens: 16384 },
+  };
+  const res = await apiFetch(`/${$("#model").value}:streamGenerateContent?alt=sse`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal,
+  });
+  if (!res.ok) {
+    const e = await readError(res);
+    const kp = keyProblem(e);
+    if (kp) throw new RunError(kp, { stopAll: true });
+    if (e.status === 429) throw new RunError("Google's free limit was reached.", { rate: e.retrySec ?? 60 });
+    if (e.status === 404) throw new RunError("This AI model isn't available. Pick another one under AI model.", { stopAll: true });
+    if (e.status >= 500) throw new RunError("Google's service had a hiccup. Translate this page again.");
+    throw new RunError(`Google said: ${e.message}`);
+  }
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "", text = "", finish = "", blocked = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line.startsWith("data:")) continue;
+      let chunk; try { chunk = JSON.parse(line.slice(5)); } catch { continue; }
+      if (chunk.promptFeedback?.blockReason) blocked = chunk.promptFeedback.blockReason;
+      const cand = chunk.candidates?.[0];
+      if (cand?.finishReason) finish = cand.finishReason;
+      const add = (cand?.content?.parts || []).filter((p) => !p.thought && p.text).map((p) => p.text).join("");
+      if (add) { text += add; onText(text); }
+    }
+  }
+  if (blocked) throw new RunError("Google blocked this page and didn't translate it.");
+  if (finish === "SAFETY" || finish === "RECITATION" || finish === "PROHIBITED_CONTENT")
+    throw new RunError("Google stopped the translation of this page partway (its content filter). Try again or use another AI model.");
+  if (!text.trim()) throw new RunError("No text came back for this page. Translate it again.");
+  return { text, truncated: finish === "MAX_TOKENS" };
+}
+
+async function translateOne(p) {
+  p.status = "working"; p.md = ""; p.error = ""; p.waitMsg = ""; renderPage(p);
+  document.getElementById("pg" + p.num).scrollIntoView({ block: "nearest", behavior: "smooth" });
+  const { parts, tall } = await pageImages(p.num);
+  const prompt = buildPrompt(p.num, await textLayer(p.num), tall);
+  let last = 0;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await gemini(prompt, parts, ctl.signal, (text) => {
+        p.md = text;
+        const now = Date.now();
+        if (now - last > 250) { last = now; renderPage(p); }
+      });
+      p.md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
+      p.status = res.truncated ? "failed" : "done";
+      if (res.truncated) p.error = "The answer was cut short. Translate this page again.";
+      renderPage(p);
+      return null;
+    } catch (e) {
+      if (e.name === "AbortError" || ctl.signal.aborted) {
+        p.status = p.md ? "failed" : "idle"; p.error = "Stopped."; renderPage(p);
+        return "cancelled";
+      }
+      // Free plan per-minute limit: wait once, then try again.
+      if (e.rate && attempt === 0) {
+        const wait = Math.min(Math.max(Math.ceil(e.rate), 10), 70);
+        for (let s = wait; s > 0; s--) {
+          if (ctl.signal.aborted) break;
+          p.waitMsg = `Google's free per-minute limit was reached. Trying again in ${s}s…`;
+          p.md = ""; renderPage(p);
+          await sleep(1000);
+        }
+        if (ctl.signal.aborted) { p.status = "idle"; renderPage(p); return "cancelled"; }
+        p.waitMsg = "";
+        continue;
+      }
+      p.status = "failed";
+      p.error = e.rate ? "Google's free limit is used up for now. Wait a while (or until tomorrow), then translate the remaining pages." : (e.message || "Translation failed.");
+      if (e instanceof TypeError) p.error = "Couldn't reach Google. Check your internet connection and translate this page again.";
+      renderPage(p);
+      return e.stopAll || e.rate ? "stop" : "failed";
+    }
+  }
+}
+
+async function runPages(nums) {
+  if (!apiKey || !pdf || running) return;
+  running = true; ctl = new AbortController();
+  $("#stop").hidden = false; $("#prog").hidden = false; $("#runMsg").hidden = true;
+  pages.forEach(renderPage);
+  let done = 0;
+  for (const n of nums) {
+    if (ctl.signal.aborted) break;
+    $("#status").textContent = `Translating page ${n} · ${done} of ${nums.length} done`;
+    $("#barFill").style.width = (done / nums.length * 100) + "%";
+    const code = await translateOne(pages[n - 1]);
+    if (code === "cancelled") break;
+    done++;
+    if (code === "stop") {
+      $("#runMsg").textContent = pages[n - 1].error;
+      $("#runMsg").className = "notice bad"; $("#runMsg").hidden = false;
+      break;
+    }
+  }
+  $("#barFill").style.width = (done / nums.length * 100) + "%";
+  const ok = nums.filter((n) => pages[n - 1].status === "done").length;
+  const failed = nums.filter((n) => pages[n - 1].status === "failed").length;
+  $("#status").textContent = ctl.signal.aborted
+    ? `Stopped · ${ok} of ${nums.length} pages translated`
+    : `${ok} of ${nums.length} pages translated${failed ? ` · ${failed} failed` : ""}`;
+  running = false; $("#stop").hidden = true;
+  pages.forEach(renderPage);
+}
+
+$("#go").onclick = () => {
+  const n = pdf.numPages;
+  let a = parseInt($("#from").value, 10), b = parseInt($("#to").value, 10);
+  if (!(a >= 1)) a = 1;
+  if (!(b >= 1) || b > n) b = n;
+  if (a > b) { toast("“From page” must be before “To page”."); return; }
+  const nums = [];
+  for (let i = a; i <= b; i++) if (pages[i - 1].status !== "done") nums.push(i);
+  if (!nums.length) { toast("Those pages are already translated. Use Translate again on a page to redo it."); return; }
+  runPages(nums);
+};
+$("#stop").onclick = () => ctl?.abort();
+
+/* ---------- Export ---------- */
+function combinedMd() {
+  return `# ${fileName} — English translation\n\n` + pages
+    .filter((p) => p.status === "done")
+    .map((p) => `<!-- Page ${p.num} -->\n\n${p.md}`).join("\n\n---\n\n") + "\n";
+}
+function combinedHtml() {
+  const body = pages.filter((p) => p.status === "done")
+    .map((p) => `<section><p class="pg">Page ${p.num}</p>${renderMd(p.md).replace(/<div class="tbl">/g, "").replace(/<\/table><\/div>/g, "</table>")}</section>`).join("\n");
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(fileName)} — English translation</title>
+<style>body{font-family:Georgia,"Times New Roman",serif;max-width:780px;margin:40px auto;padding:0 20px;line-height:1.55;color:#111}
+h1,h2,h3,h4{line-height:1.25}table{border-collapse:collapse;width:100%;font-size:0.92em;margin:0.6em 0}
+th,td{border:1px solid #999;padding:4px 7px;text-align:left;vertical-align:top}th{background:#eee}
+.pg{font-family:Arial,sans-serif;font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.08em;border-top:1px solid #ccc;padding-top:8px;margin-top:28px}</style>
+</head><body><h1>${esc(fileName)} — English translation</h1>${body}</body></html>`;
+}
+function download(filename, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+$("#exMd").onclick = () => download(`${fileName} - English.md`, combinedMd(), "text/markdown;charset=utf-8");
+$("#exHtml").onclick = () => download(`${fileName} - English.html`, combinedHtml(), "text/html;charset=utf-8");
+$("#copyAll").onclick = () => copyText(combinedMd());
+
+/* ---------- File input & zoom ---------- */
+$("#fileIn").addEventListener("change", (e) => loadFile(e.target.files[0]));
+const drop = $("#drop");
+["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
+async function openZoom(num) {
+  const c = await renderCanvas(num, 1400);
+  $("#zoomImg").src = c.toDataURL("image/jpeg", 0.85);
+  $("#zoom").showModal();
+}
+$("#zoom").addEventListener("click", () => $("#zoom").close());
+
+/* ---------- Boot ---------- */
+renderExample();
+(async () => {
+  apiKey = store.get(KEY_STORE);
+  showKeyState();
+  if (!apiKey) return;
+  try { fillModels(await loadModels()); }
+  catch (e) {
+    if (keyProblem(e)) { apiKey = ""; store.del(KEY_STORE); showKeyState(); toast("Your saved code no longer works. Please add it again."); }
+    else fillModels([]);
+  }
+})();
+</script>
+</body>
+</html>
