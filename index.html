@@ -558,21 +558,21 @@ async function textLayer(num) {
 function buildPrompt(num, hint, tall) {
   const subject = $("#subject").value.trim();
   const terms = {
-    explain: "Keep Indian / Sanskrit technical terms in standard roman transliteration and add a short English meaning in parentheses the first time each appears on the page, e.g. Alaap (slow melodic introduction), Taal (rhythmic cycle). Use consistent spellings: Raag, Taal, Teentaal, Ektaal, Jhaptaal, Khayal, Dhrupad, Thaat, Swar, Sargam, Aroh, Avroh, Pakad, Matra, Bol, Theka, Laya, Dugun, Tigun, Chaugun.",
-    keep: "Keep Indian / Sanskrit technical terms in standard roman transliteration without explanation (e.g. Raag, Taal, Alaap, Thaat, Aroh, Avroh, Pakad).",
-    translate: "Translate technical terms into their closest English equivalents; keep proper names of ragas, talas and compositions transliterated.",
+    explain: "Technical or culture-specific terms that have no exact English equivalent (in any field: music, law, religion, medicine, administration, etc.): keep the term in standard roman transliteration and add a short English meaning in parentheses the first time it appears on the page, e.g. Panchayat (village council), Raag (melodic framework). Spell each term the same way every time.",
+    keep: "Technical or culture-specific terms that have no exact English equivalent: keep them in standard roman transliteration without explanation, spelled the same way every time.",
+    translate: "Translate technical terms into their closest plain English equivalents; keep proper names (people, places, works, institutions) transliterated.",
   }[$("#terms").value];
   const layout = $("#layout").value === "bi"
     ? "Write the output bilingually: for every heading, list item, paragraph and table cell group, first give the original Hindi text exactly as printed (in Devanagari), then the English translation on the next line in italics. Keep the Markdown structure."
     : "Write only the English translation.";
   return [
-    `Translate page ${num} of ${pdf.numPages} of a Hindi syllabus document into English.`,
+    `Translate page ${num} of ${pdf.numPages} of a Hindi document into English.`,
     `The page is attached as two overlapping images (${tall ? "top part first, then bottom part" : "left part first, then right part"}). Text in the overlapping strip appears in both: include it only once.`,
-    subject ? `Subject of the syllabus: ${subject}.` : "",
+    subject ? `Subject or type of the document: ${subject}.` : "",
     "",
     "Rules:",
-    "- Read every piece of Hindi (Devanagari) text on the page: titles, headings, numbering, units, marks, credits, time allotments, tables, notes and footnotes.",
-    "- Translate faithfully into clear, correct academic English. Do not summarise, skip, reorder or add content.",
+    "- Read every piece of Hindi (Devanagari) text on the page: titles, headings, numbering, paragraphs, lists, tables, captions, notes and footnotes.",
+    "- Translate faithfully into clear, natural English that matches the tone of the original (formal for official or academic text, plain for everyday text). Do not summarise, skip, reorder or add content.",
     "- Keep the structure in Markdown: # / ## / ### headings, numbered and bulleted lists with the original numbering, and Markdown tables for tables (same rows and columns).",
     "- Convert Devanagari digits (०१२३४५६७८९) to 0-9. Keep marks, years and numbers exactly.",
     "- Names of people, books, institutions and places: standard roman transliteration (e.g. Pt. Vishnu Narayan Bhatkhande).",
