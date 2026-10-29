@@ -195,8 +195,9 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
 
       <section class="panel">
         <span class="label">2 · Options</span>
-        <label class="field"><span>Subject (helps with terms)</span>
-          <input type="text" id="subject" placeholder="e.g. History, Law, Medicine">
+        <label class="field"><span>Subject</span>
+          <input type="text" id="subject" placeholder="e.g. Music, History, Law">
+          <small class="help">Translates with that field's own terms. Leave empty to detect it from the page.</small>
         </label>
         <label class="field"><span>Technical terms</span>
           <select id="terms">
@@ -568,7 +569,16 @@ function buildPrompt(num, hint, tall) {
   return [
     `Translate page ${num} of ${pdf.numPages} of a Hindi document into English.`,
     `The page is attached as two overlapping images (${tall ? "top part first, then bottom part" : "left part first, then right part"}). Text in the overlapping strip appears in both: include it only once.`,
-    subject ? `Subject or type of the document: ${subject}.` : "",
+    "",
+    subject
+      ? [
+          `FIELD: this is a ${subject} document. Translate it the way a subject expert in ${subject} would:`,
+          `- Use the standard English terminology that ${subject} textbooks, scholars and professionals actually use, not general everyday words.`,
+          `- When a word or phrase has several possible meanings, always choose the meaning it has in ${subject}.`,
+          `- Recognise the field's technical terms, concepts, names and works, and render them the way the ${subject} field conventionally does in English (including established transliterations).`,
+          `- Keep the field's conventions for units, notation, dates, citations and abbreviations.`,
+        ].join("\n")
+      : "FIELD: first work out the subject field of this page (e.g. music, history, law, medicine, administration) from its content, then translate it the way a subject expert in that field would: use the field's standard English terminology, and choose the field-specific meaning of any ambiguous word.",
     "",
     "Rules:",
     "- Read every piece of Hindi (Devanagari) text on the page: titles, headings, numbering, paragraphs, lists, tables, captions, notes and footnotes.",
