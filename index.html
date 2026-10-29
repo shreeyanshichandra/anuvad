@@ -121,6 +121,13 @@ button.small { font-size: 0.82rem; padding: 4px 9px; }
 .md th { background: var(--bg); font-weight: 600; }
 .md hr { border: 0; border-top: 1px solid var(--line); margin: 1em 0; }
 .placeholder { color: var(--muted); font-style: italic; font-family: var(--font-read); margin: 0; }
+.live { display: flex; align-items: center; gap: 10px; color: var(--accent); font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.live.waiting { color: var(--marigold); }
+.dots { display: inline-flex; gap: 4px; }
+.dots i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: blink 1.2s infinite ease-in-out; }
+.dots i:nth-child(2) { animation-delay: .2s; } .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: .25; transform: scale(.8); } 40% { opacity: 1; transform: scale(1); } }
+.took { font-size: 0.78rem; color: var(--muted); margin-right: auto; align-self: center; font-variant-numeric: tabular-nums; }
 .err { color: var(--bad); font-size: 0.9rem; margin: 0; }
 .trans textarea { min-height: 260px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.85rem; line-height: 1.5; resize: vertical; }
 
@@ -130,7 +137,7 @@ dialog { border: 0; padding: 0; background: transparent; max-width: min(96vw, 90
 dialog::backdrop { background: rgba(10, 10, 20, 0.7); }
 dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; border-radius: 6px; background: #fff; }
 .toast { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 6px; font-size: 0.88rem; max-width: calc(100vw - 32px); }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } .dots i { animation: none; opacity: .8; } }
 </style>
 </head>
 <body>
@@ -171,7 +178,7 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
         <div id="keyFull" hidden>
           <div style="display:grid;gap:10px">
             <div class="saved"><span>Code saved <b id="keyMask"></b></span><button class="small" id="keyRemove">Remove</button></div>
-            <label class="field"><span>AI model</span><select id="model"></select></label>
+            <label class="field"><span>AI model (speed vs. care)</span><select id="model"></select></label>
           </div>
         </div>
       </section>
@@ -248,16 +255,24 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
 <div class="toast" id="toast" hidden></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
-pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+const PDF_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+pdfjsLib.GlobalWorkerOptions.workerSrc = PDF_WORKER;
+// Run PDF parsing in a background worker so the page stays responsive while translating.
+// If the browser refuses (e.g. some file:// setups), PDF.js falls back to the main thread by itself.
+try {
+  const src = URL.createObjectURL(new Blob([`importScripts(${JSON.stringify(PDF_WORKER)});`], { type: "text/javascript" }));
+  pdfjsLib.GlobalWorkerOptions.workerPort = new Worker(src);
+} catch {}
 
 const API = "https://generativelanguage.googleapis.com/v1beta";
-const KEY_STORE = "anuvad.key", MODEL_STORE = "anuvad.model";
-const FALLBACK_MODEL = "models/gemini-flash-latest";
-const PARALLEL_PAGES = 2;
+const KEY_STORE = "anuvad.key", MODEL_STORE = "anuvad.model.v2", AVG_STORE = "anuvad.avgSec";
+const FALLBACK_MODEL = "models/gemini-flash-lite-latest";
+const MAX_PARALLEL = 3;       // pages translated at once; lowered automatically if Google's per-minute limit is hit
+let slots = MAX_PARALLEL;
+let avgSec = 20;              // learned seconds per page, for the countdown (loaded from storage at boot)
 
 let apiKey = "";
 let pdf = null, fileName = "";
@@ -283,7 +298,7 @@ function toast(msg) {
   clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 2600);
 }
 function chip(status) {
-  const map = { idle: ["Not translated", ""], working: ["Translating", "working"], done: ["Translated", "done"], failed: ["Failed", "failed"] };
+  const map = { queued: ["Waiting", ""], idle: ["Not translated", ""], working: ["Translating", "working"], done: ["Translated", "done"], failed: ["Failed", "failed"] };
   const [text, cls] = map[status];
   return `<span class="chip ${cls}">${text}</span>`;
 }
@@ -311,11 +326,12 @@ function renderPage(p) {
     el.querySelector("img").addEventListener("click", () => openZoom(p.num));
     $("#pages").appendChild(el);
   }
-  el.querySelector(".st").innerHTML = chip(p.status);
+  el.querySelector(".st").innerHTML = chip(p.status === "working" && p.phase === "queued" ? "queued" : p.status);
   const tools = el.querySelector(".tools");
   const body = el.querySelector(".body");
   tools.innerHTML = "";
   if (p.status === "done" && !p.editing) {
+    if (p.took) { const t = document.createElement("span"); t.className = "took"; t.textContent = `Translated in ${fmtTime(p.took)}`; tools.append(t); }
     tools.append(btn("Edit", () => { p.editing = true; renderPage(p); }));
     tools.append(btn("Copy", () => copyText(p.md)));
   }
@@ -330,7 +346,8 @@ function renderPage(p) {
   } else if (p.status === "done") {
     body.innerHTML = `<div class="md">${renderMd(p.md)}</div>`;
   } else if (p.status === "working") {
-    body.innerHTML = p.md ? `<div class="md">${renderMd(p.md)}</div>` : `<p class="placeholder">${esc(p.waitMsg || "Reading the page…")}</p>`;
+    body.innerHTML = (p.md ? `<div class="md">${renderMd(p.md)}</div>` : "") +
+      `<div class="live${p.phase === "wait" ? " waiting" : ""}"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="live-text">${esc(liveText(p))}</span></div>`;
   } else if (p.status === "failed") {
     body.innerHTML = (p.md ? `<div class="md">${renderMd(p.md)}</div>` : "") + `<p class="err">${esc(p.error || "Translation failed.")}</p>`;
   } else {
@@ -380,18 +397,19 @@ function keyProblem(e) {
   return null;
 }
 
-// Prefer the newest stable Flash model: fast, good at reading images, and the most generous on the free plan.
+// Fastest first: stable Flash-Lite (barely thinks, quick to answer), then Flash, then Pro; newest version first within each.
 function rankModels(models) {
   const usable = models.filter((m) =>
     (m.supportedGenerationMethods || []).includes("generateContent") &&
     /^models\/gemini-[\d.]+-(flash|pro)/.test(m.name) &&
-    !/(tts|image|audio|live|embedding|thinking|exp)/.test(m.name));
+    !/(tts|image|audio|live|embedding|thinking|exp|transcribe|robotics)/.test(m.name));
   const ver = (n) => parseFloat((n.match(/gemini-([\d.]+)/) || [])[1] || 0);
-  const score = (m) => {
-    const n = m.name;
-    return ver(n) * 100 + (/-flash$/.test(n) ? 30 : /-flash/.test(n) ? 10 : 0) + (/preview/.test(n) ? -50 : 0) + (/lite/.test(n) ? -15 : 0) + (/-pro/.test(n) ? 5 : 0);
-  };
-  return usable.sort((a, b) => score(b) - score(a));
+  const tier = (n) => /flash-lite/.test(n) ? 0 : /flash/.test(n) ? 1 : 2;
+  return usable.sort((a, b) =>
+    (/preview/.test(a.name) - /preview/.test(b.name)) || (tier(a.name) - tier(b.name)) || (ver(b.name) - ver(a.name)));
+}
+function speedLabel(name) {
+  return /flash-lite/.test(name) ? "fastest" : /flash/.test(name) ? "more careful, slower" : "most careful, slowest";
 }
 
 async function loadModels() {
@@ -404,8 +422,8 @@ async function loadModels() {
 function fillModels(models) {
   const sel = $("#model");
   const saved = store.get(MODEL_STORE);
-  const list = models.length ? models : [{ name: FALLBACK_MODEL, displayName: "Gemini Flash (latest)" }];
-  sel.innerHTML = list.map((m, i) => `<option value="${esc(m.name)}">${esc(m.displayName || m.name.replace("models/", ""))}${i === 0 ? " (recommended)" : ""}</option>`).join("");
+  const list = models.length ? models : [{ name: FALLBACK_MODEL, displayName: "Gemini Flash-Lite (latest)" }];
+  sel.innerHTML = list.map((m, i) => `<option value="${esc(m.name)}">${esc(m.displayName || m.name.replace("models/", ""))} · ${speedLabel(m.name)}${i === 0 ? " (recommended)" : ""}</option>`).join("");
   if (saved && list.some((m) => m.name === saved)) sel.value = saved;
 }
 
@@ -479,6 +497,7 @@ async function loadFile(file) {
 async function makeThumbs(doc) {
   for (const p of pages) {
     if (pdf !== doc) return;
+    if (running) await sleep(150);   // give translation the main thread first
     try {
       const canvas = await renderCanvas(p.num, 360);
       if (pdf !== doc) return;
@@ -577,12 +596,13 @@ function thinkingFor(model) {
   if (thinkingUnsupported.has(model)) return null;
   if (/gemini-2\.5-flash/.test(model)) return { thinkingBudget: 0 };
   if (/gemini-2\.5-pro/.test(model)) return { thinkingBudget: 128 };
+  if (/gemini-[3-9].*flash-lite/.test(model)) return { thinkingLevel: "minimal" };
   if (/gemini-[3-9]/.test(model)) return { thinkingLevel: "low" };
   return null;
 }
 
 // Streams one Gemini answer; calls onText with the whole text so far.
-async function gemini(prompt, images, signal, onText) {
+async function gemini(prompt, images, signal, onText, onReading) {
   const model = $("#model").value;
   const thinking = thinkingFor(model);
   const body = {
@@ -597,7 +617,7 @@ async function gemini(prompt, images, signal, onText) {
     // A model that rejects the thinking setting: remember that and ask again without it.
     if (thinking && e.status === 400 && /think/i.test(e.message)) {
       thinkingUnsupported.add(model);
-      return gemini(prompt, images, signal, onText);
+      return gemini(prompt, images, signal, onText, onReading);
     }
     const kp = keyProblem(e);
     if (kp) throw new RunError(kp, { stopAll: true });
@@ -606,6 +626,7 @@ async function gemini(prompt, images, signal, onText) {
     if (e.status >= 500) throw new RunError("Google's service had a hiccup. Translate this page again.");
     throw new RunError(`Google said: ${e.message}`);
   }
+  onReading?.();
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   let buf = "", text = "", finish = "", blocked = "";
@@ -632,18 +653,69 @@ async function gemini(prompt, images, signal, onText) {
   return { text, truncated: finish === "MAX_TOKENS" };
 }
 
+/* ---------- Live activity and countdown ---------- */
+function fmtTime(sec) {
+  sec = Math.max(0, Math.round(sec));
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return s ? `${m} min ${s}s` : `${m} min`;
+}
+// Seconds left for one page that is being worked on.
+function pageLeft(p) {
+  if (p.phase === "wait") return (p.waitUntil - Date.now()) / 1000 + avgSec;
+  const elapsed = p.tSend ? (Date.now() - p.tSend) / 1000 : 0;
+  return Math.max(avgSec - elapsed, 2);
+}
+function liveText(p) {
+  const now = Date.now();
+  if (p.phase === "wait") return `Google's free per-minute limit was reached. Continuing in ${fmtTime((p.waitUntil - now) / 1000)}…`;
+  if (p.phase === "queued") return "Waiting for a free slot…";
+  if (p.phase === "prep") return "Preparing the page image…";
+  const elapsed = p.tSend ? (now - p.tSend) / 1000 : 0;
+  if (p.phase === "write") return `Writing the translation… ${fmtTime(elapsed)}`;
+  const left = avgSec - elapsed;
+  const step = p.phase === "send" ? "Sending the page to Google" : "Google is reading the page";
+  return left > 1 ? `${step}… about ${fmtTime(left)} left` : `${step}… almost done (taking a little longer than usual)`;
+}
+function updateLive() {
+  for (const p of pages) {
+    if (p.status !== "working") continue;
+    const el = document.querySelector(`#pg${p.num} .live-text`);
+    if (el) el.textContent = liveText(p);
+  }
+  if (!running || !runState) return;
+  const { total, queue } = runState;
+  const busy = pages.filter((p) => p.status === "working" && p.phase !== "queued");
+  const done = total - queue.length - busy.length;
+  const inflight = busy.map(pageLeft);
+  const left = Math.max(0, ...inflight) + (queue.length * avgSec) / Math.max(slots, 1);
+  $("#status").textContent = `Translating · ${Math.max(done, 0)} of ${total} pages done · about ${fmtTime(left)} left`;
+  $("#barFill").style.width = (Math.max(done, 0) / total * 100) + "%";
+}
+let runState = null;
+setInterval(updateLive, 1000);
+
+function learnSpeed(sec) {
+  avgSec = avgSec * 0.5 + sec * 0.5;
+  store.set(AVG_STORE, avgSec.toFixed(1));
+}
+
 async function translateOne(p) {
-  p.status = "working"; p.md = ""; p.error = ""; p.waitMsg = ""; renderPage(p);
+  p.status = "working"; p.md = ""; p.error = ""; p.phase = "prep"; p.tSend = 0; p.took = 0; renderPage(p);
   const { parts, tall } = await pageImages(p.num);
   const prompt = buildPrompt(p.num, await textLayer(p.num), tall);
   let last = 0;
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
+      p.phase = "send"; p.tSend = Date.now(); renderPage(p);
       const res = await gemini(prompt, parts, ctl.signal, (text) => {
         p.md = text;
+        if (p.phase !== "write") { p.phase = "write"; last = 0; }
         const now = Date.now();
         if (now - last > 250) { last = now; renderPage(p); }
-      });
+      }, () => { p.phase = "read"; updateLive(); });
+      p.took = (Date.now() - p.tSend) / 1000;
+      learnSpeed(p.took);
       p.md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
       p.status = res.truncated ? "failed" : "done";
       if (res.truncated) p.error = "The answer was cut short. Translate this page again.";
@@ -654,17 +726,13 @@ async function translateOne(p) {
         p.status = p.md ? "failed" : "idle"; p.error = "Stopped."; renderPage(p);
         return "cancelled";
       }
-      // Free plan per-minute limit: wait once, then try again.
-      if (e.rate && attempt === 0) {
-        const wait = Math.min(Math.max(Math.ceil(e.rate), 10), 70);
-        for (let s = wait; s > 0; s--) {
-          if (ctl.signal.aborted) break;
-          p.waitMsg = `Google's free per-minute limit was reached. Trying again in ${s}s…`;
-          p.md = ""; renderPage(p);
-          await sleep(1000);
-        }
+      // Free plan per-minute limit: run fewer pages at once, wait, then try again.
+      if (e.rate && attempt < 2) {
+        slots = Math.max(1, slots - 1);
+        const wait = Math.min(Math.max(Math.ceil(e.rate), 5), 70);
+        p.phase = "wait"; p.waitUntil = Date.now() + wait * 1000; p.md = ""; renderPage(p);
+        while (Date.now() < p.waitUntil && !ctl.signal.aborted) await sleep(250);
         if (ctl.signal.aborted) { p.status = "idle"; renderPage(p); return "cancelled"; }
-        p.waitMsg = "";
         continue;
       }
       p.status = "failed";
@@ -678,27 +746,30 @@ async function translateOne(p) {
 
 async function runPages(nums) {
   if (!apiKey || !pdf || running) return;
-  running = true; ctl = new AbortController();
+  running = true; ctl = new AbortController(); slots = MAX_PARALLEL;
   $("#stop").hidden = false; $("#prog").hidden = false; $("#runMsg").hidden = true;
-  pages.forEach(renderPage);
   const queue = [...nums];
-  let done = 0, halt = "";
-  const progress = () => {
-    $("#status").textContent = `Translating · ${done} of ${nums.length} pages done`;
-    $("#barFill").style.width = (done / nums.length * 100) + "%";
-  };
-  // Translate a few pages at once; stays within the free plan's per-minute limit.
+  for (const n of nums) { const p = pages[n - 1]; p.status = "working"; p.phase = "queued"; p.md = ""; p.error = ""; }
+  pages.forEach(renderPage);
+  runState = { total: nums.length, queue };
+  let done = 0, halt = "", active = 0;
+  // Several pages at once; if Google's per-minute limit is hit, `slots` drops and extra workers stop.
   async function worker() {
-    while (queue.length && !ctl.signal.aborted && !halt) {
+    active++;
+    while (queue.length && !ctl.signal.aborted && !halt && active <= slots) {
       const n = queue.shift();
       const code = await translateOne(pages[n - 1]);
-      if (code === "cancelled") return;
-      done++; progress();
+      if (code === "cancelled") break;
+      done++; updateLive();
       if (code === "stop" && !halt) halt = pages[n - 1].error;
     }
+    active--;
   }
-  progress();
-  await Promise.all(Array.from({ length: Math.min(PARALLEL_PAGES, nums.length) }, worker));
+  updateLive();
+  await Promise.all(Array.from({ length: Math.min(slots, nums.length) }, worker));
+  // Pages still queued after a stop or halt go back to "not translated".
+  for (const n of queue) { const p = pages[n - 1]; if (p.status === "working") { p.status = "idle"; renderPage(p); } }
+  runState = null;
   if (halt) {
     $("#runMsg").textContent = halt;
     $("#runMsg").className = "notice bad"; $("#runMsg").hidden = false;
@@ -768,6 +839,7 @@ $("#zoom").addEventListener("click", () => $("#zoom").close());
 /* ---------- Boot ---------- */
 renderEmpty();
 (async () => {
+  avgSec = parseFloat(store.get(AVG_STORE)) || 20;
   apiKey = store.get(KEY_STORE);
   showKeyState();
   if (!apiKey) return;
