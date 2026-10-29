@@ -76,3 +76,8 @@ No install needed. Download `index.html` and open it in Chrome, Edge or Firefox.
 2. Go to **Settings → Pages**.
 3. Under **Branch**, choose `main` and `/ (root)`, then click **Save**.
 4. After a minute your app is live at `https://shreeyanshichandra.github.io/anuvad/`.
+
+## License
+
+© 2026 Shreeyanshi Chandra. All rights reserved.
+This code may not be copied, modified or redistributed without permission.
