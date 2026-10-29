@@ -4,7 +4,7 @@
 
 Upload a Hindi syllabus, pick the pages, and Anuvad gives you an English version that keeps the headings, numbered units, marks and tables of the original. Edit anything you want, then download it as a Word-ready `.html` file or as Markdown.
 
-**▶ Try it:** `https://<your-github-username>.github.io/anuvad/` *(replace with your link once GitHub Pages is on)*
+**▶ Try it:** https://shreeyanshichandra.github.io/anuvad/
 
 ---
 
@@ -75,4 +75,4 @@ No install needed. Download `index.html` and open it in Chrome, Edge or Firefox.
 1. Push this repository to GitHub.
 2. Go to **Settings → Pages**.
 3. Under **Branch**, choose `main` and `/ (root)`, then click **Save**.
-4. After a minute your app is live at `https://<your-github-username>.github.io/anuvad/`.
+4. After a minute your app is live at `https://shreeyanshichandra.github.io/anuvad/`.
