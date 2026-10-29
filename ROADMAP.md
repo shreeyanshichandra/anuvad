@@ -20,22 +20,11 @@ Anuvad stays a website that opens from a link. It is not an installable app.
 - Download as `.html` (opens in Word) or `.md`; copy all
 - Free: each user adds their own Google (Gemini) access code, with a step-by-step guide
 
----
+## ✅ v1.1: done (live now)
 
-## Next: v1.1 (small additions to the current version)
-
-### Optional word limit
-An optional field where the user can set how long the translation should be, for example *"about 300 words"*, per page or for the whole document.
-
-- **Optional:** left empty, Anuvad translates everything in full, as now.
-- When set, the translation is condensed to fit the limit, but **the gist and the subject matter must not be lost**:
-  - keep every main point, argument and conclusion,
-  - keep key facts, names, dates, numbers and technical terms,
-  - keep the original order and structure (headings stay headings),
-  - drop only repetition, examples and minor detail, never core content,
-  - use the subject's terminology (works together with the Subject field).
-- Shows the actual word count next to each page and for the whole document.
-- Choice of **per page** or **whole document**. For the whole document, the limit is shared across pages in proportion to how much text each page has.
+- **Optional word limit:** condense the English to about N words, **per page** or **in total**, without losing the gist or the subject matter (main points, key facts, names, numbers and subject terms are kept; only repetition and minor detail are dropped). For "in total", the limit is shared across pages by how much text each has. Left empty, everything is translated in full.
+- **Word counts** next to each page and in total
+- **Download as PDF:** uses the browser's own "Save as PDF", so text stays selectable and every script renders correctly
 
 ---
 

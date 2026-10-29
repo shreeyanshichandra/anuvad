@@ -2,7 +2,7 @@
 
 **Translate Hindi PDFs into clean, structured English — free, right in your browser.**
 
-Upload a Hindi PDF (a book, syllabus, notice, letter or form), pick the pages, and Anuvad gives you an English version that keeps the headings, lists and tables of the original. Edit anything you want, then download it as a Word-ready `.html` file or as Markdown.
+Upload a Hindi PDF (a book, syllabus, notice, letter or form), pick the pages, and Anuvad gives you an English version that keeps the headings, lists and tables of the original. Edit anything you want, then download it as a PDF, a Word-ready `.html` file or Markdown.
 
 **▶ Try it:** https://shreeyanshichandra.github.io/anuvad/
 
@@ -29,9 +29,11 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
 - **Live progress**: each page shows what is happening (preparing, reading, writing) with a countdown, plus an overall time-left estimate that learns from real page times
 - **Keeps the structure**: headings, numbered lists, line breaks and tables; skips the book's printed page numbers and running headers
 - **Subject-aware terms**: keep terms like *Panchayat* or *Raag* with an English meaning, keep them as they are, or fully translate them
+- **Subject field**: type the subject (music, history, law…) and it translates with that field's own English terminology; left empty, it works out the field from the page
+- **Optional word limit**: condense the English to about N words, per page or in total, while keeping every main point, key fact, name, number and subject term. Word counts are shown per page and in total
 - **Bilingual mode**: each Hindi line followed by its English translation, handy for checking
 - **Edit, copy or redo** any page
-- **Export** to `.html` (opens in Word, or save it as PDF) or `.md`
+- **Download** as **PDF**, `.html` (opens in Word) or `.md`, or copy everything
 - **Private by design**: no server and no sign-up. Your PDF and access code stay in your browser and go only to Google for the translation.
 
 ## How to use it
@@ -59,7 +61,7 @@ No card or payment is needed. The code is remembered on your device, so you only
 PDF ──▶ PDF.js renders each page to an image (split into two overlapping halves so small Devanagari stays sharp)
      ──▶ Gemini reads the Hindi from the images and translates it, keeping the layout as Markdown
      ──▶ the answer streams back as Markdown and is shown with marked.js
-     ──▶ export as .html or .md
+     ──▶ export as PDF (the browser's own Save as PDF), .html or .md
 ```
 
 The PDF's own text layer is sent along as a hint for numbers and spellings, but the images are treated as the source of truth.

@@ -51,6 +51,7 @@ header p { margin: 0; color: var(--muted); max-width: 62ch; }
 .panel.key-needed { border-color: var(--marigold); box-shadow: 0 0 0 3px var(--marigold-soft); }
 .label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
 .help { font-size: 0.86rem; color: var(--muted); margin: 0; }
+.opt { font-weight: 400; color: var(--muted); }
 
 .steps { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; font-size: 0.88rem; }
 .steps b { font-weight: 600; }
@@ -212,6 +213,17 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
             <option value="bi">Hindi line, then English</option>
           </select>
         </label>
+        <div class="field">
+          <span>Word limit <span class="opt">(optional)</span></span>
+          <div class="row2">
+            <input type="text" inputmode="numeric" id="limit" placeholder="e.g. 300" aria-label="Word limit">
+            <select id="limitScope" aria-label="Word limit applies to">
+              <option value="page">per page</option>
+              <option value="doc">in total</option>
+            </select>
+          </div>
+          <small class="help">Condenses the English to about this many words, keeping the main points, facts and subject terms. Leave empty for a full translation.</small>
+        </div>
         <div class="row2">
           <label class="field"><span>From page</span><input type="text" inputmode="numeric" id="from" value="1"></label>
           <label class="field"><span>To page</span><input type="text" inputmode="numeric" id="to" value=""></label>
@@ -235,11 +247,13 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
       <section class="panel">
         <span class="label">4 · Export</span>
         <div class="btns">
+          <button id="exPdf" class="primary" disabled>Download PDF</button>
           <button id="exHtml" disabled>Download .html</button>
           <button id="exMd" disabled>Download .md</button>
           <button id="copyAll" disabled>Copy all</button>
         </div>
-        <p class="help">The .html file opens in Word or a browser, where you can print or save it as PDF.</p>
+        <p class="help">PDF: in the window that opens, choose <b>Save as PDF</b> as the printer. The .html file opens in Word.</p>
+        <p class="status" id="wordTotal" hidden></p>
       </section>
     </aside>
 
@@ -332,7 +346,11 @@ function renderPage(p) {
   const body = el.querySelector(".body");
   tools.innerHTML = "";
   if (p.status === "done" && !p.editing) {
-    if (p.took) { const t = document.createElement("span"); t.className = "took"; t.textContent = `Translated in ${fmtTime(p.took)}`; tools.append(t); }
+    if (p.took) {
+      const t = document.createElement("span"); t.className = "took";
+      t.textContent = `Translated in ${fmtTime(p.took)}` + (p.words ? ` · ${p.words.toLocaleString()} words${p.limit ? ` (limit ${p.limit})` : ""}` : "");
+      tools.append(t);
+    }
     tools.append(btn("Edit", () => { p.editing = true; renderPage(p); }));
     tools.append(btn("Copy", () => copyText(p.md)));
   }
@@ -364,7 +382,12 @@ function btn(label, fn) {
 
 function updateButtons() {
   const any = pages.some((p) => p.status === "done");
+  $("#exPdf").disabled = !any;
   $("#exHtml").disabled = !any;
+  const done = pages.filter((p) => p.status === "done");
+  const words = done.reduce((x, p) => x + countWords(p.md), 0);
+  $("#wordTotal").hidden = !done.length;
+  $("#wordTotal").textContent = `${done.length} page${done.length === 1 ? "" : "s"} translated · ${words.toLocaleString()} English words`;
   $("#exMd").disabled = !any;
   $("#copyAll").disabled = !any;
   $("#go").disabled = !pdf || !apiKey || running;
@@ -555,8 +578,50 @@ async function textLayer(num) {
   } catch { return ""; }
 }
 
+/* ---------- Word limit ---------- */
+// Optional: condense the English to about N words without losing the gist or the subject matter.
+function lengthRules(limit) {
+  return [
+    `LENGTH: the reader wants a condensed English version of this page of about ${limit} words (stay within 10% of that; never go more than 10% over).`,
+    "Condense, don't cut. The gist and the subject matter must not be lost:",
+    "- Keep every main point, argument and conclusion of the page.",
+    "- Keep the key facts, names, dates, numbers and technical terms (in the field's terminology).",
+    "- Keep the original order, and keep headings as headings.",
+    "- Drop only repetition, extra examples and minor detail; merge sentences where that helps.",
+    "- Never add information, explanations or opinions that aren't on the page.",
+    "- If a full translation would already be shorter than the limit, translate the page in full instead.",
+    "- The limit counts only the English words (in bilingual output, the Hindi lines are kept in full and do not count).",
+  ].join("\n");
+}
+
+// Word limit for each page in this run, or null for a full translation.
+async function wordBudgets(nums) {
+  const n = parseInt($("#limit").value.replace(/[^0-9]/g, ""), 10);
+  const budgets = new Map();
+  if (!(n > 0)) { nums.forEach((k) => budgets.set(k, null)); return budgets; }
+  if ($("#limitScope").value === "page") { nums.forEach((k) => budgets.set(k, n)); return budgets; }
+  // Whole document: share the limit across the From–To pages by how much text each one has.
+  let a = parseInt($("#from").value, 10) || 1, b = parseInt($("#to").value, 10) || pdf.numPages;
+  a = Math.max(1, Math.min(a, pdf.numPages)); b = Math.max(a, Math.min(b, pdf.numPages));
+  const range = new Set(nums);
+  for (let i = a; i <= b; i++) range.add(i);
+  const weights = new Map();
+  for (const k of range) weights.set(k, (await textLayer(k)).replace(/\s/g, "").length);
+  const known = [...weights.values()].filter((w) => w > 0);
+  const fallback = known.length ? known.reduce((x, y) => x + y, 0) / known.length : 1;
+  for (const [k, w] of weights) if (!w) weights.set(k, fallback);
+  const total = [...weights.values()].reduce((x, y) => x + y, 0);
+  nums.forEach((k) => budgets.set(k, Math.max(30, Math.round(n * weights.get(k) / total))));
+  return budgets;
+}
+
+// Counts English words only (Devanagari lines in bilingual output are not counted).
+function countWords(md) {
+  return (md.replace(/[#*_>|\-\[\]()`]/g, " ").match(/[A-Za-z0-9][A-Za-z0-9'’.,]*/g) || []).length;
+}
+
 /* ---------- Translation ---------- */
-function buildPrompt(num, hint, tall) {
+function buildPrompt(num, hint, tall, limit) {
   const subject = $("#subject").value.trim();
   const terms = {
     explain: "Technical or culture-specific terms that have no exact English equivalent (in any field: music, law, religion, medicine, administration, etc.): keep the term in standard roman transliteration and add a short English meaning in parentheses the first time it appears on the page, e.g. Panchayat (village council), Raag (melodic framework). Spell each term the same way every time.",
@@ -579,10 +644,13 @@ function buildPrompt(num, hint, tall) {
           `- Keep the field's conventions for units, notation, dates, citations and abbreviations.`,
         ].join("\n")
       : "FIELD: first work out the subject field of this page (e.g. music, history, law, medicine, administration) from its content, then translate it the way a subject expert in that field would: use the field's standard English terminology, and choose the field-specific meaning of any ambiguous word.",
+    limit ? "\n" + lengthRules(limit) : "",
     "",
     "Rules:",
     "- Read every piece of Hindi (Devanagari) text on the page: titles, headings, numbering, paragraphs, lists, tables, captions, notes and footnotes.",
-    "- Translate faithfully into clear, natural English that matches the tone of the original (formal for official or academic text, plain for everyday text). Do not summarise, skip, reorder or add content.",
+    limit
+      ? "- Translate faithfully into clear, natural English that matches the tone of the original (formal for official or academic text, plain for everyday text). Never add content or change the meaning."
+      : "- Translate faithfully into clear, natural English that matches the tone of the original (formal for official or academic text, plain for everyday text). Do not summarise, skip, reorder or add content.",
     "- Keep the structure in Markdown: # / ## / ### headings, numbered and bulleted lists with the original numbering, and Markdown tables for tables (same rows and columns).",
     "- Convert Devanagari digits (०१२३४५६७८९) to 0-9. Keep marks, years and numbers exactly.",
     "- Names of people, books, institutions and places: standard roman transliteration (e.g. Pt. Vishnu Narayan Bhatkhande).",
@@ -711,10 +779,10 @@ function learnSpeed(sec) {
   store.set(AVG_STORE, avgSec.toFixed(1));
 }
 
-async function translateOne(p) {
-  p.status = "working"; p.md = ""; p.error = ""; p.phase = "prep"; p.tSend = 0; p.took = 0; renderPage(p);
+async function translateOne(p, limit = null) {
+  p.status = "working"; p.md = ""; p.error = ""; p.phase = "prep"; p.tSend = 0; p.took = 0; p.limit = limit; renderPage(p);
   const { parts, tall } = await pageImages(p.num);
-  const prompt = buildPrompt(p.num, await textLayer(p.num), tall);
+  const prompt = buildPrompt(p.num, await textLayer(p.num), tall, limit);
   let last = 0;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -728,6 +796,7 @@ async function translateOne(p) {
       p.took = (Date.now() - p.tSend) / 1000;
       learnSpeed(p.took);
       p.md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
+      p.words = countWords(p.md);
       p.status = res.truncated ? "failed" : "done";
       if (res.truncated) p.error = "The answer was cut short. Translate this page again.";
       renderPage(p);
@@ -763,13 +832,14 @@ async function runPages(nums) {
   for (const n of nums) { const p = pages[n - 1]; p.status = "working"; p.phase = "queued"; p.md = ""; p.error = ""; }
   pages.forEach(renderPage);
   runState = { total: nums.length, queue };
+  const budgets = await wordBudgets(nums);
   let done = 0, halt = "", active = 0;
   // Several pages at once; if Google's per-minute limit is hit, `slots` drops and extra workers stop.
   async function worker() {
     active++;
     while (queue.length && !ctl.signal.aborted && !halt && active <= slots) {
       const n = queue.shift();
-      const code = await translateOne(pages[n - 1]);
+      const code = await translateOne(pages[n - 1], budgets.get(n));
       if (code === "cancelled") break;
       done++; updateLive();
       if (code === "stop" && !halt) halt = pages[n - 1].error;
@@ -821,6 +891,8 @@ function combinedHtml() {
 <style>body{font-family:Georgia,"Times New Roman",serif;max-width:780px;margin:40px auto;padding:0 20px;line-height:1.55;color:#111}
 h1,h2,h3,h4{line-height:1.25}table{border-collapse:collapse;width:100%;font-size:0.92em;margin:0.6em 0}
 th,td{border:1px solid #999;padding:4px 7px;text-align:left;vertical-align:top}th{background:#eee}
+body{font-family:Georgia,"Times New Roman","Nirmala UI","Mangal",serif}
+@page{margin:18mm}@media print{body{margin:0;max-width:none;padding:0}table,tr{break-inside:avoid}h1,h2,h3{break-after:avoid}}
 .pg{font-family:Arial,sans-serif;font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.08em;border-top:1px solid #ccc;padding-top:8px;margin-top:28px}</style>
 </head><body><h1>${esc(fileName)} — English translation</h1>${body}</body></html>`;
 }
@@ -833,6 +905,25 @@ function download(filename, text, type) {
 $("#exMd").onclick = () => download(`${fileName} - English.md`, combinedMd(), "text/markdown;charset=utf-8");
 $("#exHtml").onclick = () => download(`${fileName} - English.html`, combinedHtml(), "text/html;charset=utf-8");
 $("#copyAll").onclick = () => copyText(combinedMd());
+// PDF: the browser's own "Save as PDF" keeps text selectable and renders every script (Devanagari included) correctly.
+$("#exPdf").onclick = () => {
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
+  frame.srcdoc = combinedHtml();
+  frame.onload = () => {
+    const prevTitle = document.title;
+    document.title = `${fileName} - English`;   // suggested PDF file name
+    setTimeout(() => {
+      try { frame.contentWindow.focus(); frame.contentWindow.print(); }
+      catch { toast("Couldn't open the print window. Download .html and print it from your browser instead."); }
+      document.title = prevTitle;
+      setTimeout(() => frame.remove(), 1000);
+    }, 100);
+  };
+  document.body.appendChild(frame);
+  toast("Choose “Save as PDF” as the printer, then click Save.");
+};
 
 /* ---------- File input & zoom ---------- */
 $("#fileIn").addEventListener("change", (e) => loadFile(e.target.files[0]));
