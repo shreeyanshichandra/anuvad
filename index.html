@@ -256,7 +256,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs
 
 const API = "https://generativelanguage.googleapis.com/v1beta";
 const KEY_STORE = "anuvad.key", MODEL_STORE = "anuvad.model";
-const FALLBACK_MODEL = "models/gemini-2.5-flash";
+const FALLBACK_MODEL = "models/gemini-flash-latest";
+const PARALLEL_PAGES = 2;
 
 let apiKey = "";
 let pdf = null, fileName = "";
@@ -301,7 +302,7 @@ function renderPage(p) {
     el.innerHTML = `
       <div class="orig">
         <div class="pnum"><span>Page ${p.num}</span><span class="st"></span></div>
-        <img alt="Page ${p.num} of the original PDF" src="${p.thumb}">
+        <img alt="Page ${p.num} of the original PDF" ${p.thumb ? `src="${p.thumb}"` : "hidden"}>
       </div>
       <div class="trans">
         <div class="tools"></div>
@@ -403,7 +404,7 @@ async function loadModels() {
 function fillModels(models) {
   const sel = $("#model");
   const saved = store.get(MODEL_STORE);
-  const list = models.length ? models : [{ name: FALLBACK_MODEL, displayName: "Gemini 2.5 Flash" }];
+  const list = models.length ? models : [{ name: FALLBACK_MODEL, displayName: "Gemini Flash (latest)" }];
   sel.innerHTML = list.map((m, i) => `<option value="${esc(m.name)}">${esc(m.displayName || m.name.replace("models/", ""))}${i === 0 ? " (recommended)" : ""}</option>`).join("");
   if (saved && list.some((m) => m.name === saved)) sel.value = saved;
 }
@@ -467,11 +468,25 @@ async function loadFile(file) {
   $("#from").value = 1; $("#to").value = pdf.numPages;
   pages = []; $("#pages").innerHTML = "";
   for (let i = 1; i <= pdf.numPages; i++) {
-    const canvas = await renderCanvas(i, 360);
-    const p = { num: i, thumb: canvas.toDataURL("image/jpeg", 0.75), status: "idle", md: "" };
+    const p = { num: i, thumb: "", status: "idle", md: "" };
     pages.push(p); renderPage(p);
   }
   updateButtons();
+  makeThumbs(pdf);
+}
+
+// Previews fill in the background, so translation can start straight away.
+async function makeThumbs(doc) {
+  for (const p of pages) {
+    if (pdf !== doc) return;
+    try {
+      const canvas = await renderCanvas(p.num, 360);
+      if (pdf !== doc) return;
+      p.thumb = canvas.toDataURL("image/jpeg", 0.75);
+      const img = document.querySelector(`#pg${p.num} img`);
+      if (img) { img.src = p.thumb; img.hidden = false; }
+    } catch {}
+  }
 }
 
 async function renderCanvas(num, longSide) {
@@ -487,11 +502,11 @@ async function renderCanvas(num, longSide) {
   await page.render({ canvasContext: ctx, viewport: vp, intent: "print" }).promise;
   return canvas;
 }
-const toB64 = (c) => c.toDataURL("image/jpeg", 0.9).split(",")[1];
+const toB64 = (c) => c.toDataURL("image/jpeg", 0.85).split(",")[1];
 
 // Split the page into overlapping halves so small Devanagari stays sharp.
 async function pageImages(num) {
-  const full = await renderCanvas(num, 2400);
+  const full = await renderCanvas(num, 2000);
   const tall = full.height >= full.width;
   const parts = [];
   for (const [a, b] of [[0, 0.56], [0.44, 1]]) {
@@ -555,17 +570,35 @@ class RunError extends Error {
   constructor(message, { stopAll = false, rate = null } = {}) { super(message); this.stopAll = stopAll; this.rate = rate; }
 }
 
+// Gemini models think silently before answering, which made each page slow.
+// Translation needs little reasoning, so ask for the least thinking each model family allows.
+let thinkingUnsupported = new Set();
+function thinkingFor(model) {
+  if (thinkingUnsupported.has(model)) return null;
+  if (/gemini-2\.5-flash/.test(model)) return { thinkingBudget: 0 };
+  if (/gemini-2\.5-pro/.test(model)) return { thinkingBudget: 128 };
+  if (/gemini-[3-9]/.test(model)) return { thinkingLevel: "low" };
+  return null;
+}
+
 // Streams one Gemini answer; calls onText with the whole text so far.
 async function gemini(prompt, images, signal, onText) {
+  const model = $("#model").value;
+  const thinking = thinkingFor(model);
   const body = {
     contents: [{ role: "user", parts: [{ text: prompt }, ...images.map((d) => ({ inline_data: { mime_type: "image/jpeg", data: d } }))] }],
-    generationConfig: { temperature: 0.2, maxOutputTokens: 16384 },
+    generationConfig: { temperature: 0.2, maxOutputTokens: 16384, ...(thinking ? { thinkingConfig: thinking } : {}) },
   };
-  const res = await apiFetch(`/${$("#model").value}:streamGenerateContent?alt=sse`, {
+  const res = await apiFetch(`/${model}:streamGenerateContent?alt=sse`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal,
   });
   if (!res.ok) {
     const e = await readError(res);
+    // A model that rejects the thinking setting: remember that and ask again without it.
+    if (thinking && e.status === 400 && /think/i.test(e.message)) {
+      thinkingUnsupported.add(model);
+      return gemini(prompt, images, signal, onText);
+    }
     const kp = keyProblem(e);
     if (kp) throw new RunError(kp, { stopAll: true });
     if (e.status === 429) throw new RunError("Google's free limit was reached.", { rate: e.retrySec ?? 60 });
@@ -601,7 +634,6 @@ async function gemini(prompt, images, signal, onText) {
 
 async function translateOne(p) {
   p.status = "working"; p.md = ""; p.error = ""; p.waitMsg = ""; renderPage(p);
-  document.getElementById("pg" + p.num).scrollIntoView({ block: "nearest", behavior: "smooth" });
   const { parts, tall } = await pageImages(p.num);
   const prompt = buildPrompt(p.num, await textLayer(p.num), tall);
   let last = 0;
@@ -649,19 +681,27 @@ async function runPages(nums) {
   running = true; ctl = new AbortController();
   $("#stop").hidden = false; $("#prog").hidden = false; $("#runMsg").hidden = true;
   pages.forEach(renderPage);
-  let done = 0;
-  for (const n of nums) {
-    if (ctl.signal.aborted) break;
-    $("#status").textContent = `Translating page ${n} · ${done} of ${nums.length} done`;
+  const queue = [...nums];
+  let done = 0, halt = "";
+  const progress = () => {
+    $("#status").textContent = `Translating · ${done} of ${nums.length} pages done`;
     $("#barFill").style.width = (done / nums.length * 100) + "%";
-    const code = await translateOne(pages[n - 1]);
-    if (code === "cancelled") break;
-    done++;
-    if (code === "stop") {
-      $("#runMsg").textContent = pages[n - 1].error;
-      $("#runMsg").className = "notice bad"; $("#runMsg").hidden = false;
-      break;
+  };
+  // Translate a few pages at once; stays within the free plan's per-minute limit.
+  async function worker() {
+    while (queue.length && !ctl.signal.aborted && !halt) {
+      const n = queue.shift();
+      const code = await translateOne(pages[n - 1]);
+      if (code === "cancelled") return;
+      done++; progress();
+      if (code === "stop" && !halt) halt = pages[n - 1].error;
     }
+  }
+  progress();
+  await Promise.all(Array.from({ length: Math.min(PARALLEL_PAGES, nums.length) }, worker));
+  if (halt) {
+    $("#runMsg").textContent = halt;
+    $("#runMsg").className = "notice bad"; $("#runMsg").hidden = false;
   }
   $("#barFill").style.width = (done / nums.length * 100) + "%";
   const ok = nums.filter((n) => pages[n - 1].status === "done").length;
