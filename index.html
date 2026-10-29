@@ -11,29 +11,22 @@
 <style>
 /* Layout: a control rail on the left, a ledger of pages on the right — each row pairs the original page with its English text. */
 :root {
-  --bg: #e4eeeb;
-  --surface: #fbfdfc;
-  --ink: #10302a;
-  --muted: #4c6660;
-  --line: #cbdcd7;
-  --accent: #0e6b5e;
-  --accent-ink: #ffffff;
-  --marigold: #b06d0a;
-  --marigold-soft: #f8ecd6;
-  --ok: #1f7a4d;
-  --bad: #b3261e;
-  --bad-soft: #fbe9e7;
+  --bg: #0b1816;
+  --surface: #12231f;
+  --ink: #e2efec;
+  --muted: #8fa9a3;
+  --line: #22403a;
+  --accent: #4fd1bd;
+  --accent-ink: #08201c;
+  --marigold: #e8b04e;
+  --marigold-soft: #2a2414;
+  --ok: #5fcf96;
+  --bad: #ff8a80;
+  --bad-soft: #3a1f1f;
   --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-read: "Newsreader", Georgia, "Times New Roman", serif;
   --font-hi: "Tiro Devanagari Hindi", "Nirmala UI", "Mangal", serif;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b1816; --surface: #12231f; --ink: #e2efec; --muted: #8fa9a3; --line: #22403a;
-    --accent: #4fd1bd; --accent-ink: #08201c; --marigold: #e8b04e; --marigold-soft: #2a2414;
-    --ok: #5fcf96; --bad: #ff8a80; --bad-soft: #3a1f1f; color-scheme: dark;
-  }
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -103,17 +96,15 @@ button.small { font-size: 0.82rem; padding: 4px 9px; }
 .pages { display: grid; gap: 16px; min-width: 0; }
 .page { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; display: grid; grid-template-columns: 180px minmax(0, 1fr); overflow: hidden; }
 @media (max-width: 600px) { .page { grid-template-columns: minmax(0, 1fr); } }
-.page.example { border-style: dashed; }
+.empty { margin: 0; padding: 48px 20px; border: 1.5px dashed var(--line); border-radius: 10px; text-align: center; color: var(--muted); }
 .orig { background: var(--bg); border-right: 1px solid var(--line); padding: 12px; display: grid; gap: 8px; align-content: start; }
 @media (max-width: 600px) { .orig { border-right: 0; border-bottom: 1px solid var(--line); } }
 .orig img { width: 100%; border: 1px solid var(--line); border-radius: 4px; background: #fff; cursor: zoom-in; display: block; }
-.orig .hi-text { font-family: var(--font-hi); font-size: 0.92rem; line-height: 1.7; }
 .pnum { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; white-space: nowrap; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .chip { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
 .chip.working { color: var(--accent); border-color: var(--accent); }
 .chip.done { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
 .chip.failed { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 50%, transparent); }
-.chip.ex { color: var(--marigold); border-color: var(--marigold); }
 
 .trans { padding: 16px 20px; display: grid; gap: 10px; align-content: start; min-width: 0; }
 .trans .tools { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
@@ -272,11 +263,6 @@ let pdf = null, fileName = "";
 let pages = [];            // {num, thumb, status: idle|working|done|failed, md, error, editing}
 let ctl = null, running = false;
 
-const EXAMPLE = {
-  hi: "सूचना\nसभी विद्यार्थियों को सूचित किया जाता है कि वार्षिक परीक्षाएँ १५ मार्च से प्रारंभ होंगी।\n१. प्रवेश पत्र कार्यालय से प्राप्त करें।\n२. परीक्षा कक्ष में मोबाइल फ़ोन ले जाना वर्जित है।",
-  md: "## Notice\nAll students are hereby informed that the annual examinations will begin on 15 March.\n1. Collect your admit card from the office.\n2. Mobile phones are not allowed in the examination hall.",
-};
-
 const store = {
   get(k) { try { return localStorage.getItem(k) || ""; } catch { return ""; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch {} },
@@ -303,18 +289,8 @@ function chip(status) {
 function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function renderExample() {
-  $("#pages").innerHTML = `
-    <article class="page example">
-      <div class="orig">
-        <div class="pnum"><span>Example page</span><span class="chip ex">Example</span></div>
-        <div class="hi-text">${esc(EXAMPLE.hi).replace(/\n/g, "<br>")}</div>
-      </div>
-      <div class="trans">
-        <div class="md">${renderMd(EXAMPLE.md)}</div>
-        <p class="status">This is a sample of the output. Upload your PDF to see your own pages here.</p>
-      </div>
-    </article>`;
+function renderEmpty() {
+  $("#pages").innerHTML = `<p class="empty">Your PDF's pages and their English translation will appear here.</p>`;
 }
 
 function renderPage(p) {
@@ -750,7 +726,7 @@ async function openZoom(num) {
 $("#zoom").addEventListener("click", () => $("#zoom").close());
 
 /* ---------- Boot ---------- */
-renderExample();
+renderEmpty();
 (async () => {
   apiKey = store.get(KEY_STORE);
   showKeyState();
