@@ -288,7 +288,7 @@ const store = {
 /* ---------- Markdown ---------- */
 function renderMd(md) {
   const safe = md.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-  const html = marked.parse(safe, { mangle: false, headerIds: false });
+  const html = marked.parse(safe, { mangle: false, headerIds: false, breaks: true });
   return html.replace(/<table>/g, '<div class="tbl"><table>').replace(/<\/table>/g, "</table></div>");
 }
 
@@ -409,7 +409,7 @@ function rankModels(models) {
     (/preview/.test(a.name) - /preview/.test(b.name)) || (tier(a.name) - tier(b.name)) || (ver(b.name) - ver(a.name)));
 }
 function speedLabel(name) {
-  return /flash-lite/.test(name) ? "fastest" : /flash/.test(name) ? "more careful, slower" : "most careful, slowest";
+  return /flash-lite/.test(name) ? "fastest" : /flash/.test(name) ? "more careful" : "most careful, slow";
 }
 
 async function loadModels() {
@@ -423,7 +423,7 @@ function fillModels(models) {
   const sel = $("#model");
   const saved = store.get(MODEL_STORE);
   const list = models.length ? models : [{ name: FALLBACK_MODEL, displayName: "Gemini Flash-Lite (latest)" }];
-  sel.innerHTML = list.map((m, i) => `<option value="${esc(m.name)}">${esc(m.displayName || m.name.replace("models/", ""))} · ${speedLabel(m.name)}${i === 0 ? " (recommended)" : ""}</option>`).join("");
+  sel.innerHTML = list.map((m, i) => `<option value="${esc(m.name)}">${esc((m.displayName || m.name.replace("models/", "")).replace(/^Gemini /, ""))} · ${speedLabel(m.name)}</option>`).join("");
   if (saved && list.some((m) => m.name === saved)) sel.value = saved;
 }
 
@@ -578,6 +578,7 @@ function buildPrompt(num, hint, tall) {
     "- Names of people, books, institutions and places: standard roman transliteration (e.g. Pt. Vishnu Narayan Bhatkhande).",
     "- " + terms,
     "- Text already in English stays as is.",
+    "- Leave out the book's printed page numbers and repeated running headers or footers (the same title or chapter name at the top or bottom of every page).",
     "- Write [illegible] for anything you cannot read. If the page has no text, reply only: (blank page)",
     "- " + layout,
     "Reply with the Markdown only: no preface, no notes, no code fences.",
