@@ -1,8 +1,8 @@
 # अनुवाद Anuvad
 
-**Translate Hindi syllabus PDFs into clean, structured English — free, right in your browser.**
+**Translate Hindi PDFs into clean, structured English — free, right in your browser.**
 
-Upload a Hindi syllabus, pick the pages, and Anuvad gives you an English version that keeps the headings, numbered units, marks and tables of the original. Edit anything you want, then download it as a Word-ready `.html` file or as Markdown.
+Upload a Hindi PDF, pick the pages, and Anuvad gives you an English version that keeps the headings, numbered units, marks and tables of the original. Edit anything you want, then download it as a Word-ready `.html` file or as Markdown.
 
 **▶ Try it:** https://shreeyanshichandra.github.io/anuvad/
 
