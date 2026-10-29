@@ -11,15 +11,15 @@
 <style>
 /* Layout: a control rail on the left, a ledger of pages on the right — each row pairs the original page with its English text. */
 :root {
-  --bg: #f6f7fb;
-  --surface: #ffffff;
-  --ink: #1b1d33;
-  --muted: #5d6079;
-  --line: #dfe1ec;
-  --accent: #3a3fb0;
+  --bg: #e4eeeb;
+  --surface: #fbfdfc;
+  --ink: #10302a;
+  --muted: #4c6660;
+  --line: #cbdcd7;
+  --accent: #0e6b5e;
   --accent-ink: #ffffff;
-  --marigold: #c98a12;
-  --marigold-soft: #fbf1dc;
+  --marigold: #b06d0a;
+  --marigold-soft: #f8ecd6;
   --ok: #1f7a4d;
   --bad: #b3261e;
   --bad-soft: #fbe9e7;
@@ -30,8 +30,8 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #12131f; --surface: #1b1d2d; --ink: #e8e9f3; --muted: #9a9db8; --line: #2e3048;
-    --accent: #8c90ff; --accent-ink: #12131f; --marigold: #e7b04a; --marigold-soft: #2c2616;
+    --bg: #0b1816; --surface: #12231f; --ink: #e2efec; --muted: #8fa9a3; --line: #22403a;
+    --accent: #4fd1bd; --accent-ink: #08201c; --marigold: #e8b04e; --marigold-soft: #2a2414;
     --ok: #5fcf96; --bad: #ff8a80; --bad-soft: #3a1f1f; color-scheme: dark;
   }
 }
@@ -198,12 +198,12 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
       <section class="panel">
         <span class="label">2 · Options</span>
         <label class="field"><span>Subject (helps with terms)</span>
-          <input type="text" id="subject" placeholder="e.g. MA Music, 3rd semester">
+          <input type="text" id="subject" placeholder="e.g. History, Law, Medicine">
         </label>
         <label class="field"><span>Technical terms</span>
           <select id="terms">
             <option value="explain">Keep term, add English meaning</option>
-            <option value="keep">Keep term only (Raag, Taal…)</option>
+            <option value="keep">Keep term only, no meaning</option>
             <option value="translate">Translate to English</option>
           </select>
         </label>
@@ -273,8 +273,8 @@ let pages = [];            // {num, thumb, status: idle|working|done|failed, md,
 let ctl = null, running = false;
 
 const EXAMPLE = {
-  hi: "संगीत प्रवीण — प्रथम वर्ष\nक्रियात्मक (Practical)\n१. राग यमन, भूपाली एवं बिहाग में छोटा ख्याल\n२. तीनताल, एकताल व झपताल का ठाह एवं दुगुन",
-  md: "## Sangeet Praveen — First Year\n### Practical\n1. Chhota Khayal (fast-tempo composition) in Raag Yaman, Bhupali and Bihag\n2. Thah (base tempo) and Dugun (double tempo) of Teentaal, Ektaal and Jhaptaal",
+  hi: "सूचना\nसभी विद्यार्थियों को सूचित किया जाता है कि वार्षिक परीक्षाएँ १५ मार्च से प्रारंभ होंगी।\n१. प्रवेश पत्र कार्यालय से प्राप्त करें।\n२. परीक्षा कक्ष में मोबाइल फ़ोन ले जाना वर्जित है।",
+  md: "## Notice\nAll students are hereby informed that the annual examinations will begin on 15 March.\n1. Collect your admit card from the office.\n2. Mobile phones are not allowed in the examination hall.",
 };
 
 const store = {

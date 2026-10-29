@@ -40,7 +40,7 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
    2. Sign in with your Google (Gmail) account.
    3. Accept the terms if asked, then click **Create API key**.
    4. Copy the code (it starts with `AIza`), paste it into Anuvad and click **Save**.
-3. **Upload your PDF**, optionally type the subject (for example *MA Music, 3rd semester*), and click **Translate pages**.
+3. **Upload your PDF**, optionally type the subject (for example *History* or *Law*), and click **Translate pages**.
 4. **Review and download** the English version.
 
 No card or payment is needed. The code is remembered on your device, so you only do step 2 once.
