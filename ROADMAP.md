@@ -22,7 +22,7 @@ Anuvad stays a website that opens from a link. It is not an installable app.
 
 ## ✅ v1.1: done (live now)
 
-- **Optional word limit:** condense the English to about N words, **per page** or **in total**, without losing the gist or the subject matter (main points, key facts, names, numbers and subject terms are kept; only repetition and minor detail are dropped). For "in total", the limit is shared across pages by how much text each has. Left empty, everything is translated in full.
+- **Optional word limit:** condense the English to about N words, **per page** or **in total**, without losing the gist or the subject matter (main points, key facts, names, numbers and subject terms are kept; only repetition and minor detail are dropped). For "in total", the limit is shared across pages by how much text each has. Left empty, everything is translated in full. A page that comes out more than 15% over the limit gets a quick text-only condensing step.
 - **Word counts** next to each page and in total
 - **Download as PDF:** uses the browser's own "Save as PDF", so text stays selectable and every script renders correctly
 

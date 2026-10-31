@@ -615,6 +615,26 @@ async function wordBudgets(nums) {
   return budgets;
 }
 
+// Second step when the first answer runs over the limit (fast models often ignore it while also reading images).
+function shortenPrompt(md, limit, words) {
+  const subject = $("#subject").value.trim();
+  return [
+    `This English translation of one page is ${words} words long. Rewrite it in at most ${limit} English words (aim for ${Math.round(limit * 0.92)}-${limit}).`,
+    "Condense, don't cut. The gist and the subject matter must not be lost:",
+    "- Keep every main point, argument and conclusion, in the same order.",
+    `- Keep the key facts, names, dates, numbers and technical terms${subject ? ` (in ${subject} terminology)` : ""}, spelled exactly as they are.`,
+    "- Keep the Markdown structure: headings stay headings; lists may be merged into fewer, shorter items.",
+    "- Drop repetition, extra examples and minor detail; merge sentences.",
+    "- Never add anything that isn't in the text.",
+    "- Lines in Hindi (Devanagari) stay exactly as they are and do not count towards the limit.",
+    "Reply with the Markdown only: no preface, no notes, no code fences.",
+    "",
+    '"""',
+    md,
+    '"""',
+  ].join("\n");
+}
+
 // Counts English words only (Devanagari lines in bilingual output are not counted).
 function countWords(md) {
   return (md.replace(/[#*_>|\-\[\]()`]/g, " ").match(/[A-Za-z0-9][A-Za-z0-9'’.,]*/g) || []).length;
@@ -751,6 +771,7 @@ function liveText(p) {
   if (p.phase === "queued") return "Waiting for a free slot…";
   if (p.phase === "prep") return "Preparing the page image…";
   const elapsed = p.tSend ? (now - p.tSend) / 1000 : 0;
+  if (p.phase === "shorten") return `Condensing ${p.shortFrom} words to about ${p.limit}… ${fmtTime(elapsed)}`;
   if (p.phase === "write") return `Writing the translation… ${fmtTime(elapsed)}`;
   const left = avgSec - elapsed;
   const step = p.phase === "send" ? "Sending the page to Google" : "Google is reading the page";
@@ -797,6 +818,8 @@ async function translateOne(p, limit = null) {
       learnSpeed(p.took);
       p.md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
       p.words = countWords(p.md);
+      if (limit && !res.truncated && p.words > limit * 1.15) await shorten(p, limit);
+      p.took = (Date.now() - p.tSend) / 1000;
       p.status = res.truncated ? "failed" : "done";
       if (res.truncated) p.error = "The answer was cut short. Translate this page again.";
       renderPage(p);
@@ -821,6 +844,26 @@ async function translateOne(p, limit = null) {
       renderPage(p);
       return e.stopAll || e.rate ? "stop" : "failed";
     }
+  }
+}
+
+// Condenses an over-long page to its word limit. If this step fails, the longer version is kept.
+async function shorten(p, limit) {
+  const full = p.md, fullWords = p.words;
+  p.phase = "shorten"; p.shortFrom = fullWords; renderPage(p);
+  try {
+    let last = 0;
+    const res = await gemini(shortenPrompt(full, limit, fullWords), [], ctl.signal, (text) => {
+      const now = Date.now();
+      if (now - last > 250) { last = now; p.md = text; renderPage(p); }
+    });
+    const md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
+    const words = countWords(md);
+    if (res.truncated || !words || words >= fullWords) { p.md = full; p.words = fullWords; }
+    else { p.md = md; p.words = words; }
+  } catch (e) {
+    if (e.name === "AbortError" || ctl.signal.aborted) throw e;
+    p.md = full; p.words = fullWords;
   }
 }
 

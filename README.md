@@ -6,6 +6,10 @@ Upload a Hindi PDF (a book, syllabus, notice, letter or form), pick the pages, a
 
 **▶ Try it:** https://shreeyanshichandra.github.io/anuvad/
 
+![A Hindi music page translated into structured English, with the original page beside it](screenshots/translated-page.png)
+
+![Pages translating in parallel, each with a live countdown](screenshots/live-progress.png)
+
 ---
 
 ## Why Anuvad
@@ -30,7 +34,7 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
 - **Keeps the structure**: headings, numbered lists, line breaks and tables; skips the book's printed page numbers and running headers
 - **Subject-aware terms**: keep terms like *Panchayat* or *Raag* with an English meaning, keep them as they are, or fully translate them
 - **Subject field**: type the subject (music, history, law…) and it translates with that field's own English terminology; left empty, it works out the field from the page
-- **Optional word limit**: condense the English to about N words, per page or in total, while keeping every main point, key fact, name, number and subject term. Word counts are shown per page and in total
+- **Optional word limit**: condense the English to about N words, per page or in total, while keeping every main point, key fact, name, number and subject term. If a page comes out over the limit, Anuvad condenses it in a quick second step. Word counts are shown per page and in total
 - **Bilingual mode**: each Hindi line followed by its English translation, handy for checking
 - **Edit, copy or redo** any page
 - **Download** as **PDF**, `.html` (opens in Word) or `.md`, or copy everything
