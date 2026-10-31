@@ -24,7 +24,12 @@ Anuvad stays a website that opens from a link. It is not an installable app.
 
 - **Optional word limit:** condense the English to about N words, **per page** or **in total**, without losing the gist or the subject matter (main points, key facts, names, numbers and subject terms are kept; only repetition and minor detail are dropped). For "in total", the limit is shared across pages by how much text each has. Left empty, everything is translated in full. A page that comes out more than 15% over the limit gets a quick text-only condensing step.
 - **Word counts** next to each page and in total
-- **Download as PDF:** uses the browser's own "Save as PDF", so text stays selectable and every script renders correctly
+- **Download as PDF** (first version used the browser's print window; replaced in v1.2)
+
+## ✅ v1.2: done (live now)
+
+- **Download options at the top right:** Download PDF, `.html`, `.md` and Copy all moved from the bottom-left panel into a bar at the top right of the translation area, with the total word count beside them. The bar is always shown at the top; its buttons are grey until a PDF is chosen, then turn dark yellow.
+- **Direct PDF download:** the PDF is made in the browser and saved through the computer's Save window (no print window). Pages break between lines, with page numbers at the bottom. All downloads open the Save window in Chrome and Edge.
 
 ---
 
@@ -55,7 +60,7 @@ Anuvad stays a website that opens from a link. It is not an installable app.
 ## Phase 4: downloads
 
 - **Word (.docx)** download
-- **PDF** download (print-ready layout first, one-click PDF with embedded fonts later)
+- **PDF** with selectable, searchable text (embedded fonts for every script); today's PDF is made of page images
 - Copy all
 - Bilingual export (original and translation together)
 

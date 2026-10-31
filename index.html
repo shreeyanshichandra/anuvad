@@ -20,6 +20,8 @@
   --accent-ink: #1d1406;
   --marigold: #f0a43a;
   --marigold-soft: #2e2416;
+  --gold: #e0a800;
+  --gold-hover: #f2b705;
   --ok: #9fd18b;
   --bad: #ff8a80;
   --bad-soft: #3a1f1f;
@@ -94,7 +96,27 @@ button.small { font-size: 0.82rem; padding: 4px 9px; }
 .notice { border-radius: 8px; padding: 10px 12px; font-size: 0.88rem; background: var(--marigold-soft); color: var(--ink); border: 1px solid color-mix(in srgb, var(--marigold) 40%, transparent); }
 .notice.bad { background: var(--bad-soft); border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
 
+.col { display: grid; gap: 16px; min-width: 0; }
+.exportbar { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+/* Download buttons: plain grey until a PDF is chosen, then solid dark yellow. */
+button.dl { background: var(--gold); border-color: var(--gold); color: var(--accent-ink); font-weight: 600; }
+button.dl:hover:not(:disabled) { background: var(--gold-hover); border-color: var(--gold-hover); }
+button.dl:disabled { opacity: 1; background: transparent; border-color: var(--line); color: var(--muted); font-weight: 500; }
+.exportbar .btns { justify-content: flex-end; margin-left: auto; }
+.exinfo { display: grid; gap: 2px; min-width: 0; }
+.exinfo .help { font-size: 0.78rem; }
 .pages { display: grid; gap: 16px; min-width: 0; }
+/* Off-screen copy used to draw the PDF: black on white, like a printed page. */
+.pdfdoc { position: fixed; left: -10000px; top: 0; background: #fff; color: #111; padding: 0 0 6px; font-family: "Newsreader", Georgia, "Tiro Devanagari Hindi", "Nirmala UI", serif; font-size: 15px; line-height: 1.55; }
+.pdfdoc h1, .pdfdoc h2, .pdfdoc h3, .pdfdoc h4 { font-weight: 600; line-height: 1.25; margin: 0.8em 0 0.35em; }
+.pdfdoc h1 { font-size: 22px; margin-top: 0; } .pdfdoc h2 { font-size: 19px; } .pdfdoc h3 { font-size: 16.5px; } .pdfdoc h4 { font-size: 15px; }
+.pdfdoc p { margin: 0.45em 0; }
+.pdfdoc ul, .pdfdoc ol { margin: 0.4em 0; padding-left: 1.5em; }
+.pdfdoc li { margin: 0.15em 0; }
+.pdfdoc table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 12.5px; margin: 0.6em 0; }
+.pdfdoc th, .pdfdoc td { border: 1px solid #999; padding: 4px 7px; text-align: left; vertical-align: top; }
+.pdfdoc th { background: #eee; }
+.pdfdoc .pg { font-family: Arial, sans-serif; font-size: 10.5px; color: #777; text-transform: uppercase; letter-spacing: .08em; border-top: 1px solid #ccc; padding-top: 8px; margin: 6px 0 10px; }
 .page { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; display: grid; grid-template-columns: 180px minmax(0, 1fr); overflow: hidden; }
 @media (max-width: 600px) { .page { grid-template-columns: minmax(0, 1fr); } }
 .empty { margin: 0; padding: 48px 20px; border: 1.5px dashed var(--line); border-radius: 10px; text-align: center; color: var(--muted); }
@@ -244,20 +266,24 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
         <div id="runMsg" class="notice" hidden></div>
       </section>
 
-      <section class="panel">
-        <span class="label">4 · Export</span>
-        <div class="btns">
-          <button id="exPdf" class="primary" disabled>Download PDF</button>
-          <button id="exHtml" disabled>Download .html</button>
-          <button id="exMd" disabled>Download .md</button>
-          <button id="copyAll" disabled>Copy all</button>
-        </div>
-        <p class="help">PDF: in the window that opens, choose <b>Save as PDF</b> as the printer. The .html file opens in Word.</p>
-        <p class="status" id="wordTotal" hidden></p>
-      </section>
     </aside>
 
-    <main class="pages" id="pages"></main>
+    <div class="col">
+      <!-- Download options sit at the top right of the pages, always shown; the buttons switch on once a PDF is chosen. -->
+      <section class="exportbar" id="exportBar" aria-label="Download">
+        <div class="exinfo">
+          <span class="status" id="wordTotal">Choose a PDF to download its translation</span>
+          <span class="help">Choose where to save on your computer</span>
+        </div>
+        <div class="btns">
+          <button id="exPdf" class="dl" disabled>Download PDF</button>
+          <button id="exHtml" class="dl" disabled title="Opens in Word">Download .html</button>
+          <button id="exMd" class="dl" disabled>Download .md</button>
+          <button id="copyAll" class="dl" disabled>Copy all</button>
+        </div>
+      </section>
+      <main class="pages" id="pages"></main>
+    </div>
   </div>
 
   <footer>
@@ -381,15 +407,12 @@ function btn(label, fn) {
 }
 
 function updateButtons() {
-  const any = pages.some((p) => p.status === "done");
-  $("#exPdf").disabled = !any;
-  $("#exHtml").disabled = !any;
+  for (const id of ["#exPdf", "#exHtml", "#exMd", "#copyAll"]) $(id).disabled = !pdf;
   const done = pages.filter((p) => p.status === "done");
   const words = done.reduce((x, p) => x + countWords(p.md), 0);
-  $("#wordTotal").hidden = !done.length;
-  $("#wordTotal").textContent = `${done.length} page${done.length === 1 ? "" : "s"} translated · ${words.toLocaleString()} English words`;
-  $("#exMd").disabled = !any;
-  $("#copyAll").disabled = !any;
+  $("#wordTotal").textContent = done.length
+    ? `${done.length} page${done.length === 1 ? "" : "s"} translated · ${words.toLocaleString()} English words`
+    : pdf ? "Nothing translated yet" : "Choose a PDF to download its translation";
   $("#go").disabled = !pdf || !apiKey || running;
   $("#goHint").hidden = !!(pdf && apiKey);
   $("#goHint").textContent = !apiKey && !pdf ? "Save your access code and choose a PDF to start."
@@ -939,33 +962,132 @@ body{font-family:Georgia,"Times New Roman","Nirmala UI","Mangal",serif}
 .pg{font-family:Arial,sans-serif;font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.08em;border-top:1px solid #ccc;padding-top:8px;margin-top:28px}</style>
 </head><body><h1>${esc(fileName)} — English translation</h1>${body}</body></html>`;
 }
-function download(filename, text, type) {
-  const url = URL.createObjectURL(new Blob([text], { type }));
+// Opens the computer's "Save as" window (Chrome, Edge) so people choose the folder and name.
+// Returns a file handle, false if they cancelled, or null when the browser has no such window (then it's a normal download).
+async function pickFile(name, type, ext, description) {
+  if (!window.showSaveFilePicker) return null;
+  try { return await window.showSaveFilePicker({ suggestedName: name, types: [{ description, accept: { [type]: [ext] } }] }); }
+  catch (e) { return e.name === "AbortError" ? false : null; }
+}
+async function saveFile(handle, blob, name) {
+  if (handle) {
+    const w = await handle.createWritable(); await w.write(blob); await w.close();
+    toast(`Saved ${handle.name}`);
+    return;
+  }
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
-$("#exMd").onclick = () => download(`${fileName} - English.md`, combinedMd(), "text/markdown;charset=utf-8");
-$("#exHtml").onclick = () => download(`${fileName} - English.html`, combinedHtml(), "text/html;charset=utf-8");
-$("#copyAll").onclick = () => copyText(combinedMd());
-// PDF: the browser's own "Save as PDF" keeps text selectable and renders every script (Devanagari included) correctly.
-$("#exPdf").onclick = () => {
-  const frame = document.createElement("iframe");
-  frame.setAttribute("aria-hidden", "true");
-  frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
-  frame.srcdoc = combinedHtml();
-  frame.onload = () => {
-    const prevTitle = document.title;
-    document.title = `${fileName} - English`;   // suggested PDF file name
-    setTimeout(() => {
-      try { frame.contentWindow.focus(); frame.contentWindow.print(); }
-      catch { toast("Couldn't open the print window. Download .html and print it from your browser instead."); }
-      document.title = prevTitle;
-      setTimeout(() => frame.remove(), 1000);
-    }, 100);
-  };
-  document.body.appendChild(frame);
-  toast("Choose “Save as PDF” as the printer, then click Save.");
+async function download(filename, text, type, ext, description) {
+  const handle = await pickFile(filename, type.split(";")[0], ext, description);
+  if (handle === false) return;
+  await saveFile(handle, new Blob([text], { type }), filename);
+}
+
+/* ---------- PDF ---------- */
+// Built in the browser: each translated page is drawn as the browser shows it (so Hindi letters come out right),
+// then cut into A4 pages at blank lines so no line of text is split.
+const PDF_LIBS = [
+  "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
+];
+const loaded = new Map();
+function loadScript(src) {
+  if (!loaded.has(src)) loaded.set(src, new Promise((ok, bad) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = ok;
+    s.onerror = () => { loaded.delete(src); s.remove(); bad(new Error("Couldn't load the PDF maker. Check your internet connection.")); };
+    document.head.append(s);
+  }));
+  return loaded.get(src);
+}
+// Lowest fully blank pixel row between `min` and `ideal`, so the page break falls between lines.
+function blankRow(canvas, min, ideal) {
+  min = Math.max(0, Math.floor(min)); ideal = Math.floor(ideal);
+  if (ideal <= min) return ideal;
+  const data = canvas.getContext("2d").getImageData(0, min, canvas.width, ideal - min).data;
+  const rowLen = canvas.width * 4;
+  for (let y = ideal - min - 1; y >= 0; y--) {
+    let blank = true;
+    for (let i = y * rowLen; i < (y + 1) * rowLen; i += 4) {
+      if (data[i] < 240 || data[i + 1] < 240 || data[i + 2] < 240) { blank = false; break; }
+    }
+    if (blank) return min + y;
+  }
+  return ideal;
+}
+async function makePdf(onStep) {
+  await Promise.all(PDF_LIBS.map(loadScript));
+  await document.fonts.ready;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4", compress: true });
+  const PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight();
+  const M = 46, CSS_W = 640, SCALE = 2;
+  const ptPerPx = (PW - 2 * M) / (CSS_W * SCALE);   // PDF points per canvas pixel
+  const box = document.createElement("div");
+  box.className = "pdfdoc"; box.style.width = CSS_W + "px";
+  document.body.append(box);
+  const done = pages.filter((p) => p.status === "done");
+  const parts = [`<h1>${esc(fileName)} — English translation</h1>`,
+    ...done.map((p) => `<section><p class="pg">Page ${p.num}</p>${renderMd(p.md)}</section>`)];
+  let y = M;
+  try {
+    for (let i = 0; i < parts.length; i++) {
+      onStep?.(Math.max(i, 1), done.length);
+      box.innerHTML = parts[i];
+      const canvas = await html2canvas(box, { scale: SCALE, backgroundColor: "#ffffff", logging: false });
+      let sy = 0;
+      while (sy < canvas.height) {
+        const room = (PH - M - y) / ptPerPx;            // canvas pixels that still fit on this PDF page
+        if (room < 60 * SCALE) { doc.addPage(); y = M; continue; }
+        const rest = canvas.height - sy;
+        const cut = rest <= room ? canvas.height : blankRow(canvas, sy + room * 0.6, sy + room);
+        const h = Math.max(cut - sy, 1);
+        const slice = document.createElement("canvas");
+        slice.width = canvas.width; slice.height = h;
+        slice.getContext("2d").drawImage(canvas, 0, sy, canvas.width, h, 0, 0, canvas.width, h);
+        doc.addImage(slice.toDataURL("image/jpeg", 0.9), "JPEG", M, y, PW - 2 * M, h * ptPerPx);
+        y += h * ptPerPx; sy = cut;
+        if (sy < canvas.height) { doc.addPage(); y = M; }
+      }
+      y += 8;
+    }
+  } finally {
+    box.remove();
+  }
+  const n = doc.getNumberOfPages();
+  doc.setFontSize(8); doc.setTextColor(140);
+  for (let i = 1; i <= n; i++) { doc.setPage(i); doc.text(`${i} / ${n}`, PW / 2, PH - 22, { align: "center" }); }
+  return doc.output("blob");
+}
+// The download buttons are clickable as soon as a PDF is chosen; until a page is translated they only explain why.
+function readyToExport() {
+  if (pages.some((p) => p.status === "done")) return true;
+  toast(running ? "Wait for the first page to finish, then download." : "Translate some pages first, then download.");
+  return false;
+}
+$("#exMd").onclick = () => readyToExport() && download(`${fileName} - English.md`, combinedMd(), "text/markdown;charset=utf-8", ".md", "Markdown file");
+$("#exHtml").onclick = () => readyToExport() && download(`${fileName} - English.html`, combinedHtml(), "text/html;charset=utf-8", ".html", "Web page (opens in Word)");
+$("#copyAll").onclick = () => readyToExport() && copyText(combinedMd());
+let makingPdf = false;
+$("#exPdf").onclick = async () => {
+  if (makingPdf || !readyToExport()) return;
+  const name = `${fileName} - English.pdf`;
+  // Ask where to save first: the browser only allows this window straight after the click.
+  const handle = await pickFile(name, "application/pdf", ".pdf", "PDF document");
+  if (handle === false) return;
+  const b = $("#exPdf");
+  makingPdf = true; b.disabled = true;
+  try {
+    const blob = await makePdf((i, n) => { b.textContent = `Making PDF… ${i} of ${n}`; });
+    await saveFile(handle, blob, name);
+  } catch (e) {
+    toast(e.message?.startsWith("Couldn't") ? e.message : "Couldn't make the PDF. Try again, or use Download .html.");
+  } finally {
+    makingPdf = false; b.textContent = "Download PDF"; updateButtons();
+  }
 };
 
 /* ---------- File input & zoom ---------- */

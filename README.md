@@ -37,7 +37,7 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
 - **Optional word limit**: condense the English to about N words, per page or in total, while keeping every main point, key fact, name, number and subject term. If a page comes out over the limit, Anuvad condenses it in a quick second step. Word counts are shown per page and in total
 - **Bilingual mode**: each Hindi line followed by its English translation, handy for checking
 - **Edit, copy or redo** any page
-- **Download** as **PDF**, `.html` (opens in Word) or `.md`, or copy everything
+- **Download** as **PDF**, `.html` (opens in Word) or `.md`, or copy everything, from the download bar at the top right. In Chrome and Edge, a Save window lets you choose the folder
 - **Private by design**: no server and no sign-up. Your PDF and access code stay in your browser and go only to Google for the translation.
 
 ## How to use it
@@ -65,7 +65,7 @@ No card or payment is needed. The code is remembered on your device, so you only
 PDF ──▶ PDF.js renders each page to an image (split into two overlapping halves so small Devanagari stays sharp)
      ──▶ Gemini reads the Hindi from the images and translates it, keeping the layout as Markdown
      ──▶ the answer streams back as Markdown and is shown with marked.js
-     ──▶ export as PDF (the browser's own Save as PDF), .html or .md
+     ──▶ export as PDF (built in the browser with html2canvas + jsPDF), .html or .md
 ```
 
 The PDF's own text layer is sent along as a hint for numbers and spellings, but the images are treated as the source of truth.
