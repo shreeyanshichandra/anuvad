@@ -70,8 +70,16 @@ details[open] summary { margin-bottom: 8px; }
 .drop strong { font-weight: 600; }
 .drop small { color: var(--muted); }
 .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-.file { font-size: 0.9rem; word-break: break-word; }
-.file b { font-weight: 600; }
+/* One bubble per uploaded PDF, each with its own ✕. */
+.files { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.fbubble { display: flex; align-items: center; gap: 8px; max-width: 100%; background: var(--marigold-soft); border: 1px solid color-mix(in srgb, var(--marigold) 45%, transparent); border-radius: 99px; padding: 4px 4px 4px 12px; font-size: 0.86rem; }
+.fbubble .fname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.fbubble .fpages { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fbubble .fx { flex: none; width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 0; background: transparent; color: var(--muted); font-size: 0.8rem; line-height: 1; }
+.fbubble .fx:hover:not(:disabled) { background: var(--bad-soft); color: var(--bad); }
+.dochead { font-family: var(--font-read); font-weight: 600; font-size: 1.15rem; margin: 8px 0 -4px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; overflow-wrap: anywhere; }
+.dochead:first-child { margin-top: 0; }
+.dochead span { font-family: var(--font-ui); font-size: 0.8rem; font-weight: 400; color: var(--muted); }
 
 .field { display: grid; gap: 4px; }
 .field > span { font-size: 0.85rem; font-weight: 500; }
@@ -109,7 +117,8 @@ button.dl:disabled { opacity: 1; background: transparent; border-color: var(--li
 /* Off-screen copy used to draw the PDF: black on white, like a printed page. */
 .pdfdoc { position: fixed; left: -10000px; top: 0; background: #fff; color: #111; padding: 0 0 6px; font-family: "Newsreader", Georgia, "Tiro Devanagari Hindi", "Nirmala UI", serif; font-size: 15px; line-height: 1.55; }
 .pdfdoc h1, .pdfdoc h2, .pdfdoc h3, .pdfdoc h4 { font-weight: 600; line-height: 1.25; margin: 0.8em 0 0.35em; }
-.pdfdoc h1 { font-size: 22px; margin-top: 0; } .pdfdoc h2 { font-size: 19px; } .pdfdoc h3 { font-size: 16.5px; } .pdfdoc h4 { font-size: 15px; }
+.pdfdoc h1 { font-size: 22px; margin-top: 0; }
+.pdfdoc h1.doc { margin: 14px 0 6px; padding-top: 12px; border-top: 3px solid #111; } .pdfdoc h2 { font-size: 19px; } .pdfdoc h3 { font-size: 16.5px; } .pdfdoc h4 { font-size: 15px; }
 .pdfdoc p { margin: 0.45em 0; }
 .pdfdoc ul, .pdfdoc ol { margin: 0.4em 0; padding-left: 1.5em; }
 .pdfdoc li { margin: 0.15em 0; }
@@ -209,11 +218,11 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
       <section class="panel">
         <span class="label">1 · Upload</span>
         <label class="drop" id="drop">
-          <input type="file" id="fileIn" accept="application/pdf,.pdf">
-          <strong>Choose a PDF</strong>
-          <small>or drop it here</small>
+          <input type="file" id="fileIn" accept="application/pdf,.pdf" multiple>
+          <strong id="dropTitle">Choose PDFs</strong>
+          <small>or drop them here · several PDFs are translated as one</small>
         </label>
-        <div class="file" id="fileInfo" hidden></div>
+        <ul class="files" id="fileList" hidden aria-label="Uploaded PDFs"></ul>
       </section>
 
       <section class="panel">
@@ -316,8 +325,9 @@ let slots = MAX_PARALLEL;
 let avgSec = 20;              // learned seconds per page, for the countdown (loaded from storage at boot)
 
 let apiKey = "";
-let pdf = null, fileName = "";
-let pages = [];            // {num, thumb, status: idle|working|done|failed, md, error, editing}
+let docs = [];             // uploaded PDFs, in the order they were added: {id, name, pdf}
+let docSeq = 0;
+let pages = [];            // every page of every PDF, in order: {num (1..total), doc, local (page in its PDF), thumb, status: idle|working|done|failed, md, error, editing}
 let ctl = null, running = false;
 
 const store = {
@@ -347,7 +357,7 @@ function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function renderEmpty() {
-  $("#pages").innerHTML = `<p class="empty">Your PDF's pages and their English translation will appear here.</p>`;
+  $("#pages").innerHTML = `<p class="empty">Your PDFs' pages and their English translation will appear here.</p>`;
 }
 
 function renderPage(p) {
@@ -364,7 +374,7 @@ function renderPage(p) {
         <div class="tools"></div>
         <div class="body"></div>
       </div>`;
-    el.querySelector("img").addEventListener("click", () => openZoom(p.num));
+    el.querySelector("img").addEventListener("click", () => openZoom(p));
     $("#pages").appendChild(el);
   }
   el.querySelector(".st").innerHTML = chip(p.status === "working" && p.phase === "queued" ? "queued" : p.status);
@@ -407,15 +417,16 @@ function btn(label, fn) {
 }
 
 function updateButtons() {
-  for (const id of ["#exPdf", "#exHtml", "#exMd", "#copyAll"]) $(id).disabled = !pdf;
+  const has = pages.length > 0;
+  for (const id of ["#exPdf", "#exHtml", "#exMd", "#copyAll"]) $(id).disabled = !has;
   const done = pages.filter((p) => p.status === "done");
   const words = done.reduce((x, p) => x + countWords(p.md), 0);
   $("#wordTotal").textContent = done.length
     ? `${done.length} page${done.length === 1 ? "" : "s"} translated · ${words.toLocaleString()} English words`
-    : pdf ? "Nothing translated yet" : "Choose a PDF to download its translation";
-  $("#go").disabled = !pdf || !apiKey || running;
-  $("#goHint").hidden = !!(pdf && apiKey);
-  $("#goHint").textContent = !apiKey && !pdf ? "Save your access code and choose a PDF to start."
+    : has ? "Nothing translated yet" : "Choose a PDF to download its translation";
+  $("#go").disabled = !has || !apiKey || running;
+  $("#goHint").hidden = has && !!apiKey;
+  $("#goHint").textContent = !apiKey && !has ? "Save your access code and choose a PDF to start."
     : !apiKey ? "Save your access code (at the top) to start." : "Choose a PDF to start.";
 }
 
@@ -515,39 +526,89 @@ $("#keyRemove").onclick = () => {
 $("#model").addEventListener("change", (e) => store.set(MODEL_STORE, e.target.value));
 
 /* ---------- PDF ---------- */
-async function loadFile(file) {
-  if (!file) return;
+// Several PDFs can be added; they are translated and downloaded as one combined document.
+async function loadFiles(files) {
+  files = [...files];
+  if (!files.length) return;
   if (running) { toast("Stop the current translation first."); return; }
-  if (!/\.pdf$/i.test(file.name) && file.type !== "application/pdf") { toast("Choose a PDF file."); return; }
-  fileName = file.name.replace(/\.pdf$/i, "");
-  $("#fileInfo").hidden = false;
-  $("#fileInfo").innerHTML = `<b>${esc(file.name)}</b><br><span class="status">Opening…</span>`;
-  try {
-    pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-  } catch (e) {
-    pdf = null;
-    $("#fileInfo").innerHTML = `<b>${esc(file.name)}</b><br><span class="err">This PDF could not be opened. It may be damaged or password-protected.</span>`;
-    updateButtons(); return;
+  const bad = files.filter((f) => !/\.pdf$/i.test(f.name) && f.type !== "application/pdf");
+  if (bad.length) toast(bad.length === files.length ? "Choose PDF files." : `Skipped ${bad.map((f) => f.name).join(", ")}: not a PDF.`);
+  for (const file of files) {
+    if (bad.includes(file)) continue;
+    const doc = { id: ++docSeq, name: file.name.replace(/\.pdf$/i, ""), pdf: null };
+    docs.push(doc); renderFiles();
+    try {
+      doc.pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    } catch {
+      docs = docs.filter((d) => d !== doc);
+      toast(`“${file.name}” could not be opened. It may be damaged or password-protected.`);
+      continue;
+    }
+    if (!docs.includes(doc)) continue;   // removed while it was opening
+    for (let i = 1; i <= doc.pdf.numPages; i++) pages.push({ doc, local: i, thumb: "", status: "idle", md: "" });
+    pagesChanged();
+    makeThumbs(doc);
   }
-  $("#fileInfo").innerHTML = `<b>${esc(file.name)}</b><br><span class="status">${pdf.numPages} page${pdf.numPages > 1 ? "s" : ""}</span>`;
-  $("#from").value = 1; $("#to").value = pdf.numPages;
-  pages = []; $("#pages").innerHTML = "";
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const p = { num: i, thumb: "", status: "idle", md: "" };
-    pages.push(p); renderPage(p);
+  renderFiles();
+}
+
+// ✕ on a file bubble: drops that PDF and its pages; the others stay as they are.
+function removeDoc(id) {
+  if (running) { toast("Stop the current translation first."); return; }
+  const doc = docs.find((d) => d.id === id);
+  if (!doc) return;
+  docs = docs.filter((d) => d !== doc);
+  pages = pages.filter((p) => p.doc !== doc);
+  pagesChanged();
+  toast(`Removed ${doc.name}.pdf`);
+}
+
+// After PDFs are added or removed: renumber the pages, reset the page range and redraw.
+function pagesChanged() {
+  pages.forEach((p, i) => (p.num = i + 1));
+  $("#from").value = 1; $("#to").value = pages.length || "";
+  $("#pages").innerHTML = "";
+  if (!pages.length) renderEmpty();
+  for (const d of docs) {
+    const own = pages.filter((p) => p.doc === d);
+    if (!own.length) continue;
+    // With several PDFs, each one gets a heading showing which page numbers it covers.
+    if (docs.length > 1) {
+      const h = document.createElement("h2"); h.className = "dochead";
+      const a = own[0].num, b = own[own.length - 1].num;
+      h.innerHTML = `${esc(d.name)} <span>${a === b ? `page ${a}` : `pages ${a}–${b}`}</span>`;
+      $("#pages").append(h);
+    }
+    own.forEach(renderPage);
   }
-  updateButtons();
-  makeThumbs(pdf);
+  renderFiles(); updateButtons();
+}
+
+function renderFiles() {
+  const list = $("#fileList");
+  list.innerHTML = "";
+  list.hidden = !docs.length;
+  for (const d of docs) {
+    const li = document.createElement("li"); li.className = "fbubble";
+    const n = d.pdf?.numPages;
+    li.innerHTML = `<span class="fname" title="${esc(d.name)}.pdf">${esc(d.name)}.pdf</span><span class="fpages">${n ? `${n} page${n > 1 ? "s" : ""}` : "Opening…"}</span>`;
+    const x = document.createElement("button");
+    x.className = "fx"; x.textContent = "✕"; x.disabled = running;
+    x.setAttribute("aria-label", `Remove ${d.name}.pdf`); x.title = "Remove this PDF";
+    x.onclick = () => removeDoc(d.id);
+    li.append(x); list.append(li);
+  }
+  $("#dropTitle").textContent = docs.length ? "Add another PDF" : "Choose PDFs";
 }
 
 // Previews fill in the background, so translation can start straight away.
 async function makeThumbs(doc) {
-  for (const p of pages) {
-    if (pdf !== doc) return;
+  for (const p of pages.filter((q) => q.doc === doc)) {
+    if (!docs.includes(doc)) return;
     if (running) await sleep(150);   // give translation the main thread first
     try {
-      const canvas = await renderCanvas(p.num, 360);
-      if (pdf !== doc) return;
+      const canvas = await renderCanvas(p, 360);
+      if (!docs.includes(doc)) return;
       p.thumb = canvas.toDataURL("image/jpeg", 0.75);
       const img = document.querySelector(`#pg${p.num} img`);
       if (img) { img.src = p.thumb; img.hidden = false; }
@@ -555,8 +616,8 @@ async function makeThumbs(doc) {
   }
 }
 
-async function renderCanvas(num, longSide) {
-  const page = await pdf.getPage(num);
+async function renderCanvas(p, longSide) {
+  const page = await p.doc.pdf.getPage(p.local);
   const vp1 = page.getViewport({ scale: 1 });
   const scale = longSide / Math.max(vp1.width, vp1.height);
   const vp = page.getViewport({ scale });
@@ -571,8 +632,8 @@ async function renderCanvas(num, longSide) {
 const toB64 = (c) => c.toDataURL("image/jpeg", 0.85).split(",")[1];
 
 // Split the page into overlapping halves so small Devanagari stays sharp.
-async function pageImages(num) {
-  const full = await renderCanvas(num, 2000);
+async function pageImages(p) {
+  const full = await renderCanvas(p, 2000);
   const tall = full.height >= full.width;
   const parts = [];
   for (const [a, b] of [[0, 0.56], [0.44, 1]]) {
@@ -591,9 +652,9 @@ async function pageImages(num) {
   return { parts, tall };
 }
 
-async function textLayer(num) {
+async function textLayer(p) {
   try {
-    const page = await pdf.getPage(num);
+    const page = await p.doc.pdf.getPage(p.local);
     const tc = await page.getTextContent();
     let out = "";
     for (const it of tc.items) out += it.str + (it.hasEOL ? "\n" : " ");
@@ -624,17 +685,18 @@ async function wordBudgets(nums) {
   if (!(n > 0)) { nums.forEach((k) => budgets.set(k, null)); return budgets; }
   if ($("#limitScope").value === "page") { nums.forEach((k) => budgets.set(k, n)); return budgets; }
   // Whole document: share the limit across the From–To pages by how much text each one has.
-  let a = parseInt($("#from").value, 10) || 1, b = parseInt($("#to").value, 10) || pdf.numPages;
-  a = Math.max(1, Math.min(a, pdf.numPages)); b = Math.max(a, Math.min(b, pdf.numPages));
+  const total = pages.length;
+  let a = parseInt($("#from").value, 10) || 1, b = parseInt($("#to").value, 10) || total;
+  a = Math.max(1, Math.min(a, total)); b = Math.max(a, Math.min(b, total));
   const range = new Set(nums);
   for (let i = a; i <= b; i++) range.add(i);
   const weights = new Map();
-  for (const k of range) weights.set(k, (await textLayer(k)).replace(/\s/g, "").length);
+  for (const k of range) weights.set(k, (await textLayer(pages[k - 1])).replace(/\s/g, "").length);
   const known = [...weights.values()].filter((w) => w > 0);
   const fallback = known.length ? known.reduce((x, y) => x + y, 0) / known.length : 1;
   for (const [k, w] of weights) if (!w) weights.set(k, fallback);
-  const total = [...weights.values()].reduce((x, y) => x + y, 0);
-  nums.forEach((k) => budgets.set(k, Math.max(30, Math.round(n * weights.get(k) / total))));
+  const sum = [...weights.values()].reduce((x, y) => x + y, 0);
+  nums.forEach((k) => budgets.set(k, Math.max(30, Math.round(n * weights.get(k) / sum))));
   return budgets;
 }
 
@@ -664,7 +726,7 @@ function countWords(md) {
 }
 
 /* ---------- Translation ---------- */
-function buildPrompt(num, hint, tall, limit) {
+function buildPrompt(p, hint, tall, limit) {
   const subject = $("#subject").value.trim();
   const terms = {
     explain: "Technical or culture-specific terms that have no exact English equivalent (in any field: music, law, religion, medicine, administration, etc.): keep the term in standard roman transliteration and add a short English meaning in parentheses the first time it appears on the page, e.g. Panchayat (village council), Raag (melodic framework). Spell each term the same way every time.",
@@ -675,7 +737,7 @@ function buildPrompt(num, hint, tall, limit) {
     ? "Write the output bilingually: for every heading, list item, paragraph and table cell group, first give the original Hindi text exactly as printed (in Devanagari), then the English translation on the next line in italics. Keep the Markdown structure."
     : "Write only the English translation.";
   return [
-    `Translate page ${num} of ${pdf.numPages} of a Hindi document into English.`,
+    `Translate page ${p.local} of ${p.doc.pdf.numPages} of a Hindi document into English.`,
     `The page is attached as two overlapping images (${tall ? "top part first, then bottom part" : "left part first, then right part"}). Text in the overlapping strip appears in both: include it only once.`,
     "",
     subject
@@ -825,8 +887,8 @@ function learnSpeed(sec) {
 
 async function translateOne(p, limit = null) {
   p.status = "working"; p.md = ""; p.error = ""; p.phase = "prep"; p.tSend = 0; p.took = 0; p.limit = limit; renderPage(p);
-  const { parts, tall } = await pageImages(p.num);
-  const prompt = buildPrompt(p.num, await textLayer(p.num), tall, limit);
+  const { parts, tall } = await pageImages(p);
+  const prompt = buildPrompt(p, await textLayer(p), tall, limit);
   let last = 0;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -891,8 +953,9 @@ async function shorten(p, limit) {
 }
 
 async function runPages(nums) {
-  if (!apiKey || !pdf || running) return;
+  if (!apiKey || !pages.length || running) return;
   running = true; ctl = new AbortController(); slots = MAX_PARALLEL;
+  renderFiles();   // ✕ buttons are off while translating
   $("#stop").hidden = false; $("#prog").hidden = false; $("#runMsg").hidden = true;
   const queue = [...nums];
   for (const n of nums) { const p = pages[n - 1]; p.status = "working"; p.phase = "queued"; p.md = ""; p.error = ""; }
@@ -929,10 +992,11 @@ async function runPages(nums) {
     : `${ok} of ${nums.length} pages translated${failed ? ` · ${failed} failed` : ""}`;
   running = false; $("#stop").hidden = true;
   pages.forEach(renderPage);
+  renderFiles();
 }
 
 $("#go").onclick = () => {
-  const n = pdf.numPages;
+  const n = pages.length;
   let a = parseInt($("#from").value, 10), b = parseInt($("#to").value, 10);
   if (!(a >= 1)) a = 1;
   if (!(b >= 1) || b > n) b = n;
@@ -945,19 +1009,37 @@ $("#go").onclick = () => {
 $("#stop").onclick = () => ctl?.abort();
 
 /* ---------- Export ---------- */
+// Name used for downloads: the PDF's own name, or "<first> and N more" when several are combined.
+function exportName() {
+  const named = docs.filter((d) => pages.some((p) => p.doc === d && p.status === "done"));
+  const list = named.length ? named : docs;
+  return list.length > 1 ? `${list[0].name} and ${list.length - 1} more` : (list[0]?.name || "Anuvad");
+}
+// Translated pages grouped by PDF. With several PDFs, each group starts with that PDF's name;
+// page labels use the page number inside its own PDF.
+function exportGroups() {
+  const multi = docs.length > 1;
+  return docs.map((d) => ({ doc: d, multi, pages: pages.filter((p) => p.doc === d && p.status === "done") }))
+    .filter((g) => g.pages.length);
+}
 function combinedMd() {
-  return `# ${fileName} — English translation\n\n` + pages
-    .filter((p) => p.status === "done")
-    .map((p) => `<!-- Page ${p.num} -->\n\n${p.md}`).join("\n\n---\n\n") + "\n";
+  return `# ${exportName()} — English translation\n\n` + exportGroups().map((g) =>
+    (g.multi ? `# ${g.doc.name}\n\n` : "") +
+    g.pages.map((p) => `<!-- Page ${p.local} -->\n\n${p.md}`).join("\n\n---\n\n")
+  ).join("\n\n---\n\n") + "\n";
 }
 function combinedHtml() {
-  const body = pages.filter((p) => p.status === "done")
-    .map((p) => `<section><p class="pg">Page ${p.num}</p>${renderMd(p.md).replace(/<div class="tbl">/g, "").replace(/<\/table><\/div>/g, "</table>")}</section>`).join("\n");
+  const body = exportGroups().map((g) =>
+    (g.multi ? `<h1 class="doc">${esc(g.doc.name)}</h1>` : "") +
+    g.pages.map((p) => `<section><p class="pg">Page ${p.local}</p>${renderMd(p.md).replace(/<div class="tbl">/g, "").replace(/<\/table><\/div>/g, "</table>")}</section>`).join("\n")
+  ).join("\n");
+  const fileName = exportName();
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(fileName)} — English translation</title>
 <style>body{font-family:Georgia,"Times New Roman",serif;max-width:780px;margin:40px auto;padding:0 20px;line-height:1.55;color:#111}
 h1,h2,h3,h4{line-height:1.25}table{border-collapse:collapse;width:100%;font-size:0.92em;margin:0.6em 0}
 th,td{border:1px solid #999;padding:4px 7px;text-align:left;vertical-align:top}th{background:#eee}
 body{font-family:Georgia,"Times New Roman","Nirmala UI","Mangal",serif}
+h1.doc{margin-top:48px;padding-top:14px;border-top:3px solid #111}
 @page{margin:18mm}@media print{body{margin:0;max-width:none;padding:0}table,tr{break-inside:avoid}h1,h2,h3{break-after:avoid}}
 .pg{font-family:Arial,sans-serif;font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.08em;border-top:1px solid #ccc;padding-top:8px;margin-top:28px}</style>
 </head><body><h1>${esc(fileName)} — English translation</h1>${body}</body></html>`;
@@ -1030,8 +1112,11 @@ async function makePdf(onStep) {
   box.className = "pdfdoc"; box.style.width = CSS_W + "px";
   document.body.append(box);
   const done = pages.filter((p) => p.status === "done");
-  const parts = [`<h1>${esc(fileName)} — English translation</h1>`,
-    ...done.map((p) => `<section><p class="pg">Page ${p.num}</p>${renderMd(p.md)}</section>`)];
+  // One drawing per translated page; a PDF's name goes with its first page so it never sits alone at the bottom of a sheet.
+  const parts = [`<h1>${esc(exportName())} — English translation</h1>`];
+  for (const g of exportGroups()) g.pages.forEach((p, i) => parts.push(
+    (g.multi && i === 0 ? `<h1 class="doc">${esc(g.doc.name)}</h1>` : "") +
+    `<section><p class="pg">Page ${p.local}</p>${renderMd(p.md)}</section>`));
   let y = M;
   try {
     for (let i = 0; i < parts.length; i++) {
@@ -1068,13 +1153,13 @@ function readyToExport() {
   toast(running ? "Wait for the first page to finish, then download." : "Translate some pages first, then download.");
   return false;
 }
-$("#exMd").onclick = () => readyToExport() && download(`${fileName} - English.md`, combinedMd(), "text/markdown;charset=utf-8", ".md", "Markdown file");
-$("#exHtml").onclick = () => readyToExport() && download(`${fileName} - English.html`, combinedHtml(), "text/html;charset=utf-8", ".html", "Web page (opens in Word)");
+$("#exMd").onclick = () => readyToExport() && download(`${exportName()} - English.md`, combinedMd(), "text/markdown;charset=utf-8", ".md", "Markdown file");
+$("#exHtml").onclick = () => readyToExport() && download(`${exportName()} - English.html`, combinedHtml(), "text/html;charset=utf-8", ".html", "Web page (opens in Word)");
 $("#copyAll").onclick = () => readyToExport() && copyText(combinedMd());
 let makingPdf = false;
 $("#exPdf").onclick = async () => {
   if (makingPdf || !readyToExport()) return;
-  const name = `${fileName} - English.pdf`;
+  const name = `${exportName()} - English.pdf`;
   // Ask where to save first: the browser only allows this window straight after the click.
   const handle = await pickFile(name, "application/pdf", ".pdf", "PDF document");
   if (handle === false) return;
@@ -1091,13 +1176,17 @@ $("#exPdf").onclick = async () => {
 };
 
 /* ---------- File input & zoom ---------- */
-$("#fileIn").addEventListener("change", (e) => loadFile(e.target.files[0]));
+$("#fileIn").addEventListener("change", (e) => {
+  const files = [...e.target.files];
+  e.target.value = "";   // so the same PDF can be added again after removing it
+  loadFiles(files);
+});
 const drop = $("#drop");
 ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
 ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
-drop.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
-async function openZoom(num) {
-  const c = await renderCanvas(num, 1400);
+drop.addEventListener("drop", (e) => loadFiles(e.dataTransfer.files));
+async function openZoom(p) {
+  const c = await renderCanvas(p, 1400);
   $("#zoomImg").src = c.toDataURL("image/jpeg", 0.85);
   $("#zoom").showModal();
 }

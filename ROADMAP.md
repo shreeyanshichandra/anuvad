@@ -31,6 +31,15 @@ Anuvad stays a website that opens from a link. It is not an installable app.
 - **Download options at the top right:** Download PDF, `.html`, `.md` and Copy all moved from the bottom-left panel into a bar at the top right of the translation area, with the total word count beside them. The bar is always shown at the top; its buttons are grey until a PDF is chosen, then turn dark yellow.
 - **Direct PDF download:** the PDF is made in the browser and saved through the computer's Save window (no print window). Pages break between lines, with page numbers at the bottom. All downloads open the Save window in Chrome and Edge.
 
+## ✅ v1.3: multiple PDFs (done)
+
+- **Upload several PDFs at once** (choose them together, drop them together, or add more later). They are translated as one combined document, in the order they were added. In the page list, each PDF gets a heading showing which page numbers it covers.
+- **Each uploaded PDF shows as a bubble** with its name, page count and a **✕ button**:
+  - Clicking ✕ removes only that PDF (its pages and any translation of them); the other PDFs stay as they are.
+  - If it was the only PDF, the upload area is empty again, ready for a new one.
+- **Combined downloads:** Download PDF, `.html`, `.md` and Copy all cover every uploaded PDF together, with each PDF's name as a heading before its pages.
+- Page range and word limit ("in total") apply across the combined document.
+
 ---
 
 ## Phase 1: any language, text and word modes

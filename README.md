@@ -2,7 +2,7 @@
 
 **Translate Hindi PDFs into clean, structured English — free, right in your browser.**
 
-Upload a Hindi PDF (a book, syllabus, notice, letter or form), pick the pages, and Anuvad gives you an English version that keeps the headings, lists and tables of the original. Edit anything you want, then download it as a PDF, a Word-ready `.html` file or Markdown.
+Upload one or more Hindi PDFs (a book, syllabus, notice, letter or form), pick the pages, and Anuvad gives you an English version that keeps the headings, lists and tables of the original. Edit anything you want, then download it as a PDF, a Word-ready `.html` file or Markdown.
 
 **▶ Try it:** https://shreeyanshichandra.github.io/anuvad/
 
@@ -29,6 +29,7 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
 ## Features
 
 - **Page-by-page translation** with the original page shown beside the English
+- **Several PDFs at once**: add as many as you like; each shows as a bubble with a ✕ to remove it, and they're translated and downloaded as one combined document with each PDF's name as a heading
 - **Fast**: several pages are translated at once, usually about 15 seconds per page
 - **Live progress**: each page shows what is happening (preparing, reading, writing) with a countdown, plus an overall time-left estimate that learns from real page times
 - **Keeps the structure**: headings, numbered lists, line breaks and tables; skips the book's printed page numbers and running headers
@@ -48,7 +49,7 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
    2. Sign in with your Google (Gmail) account.
    3. Accept the terms if asked, then click **Create API key**.
    4. Copy the code (it starts with `AIza`), paste it into Anuvad and click **Save**.
-3. **Upload your PDF**, optionally type the subject (for example *History* or *Law*), and click **Translate pages**.
+3. **Upload one or more PDFs**, optionally type the subject (for example *History* or *Law*), and click **Translate pages**.
 4. **Review and download** the English version.
 
 No card or payment is needed. The code is remembered on your device, so you only do step 2 once.
