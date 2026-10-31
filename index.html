@@ -48,7 +48,8 @@ header p { margin: 0; color: var(--muted); max-width: 62ch; }
 
 .grid { display: grid; grid-template-columns: 310px minmax(0, 1fr); gap: 24px; align-items: start; }
 @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
-.rail { display: grid; gap: 16px; }
+.rail { display: grid; gap: 16px; min-width: 0; }
+.rail > *, .panel > * { min-width: 0; }   /* long content (e.g. a file name) must not widen the left column */
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; }
 .panel.key-needed { border-color: var(--marigold); box-shadow: 0 0 0 3px var(--marigold-soft); }
 .label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
@@ -72,7 +73,7 @@ details[open] summary { margin-bottom: 8px; }
 .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 /* One bubble per uploaded PDF, each with its own ✕. */
 .files { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-.fbubble { display: flex; align-items: center; gap: 8px; max-width: 100%; background: var(--marigold-soft); border: 1px solid color-mix(in srgb, var(--marigold) 45%, transparent); border-radius: 99px; padding: 4px 4px 4px 12px; font-size: 0.86rem; }
+.fbubble { display: flex; align-items: center; gap: 8px; max-width: 100%; min-width: 0; background: var(--marigold-soft); border: 1px solid color-mix(in srgb, var(--marigold) 45%, transparent); border-radius: 99px; padding: 4px 4px 4px 12px; font-size: 0.86rem; }
 .fbubble .fname { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .fbubble .fpages { color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .fbubble .fx { flex: none; width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 0; background: transparent; color: var(--muted); font-size: 0.8rem; line-height: 1; }
