@@ -8,15 +8,24 @@ Last updated: 2 November 2026
 
 ## 🚧 In progress
 
-_Nothing right now._
+- Nothing right now. Word mode is next.
 
 ## ⏭️ Next up
 
-- [ ] **Text mode:** type or paste text and translate it (no PDF needed), with edit and copy
 - [ ] **Word mode:** a single word gives a dictionary card (meanings, part of speech, examples, transliteration, pronunciation)
 - [ ] Decide whether to move to a Vite + React + TypeScript project (on a `v2` branch) before Phase 2, or keep growing the single-file site
 
 ## ✅ Done
+
+### v1.5: Text mode (Phase 1, step 2)
+- [x] **PDF / Text** switch at the top of the left column; the choice is remembered
+- [x] Type or paste up to 20,000 characters in any language, with a character count and a Clear button
+- [x] Translate with the same options: languages (auto-detect, swap), subject, technical terms, output and word limit (for the whole text)
+- [x] **Ctrl + Enter** translates
+- [x] Edit, Copy and Translate again on the result; the same leftover-language check as PDFs
+- [x] Download the translated text as PDF, `.html` or `.md`, or Copy all ("Translated text - French.pdf")
+- [x] The text and its translation are kept after a refresh
+- [x] Right-to-left text in the input box and the result (Urdu, Arabic…)
 
 ### v1.4: any language → any language (Phase 1, step 1)
 - [x] **Translate from / Translate to** pickers with 117 languages, grouped as Recent, Popular and All languages

@@ -49,7 +49,7 @@ Day-to-day progress is tracked in [TASKS.md](TASKS.md).
 - ✅ **Any language → any language** (v1.4): 117 languages, auto-detect the source, swap button, recent languages pinned. Built into the current single-file site.
 - ✅ Right-to-left support (Urdu, Arabic, Persian, Hebrew…) on screen and in downloads
 - **New project structure** (Vite + TypeScript; React still to be decided) on a `v2` branch, merged into `main` through one pull request. Only if the single file gets too big to manage.
-- **Text mode** (new home screen): type or paste text, translate, edit, copy
+- ✅ **Text mode** (v1.5): type or paste text, translate, edit, copy, download
 - **Word mode:** a single word gives a dictionary card with meanings, part of speech, examples, transliteration and pronunciation
 - Subject field and word limit available in every mode
 

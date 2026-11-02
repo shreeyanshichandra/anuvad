@@ -71,6 +71,19 @@ details[open] summary { margin-bottom: 8px; }
 .drop strong { font-weight: 600; }
 .drop small { color: var(--muted); }
 .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+/* PDF / Text switch at the top of the left column. */
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.modes button { border: 0; background: transparent; color: var(--muted); padding: 8px; border-radius: 7px; font-weight: 600; }
+.modes button:hover { color: var(--ink); }
+.modes button[aria-selected="true"] { background: var(--marigold-soft); color: var(--accent); }
+body.mode-text .pdfonly, body:not(.mode-text) .textonly { display: none !important; }
+.textview { display: grid; gap: 16px; min-width: 0; }
+.tcard { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; display: grid; gap: 10px; min-width: 0; }
+#srcText { min-height: 200px; resize: vertical; font-family: var(--font-read); font-size: 1.04rem; line-height: 1.6; }
+.tfoot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.tfoot .btns { align-items: center; }
+#textOut .tools { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+#textOut textarea { min-height: 220px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.85rem; line-height: 1.5; resize: vertical; }
 .langs { display: grid; gap: 6px; }
 .langs .swap { justify-self: end; margin-bottom: -2px; }
 /* One bubble per uploaded PDF, each with its own ✕. */
@@ -182,11 +195,15 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
 <div class="wrap">
   <header>
     <h1><span class="hi">अनुवाद</span>Anuvad</h1>
-    <p>Upload PDFs in any language and translate them into the language you choose, page by page, with headings, lists and tables kept. Each page is read as an image, so scanned pages and old fonts (like Kruti Dev for Hindi) work too.</p>
+    <p>Upload PDFs or paste text in any language and translate them into the language you choose, with headings, lists and tables kept. Each page is read as an image, so scanned pages and old fonts (like Kruti Dev for Hindi) work too.</p>
   </header>
 
   <div class="grid">
     <aside class="rail">
+      <div class="modes" role="tablist" aria-label="What to translate">
+        <button type="button" role="tab" id="modePdf" aria-selected="true">PDF</button>
+        <button type="button" role="tab" id="modeText" aria-selected="false">Text</button>
+      </div>
       <section class="panel" id="keyPanel">
         <span class="label">Your free Google access code</span>
         <div id="keyEmpty">
@@ -221,7 +238,7 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel pdfonly" id="uploadPanel">
         <span class="label">1 · Upload</span>
         <label class="drop" id="drop">
           <input type="file" id="fileIn" accept="application/pdf,.pdf" multiple>
@@ -232,7 +249,7 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
       </section>
 
       <section class="panel">
-        <span class="label">2 · Options</span>
+        <span class="label"><span class="pdfonly">2 · </span>Options</span>
         <div class="langs">
           <label class="field"><span>Translate from</span><select id="src" aria-label="Original language"></select></label>
           <button type="button" class="small swap" id="swap" title="Swap the two languages" aria-label="Swap languages">⇅ Swap</button>
@@ -260,21 +277,21 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
           <span>Word limit <span class="opt">(optional)</span></span>
           <div class="row2">
             <input type="text" inputmode="numeric" id="limit" placeholder="e.g. 300" aria-label="Word limit">
-            <select id="limitScope" aria-label="Word limit applies to">
+            <select id="limitScope" class="pdfonly" aria-label="Word limit applies to">
               <option value="page">per page</option>
               <option value="doc">in total</option>
             </select>
           </div>
           <small class="help">Condenses the translation to about this many words, keeping the main points, facts and subject terms. Leave empty for a full translation.</small>
         </div>
-        <div class="row2">
+        <div class="row2 pdfonly">
           <label class="field"><span>From page</span><input type="text" inputmode="numeric" id="from" value="1"></label>
           <label class="field"><span>To page</span><input type="text" inputmode="numeric" id="to" value=""></label>
         </div>
       </section>
 
       <section class="panel">
-        <span class="label">3 · Translate</span>
+        <span class="label"><span class="pdfonly">3 · </span>Translate</span>
         <div class="btns">
           <button class="primary" id="go" disabled>Translate pages</button>
           <button id="stop" hidden>Stop</button>
@@ -303,7 +320,22 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
           <button id="copyAll" class="dl" disabled>Copy all</button>
         </div>
       </section>
-      <main class="pages" id="pages"></main>
+      <main class="pages pdfonly" id="pages"></main>
+      <!-- Text mode: type or paste text, translation below. -->
+      <section class="textview textonly" aria-label="Text translation">
+        <div class="tcard">
+          <label class="label" for="srcText">Your text</label>
+          <textarea id="srcText" dir="auto" maxlength="20000" placeholder="Type or paste text in any language…"></textarea>
+          <div class="tfoot">
+            <span class="status" id="srcCount">0 characters</span>
+            <span class="btns"><span class="help">Ctrl + Enter to translate</span><button type="button" class="small" id="srcClear">Clear</button></span>
+          </div>
+        </div>
+        <article class="tcard" id="textOut" aria-live="polite">
+          <div class="tools"></div>
+          <div class="body"></div>
+        </article>
+      </section>
     </div>
   </div>
 
@@ -340,6 +372,8 @@ let apiKey = "";
 let docs = [];             // uploaded PDFs, in the order they were added: {id, name, pdf}
 let docSeq = 0;
 let runLangs = { from: "auto", to: "en" };   // languages of the current translation run
+let mode = "pdf";          // "pdf" or "text"
+const textItem = { kind: "text", num: 0, source: "", status: "idle", md: "" };   // Text mode's one translation, shaped like a page
 let pages = [];            // every page of every PDF, in order: {num (1..total), doc, local (page in its PDF), thumb, status: idle|working|done|failed, md, error, editing}
 let ctl = null, running = false;
 
@@ -374,6 +408,7 @@ function renderEmpty() {
 }
 
 function renderPage(p) {
+  if (p.kind === "text") return renderText(p);
   let el = document.getElementById("pg" + p.num);
   if (!el) {
     el = document.createElement("article");
@@ -391,8 +426,12 @@ function renderPage(p) {
     $("#pages").appendChild(el);
   }
   el.querySelector(".st").innerHTML = chip(p.status === "working" && p.phase === "queued" ? "queued" : p.status);
-  const tools = el.querySelector(".tools");
-  const body = el.querySelector(".body");
+  fillResult(p, el.querySelector(".tools"), el.querySelector(".body"));
+  updateButtons();
+}
+// The translation side of a page or of the text: its tools (Edit, Copy, Translate again) and its body.
+function fillResult(p, tools, body) {
+  const isText = p.kind === "text";
   tools.innerHTML = "";
   if (p.status === "done" && !p.editing) {
     if (p.took) {
@@ -404,10 +443,10 @@ function renderPage(p) {
     tools.append(btn("Copy", () => copyText(p.md)));
   }
   if ((p.status === "done" || p.status === "failed") && !p.editing) {
-    tools.append(btn("Translate again", () => runPages([p.num])));
+    tools.append(btn("Translate again", () => (isText ? runText() : runPages([p.num]))));
   }
   if (p.editing) {
-    body.innerHTML = `<textarea id="ed${p.num}" ${langAttrs(p.to)} aria-label="Edit translation for page ${p.num}"></textarea>`;
+    body.innerHTML = `<textarea ${langAttrs(p.to)} aria-label="Edit translation${isText ? "" : ` for page ${p.num}`}"></textarea>`;
     body.querySelector("textarea").value = p.md;
     tools.append(btn("Save", () => { p.md = body.querySelector("textarea").value; p.editing = false; renderPage(p); }));
     tools.append(btn("Cancel", () => { p.editing = false; renderPage(p); }));
@@ -419,9 +458,8 @@ function renderPage(p) {
   } else if (p.status === "failed") {
     body.innerHTML = (p.md ? `<div class="md" ${langAttrs(p.to)}>${renderMd(p.md)}</div>` : "") + `<p class="err">${esc(p.error || "Translation failed.")}</p>`;
   } else {
-    body.innerHTML = `<p class="placeholder">Not translated yet.</p>`;
+    body.innerHTML = `<p class="placeholder">${isText ? "The translation will appear here." : "Not translated yet."}</p>`;
   }
-  updateButtons();
 }
 function btn(label, fn) {
   const b = document.createElement("button"); b.className = "small"; b.textContent = label; b.onclick = fn;
@@ -430,19 +468,28 @@ function btn(label, fn) {
 }
 
 function updateButtons() {
-  const has = pages.length > 0;
+  const textMode = mode === "text";
+  const has = textMode ? textItem.source.trim().length > 0 || textItem.status === "done" : pages.length > 0;
   for (const id of ["#exPdf", "#exHtml", "#exMd", "#copyAll"]) $(id).disabled = !has;
-  const done = pages.filter((p) => p.status === "done");
-  const words = done.reduce((x, p) => x + countWords(p.md, langOf(p.to)), 0);
-  $("#wordTotal").textContent = done.length
-    ? `${done.length} page${done.length === 1 ? "" : "s"} translated · ${words.toLocaleString()} ${unitOf(exportLang())}`
-    : has ? "Nothing translated yet" : "Choose a PDF to download its translation";
-  $("#go").disabled = !has || !apiKey || running;
+  if (textMode) {
+    $("#wordTotal").textContent = textItem.status === "done"
+      ? `Text translated · ${countWords(textItem.md, langOf(textItem.to)).toLocaleString()} ${unitOf(langOf(textItem.to))}`
+      : has ? "Nothing translated yet" : "Type or paste text to download its translation";
+  } else {
+    const done = pages.filter((p) => p.status === "done");
+    const words = done.reduce((x, p) => x + countWords(p.md, langOf(p.to)), 0);
+    $("#wordTotal").textContent = done.length
+      ? `${done.length} page${done.length === 1 ? "" : "s"} translated · ${words.toLocaleString()} ${unitOf(exportLang())}`
+      : has ? "Nothing translated yet" : "Choose a PDF to download its translation";
+  }
+  const ready = textMode ? textItem.source.trim().length > 0 : pages.length > 0;
+  $("#go").disabled = !ready || !apiKey || running;
   $("#go").textContent = `Translate into ${target().name}`;
   scheduleSave();
-  $("#goHint").hidden = has && !!apiKey;
-  $("#goHint").textContent = !apiKey && !has ? "Save your access code and choose a PDF to start."
-    : !apiKey ? "Save your access code (at the top) to start." : "Choose a PDF to start.";
+  const what = textMode ? "type or paste some text" : "choose a PDF";
+  $("#goHint").hidden = ready && !!apiKey;
+  $("#goHint").textContent = !apiKey && !ready ? `Save your access code and ${what} to start.`
+    : !apiKey ? "Save your access code (at the top) to start." : `${what[0].toUpperCase() + what.slice(1)} to start.`;
 }
 
 async function copyText(text) {
@@ -620,6 +667,7 @@ function scheduleSave() {
   if (!restored) return;   // don't overwrite saved work before it has been loaded back
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
+    saveText();
     const keep = pages.map((p) => {
       const settled = p.status === "done" || p.status === "failed";
       return { doc: p.doc.id, local: p.local, status: settled ? p.status : "idle", md: settled ? p.md : "", error: p.error || "",
@@ -907,6 +955,7 @@ const unitOf = (L) => (L.chars ? "characters" : "words");
 const langAttrs = (code) => { const L = langOf(code); return `lang="${L.code}" dir="${L.rtl ? "rtl" : "ltr"}"`; };
 // Language the translated pages are in (the one used most, if pages were translated into different ones).
 function exportLang() {
+  if (mode === "text") return langOf(textItem.to || $("#dst").value);
   const count = new Map();
   for (const p of pages) if (p.status === "done") count.set(p.to, (count.get(p.to) || 0) + 1);
   const top = [...count].sort((a, b) => b[1] - a[1])[0];
@@ -947,10 +996,10 @@ $("#swap").onclick = () => {
 
 /* ---------- Word limit ---------- */
 // Optional: condense the translation to about N words without losing the gist or the subject matter.
-function lengthRules(limit, T) {
+function lengthRules(limit, T, what = "page") {
   const unit = unitOf(T);
   return [
-    `LENGTH: the reader wants a condensed ${T.name} version of this page of about ${limit} ${unit} (stay within 10% of that; never go more than 10% over).`,
+    `LENGTH: the reader wants a condensed ${T.name} version of this ${what} of about ${limit} ${unit} (stay within 10% of that; never go more than 10% over).`,
     "Condense, don't cut. The gist and the subject matter must not be lost:",
     "- Keep every main point, argument and conclusion of the page.",
     "- Keep the key facts, names, dates, numbers and technical terms (in the field's terminology).",
@@ -1027,10 +1076,13 @@ function buildPrompt(p, hint, tall, limit) {
   const layout = $("#layout").value === "bi"
     ? `Write the output bilingually: for every heading, list item, paragraph and table cell group, first give the original text exactly as printed (in its own script), then the ${tn} translation on the next line in italics. Keep the Markdown structure.`
     : `Write only the ${tn} translation.`;
+  const isText = p.kind === "text", unit = isText ? "text" : "page";
   return [
-    S ? `Translate page ${p.local} of ${p.doc.pdf.numPages} of a ${S.name} document into ${tn}.`
-      : `Translate page ${p.local} of ${p.doc.pdf.numPages} of a document into ${tn}. First identify the language (or languages) it is written in.`,
-    `The page is attached as two overlapping images (${tall ? "top part first, then bottom part" : "left part first, then right part"}). Text in the overlapping strip appears in both: include it only once.`,
+    isText
+      ? (S ? `Translate the ${S.name} text below into ${tn}.` : `Translate the text below into ${tn}. First identify the language (or languages) it is written in.`)
+      : (S ? `Translate page ${p.local} of ${p.doc.pdf.numPages} of a ${S.name} document into ${tn}.`
+        : `Translate page ${p.local} of ${p.doc.pdf.numPages} of a document into ${tn}. First identify the language (or languages) it is written in.`),
+    isText ? "" : `The page is attached as two overlapping images (${tall ? "top part first, then bottom part" : "left part first, then right part"}). Text in the overlapping strip appears in both: include it only once.`,
     "",
     subject
       ? [
@@ -1040,11 +1092,12 @@ function buildPrompt(p, hint, tall, limit) {
           `- Recognise the field's technical terms, concepts, names and works, and render them the way the ${subject} field conventionally does in ${tn} (including established transliterations).`,
           `- Keep the field's conventions for units, notation, dates, citations and abbreviations.`,
         ].join("\n")
-      : `FIELD: first work out the subject field of this page (e.g. music, history, law, medicine, administration) from its content, then translate it the way a subject expert in that field would: use the field's standard ${tn} terminology, and choose the field-specific meaning of any ambiguous word.`,
-    limit ? "\n" + lengthRules(limit, T) : "",
+      : `FIELD: first work out the subject field of this ${unit} (e.g. music, history, law, medicine, administration) from its content, then translate it the way a subject expert in that field would: use the field's standard ${tn} terminology, and choose the field-specific meaning of any ambiguous word.`,
+    limit ? "\n" + lengthRules(limit, T, unit) : "",
     "",
     "Rules:",
-    `- Read every piece of text on the page in ${orig}: titles, headings, numbering, paragraphs, lists, tables, captions, notes and footnotes.`,
+    isText ? `- Translate all of the text, keeping its paragraphs and line breaks.`
+      : `- Read every piece of text on the page in ${orig}: titles, headings, numbering, paragraphs, lists, tables, captions, notes and footnotes.`,
     limit
       ? `- Translate faithfully into clear, natural ${tn} that matches the tone of the original (formal for official or academic text, plain for everyday text). Never add content or change the meaning.`
       : `- Translate faithfully into clear, natural ${tn} that matches the tone of the original (formal for official or academic text, plain for everyday text). Do not summarise, skip, reorder or add content.`,
@@ -1057,12 +1110,13 @@ function buildPrompt(p, hint, tall, limit) {
       : `- Names of people, books, institutions and places: their standard ${tn} spelling, transliterated into ${tn} script where needed.`,
     "- " + terms,
     `- Text already in ${tn} stays as is.`,
-    "- Leave out the book's printed page numbers and repeated running headers or footers (the same title or chapter name at the top or bottom of every page).",
-    "- Write [illegible] for anything you cannot read. If the page has no text, reply only: (blank page)",
+    isText ? "" : "- Leave out the book's printed page numbers and repeated running headers or footers (the same title or chapter name at the top or bottom of every page).",
+    isText ? "" : "- Write [illegible] for anything you cannot read. If the page has no text, reply only: (blank page)",
     "- " + layout,
     "Reply with the Markdown only: no preface, no notes, no code fences.",
     $("#layout").value === "bi" ? ""
       : `IMPORTANT: the whole answer must be in ${tn}, including every heading, table cell and list item. Never copy the original ${orig} text into the answer; translate it.`,
+    isText ? `\nText to translate:\n"""\n${p.source}\n"""` : "",
     hint ? `\nText layer extracted from the PDF by software. It may have broken or reordered characters (common with Indic and Arabic scripts) or legacy-font gibberish, so trust the images; use this only to confirm spellings and numbers:\n"""\n${hint}\n"""` : "",
   ].join("\n");
 }
@@ -1154,6 +1208,7 @@ function liveText(p) {
   if (p.phase === "queued") return "Waiting for a free slot…";
   if (p.phase === "prep") return "Preparing the page image…";
   const elapsed = p.tSend ? (now - p.tSend) / 1000 : 0;
+  if (p.kind === "text" && (p.phase === "send" || p.phase === "read" || p.phase === "prep")) return `Sending your text to Google… ${fmtTime(elapsed)}`;
   if (p.phase === "relang") return `Translating the parts still in the original language into ${langOf(p.to).name}… ${fmtTime(elapsed)}`;
   if (p.phase === "shorten") return `Condensing ${p.shortFrom} words to about ${p.limit}… ${fmtTime(elapsed)}`;
   if (p.phase === "write") return `Writing the translation… ${fmtTime(elapsed)}`;
@@ -1162,9 +1217,9 @@ function liveText(p) {
   return left > 1 ? `${step}… about ${fmtTime(left)} left` : `${step}… almost done (taking a little longer than usual)`;
 }
 function updateLive() {
-  for (const p of pages) {
+  for (const p of [...pages, textItem]) {
     if (p.status !== "working") continue;
-    const el = document.querySelector(`#pg${p.num} .live-text`);
+    const el = document.querySelector(p.kind === "text" ? "#textOut .live-text" : `#pg${p.num} .live-text`);
     if (el) el.textContent = liveText(p);
   }
   if (!running || !runState) return;
@@ -1187,8 +1242,9 @@ function learnSpeed(sec) {
 async function translateOne(p, limit = null) {
   p.status = "working"; p.md = ""; p.error = ""; p.phase = "prep"; p.tSend = 0; p.took = 0; p.limit = limit;
   p.from = runLangs.from; p.to = runLangs.to; p.settings = runLangs.key; renderPage(p);
-  const { parts, tall } = await pageImages(p);
-  const prompt = buildPrompt(p, await textLayer(p), tall, limit);
+  const isText = p.kind === "text";
+  const { parts, tall } = isText ? { parts: [], tall: true } : await pageImages(p);
+  const prompt = buildPrompt(p, isText ? "" : await textLayer(p), tall, limit);
   let last = 0;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -1200,14 +1256,14 @@ async function translateOne(p, limit = null) {
         if (now - last > 250) { last = now; renderPage(p); }
       }, () => { p.phase = "read"; updateLive(); });
       p.took = (Date.now() - p.tSend) / 1000;
-      learnSpeed(p.took);
+      if (!isText) learnSpeed(p.took);   // the countdown is for pages only
       p.md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
       if (!res.truncated && !runLangs.bilingual && targetShare(p.md, langOf(p.to)) < 0.8) await finishLanguage(p);
       p.words = countWords(p.md, langOf(p.to));
       if (limit && !res.truncated && p.words > limit * 1.15) await shorten(p, limit);
       p.took = (Date.now() - p.tSend) / 1000;
       p.status = res.truncated ? "failed" : "done";
-      if (res.truncated) p.error = "The answer was cut short. Translate this page again.";
+      if (res.truncated) p.error = isText ? "The answer was cut short. Try a shorter text, or split it in two." : "The answer was cut short. Translate this page again.";
       renderPage(p);
       return null;
     } catch (e) {
@@ -1337,6 +1393,75 @@ async function runPages(nums) {
   renderFiles();
 }
 
+/* ---------- Text mode ---------- */
+const MODE_STORE = "anuvad.mode", TEXT_STORE = "anuvad.text";
+function setMode(m) {
+  if (running && m !== mode) { toast("Stop the current translation first."); return; }
+  mode = m;
+  document.body.classList.toggle("mode-text", m === "text");
+  $("#modePdf").setAttribute("aria-selected", String(m === "pdf"));
+  $("#modeText").setAttribute("aria-selected", String(m === "text"));
+  store.set(MODE_STORE, m);
+  $("#runMsg").hidden = true; $("#prog").hidden = true;
+  if (m === "text") renderText(textItem); else updateButtons();
+}
+$("#modePdf").onclick = () => setMode("pdf");
+$("#modeText").onclick = () => setMode("text");
+
+function renderText(p) {
+  fillResult(p, $("#textOut .tools"), $("#textOut .body"));
+  updateButtons();
+}
+function updateSrcCount() {
+  const n = $("#srcText").value.length;
+  $("#srcCount").textContent = `${n.toLocaleString()} character${n === 1 ? "" : "s"}${n >= 20000 ? " (the most it takes)" : ""}`;
+}
+$("#srcText").addEventListener("input", () => { textItem.source = $("#srcText").value; updateSrcCount(); updateButtons(); });
+$("#srcText").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (!$("#go").disabled) runText(); }
+});
+$("#srcClear").onclick = () => {
+  if (running) return;
+  $("#srcText").value = ""; textItem.source = "";
+  Object.assign(textItem, { status: "idle", md: "", error: "", editing: false });
+  updateSrcCount(); renderText(textItem); $("#srcText").focus();
+};
+function saveText() {
+  const t = textItem, settled = t.status === "done" || t.status === "failed";
+  store.set(TEXT_STORE, JSON.stringify({ source: t.source, status: settled ? t.status : "idle", md: settled ? t.md : "", error: t.error || "",
+    from: t.from, to: t.to, words: t.words, took: t.took, limit: t.limit }));
+}
+function restoreText() {
+  let t = {};
+  try { t = JSON.parse(store.get(TEXT_STORE) || "{}"); } catch {}
+  Object.assign(textItem, { source: t.source || "", status: t.status || "idle", md: t.md || "", error: t.error || "",
+    from: t.from, to: t.to, words: t.words, took: t.took, limit: t.limit });
+  $("#srcText").value = textItem.source;
+  updateSrcCount();
+  setMode(store.get(MODE_STORE) === "text" ? "text" : "pdf");
+}
+
+// Translates the text box. The word limit applies to the whole text.
+async function runText() {
+  if (!apiKey || running) return;
+  textItem.source = $("#srcText").value;
+  if (!textItem.source.trim()) { toast("Type or paste some text first."); return; }
+  if ($("#src").value === $("#dst").value) { toast("Choose two different languages."); return; }
+  runLangs = { from: $("#src").value, to: $("#dst").value, bilingual: $("#layout").value === "bi", key: settingsKey() };
+  rememberLangs();
+  running = true; ctl = new AbortController(); slots = MAX_PARALLEL;
+  $("#stop").hidden = false; $("#runMsg").hidden = true; $("#prog").hidden = true;
+  textItem.editing = false;
+  const n = parseInt($("#limit").value.replace(/[^0-9]/g, ""), 10);
+  const code = await translateOne(textItem, n > 0 ? n : null);
+  if (code === "stop" && textItem.error) {
+    $("#runMsg").textContent = textItem.error;
+    $("#runMsg").className = "notice bad"; $("#runMsg").hidden = false;
+  }
+  running = false; $("#stop").hidden = true;
+  renderText(textItem);
+}
+
 // Everything in the Options panel that changes a translation, as one comparable string.
 function settingsKey() {
   return JSON.stringify([$("#src").value, $("#dst").value, $("#subject").value.trim().toLowerCase(), $("#terms").value,
@@ -1344,6 +1469,7 @@ function settingsKey() {
 }
 
 $("#go").onclick = () => {
+  if (mode === "text") { runText(); return; }
   const n = pages.length;
   let a = parseInt($("#from").value, 10), b = parseInt($("#to").value, 10);
   if (!(a >= 1)) a = 1;
@@ -1361,6 +1487,7 @@ $("#stop").onclick = () => ctl?.abort();
 /* ---------- Export ---------- */
 // Name used for downloads: the PDF's own name, or "<first> and N more" when several are combined.
 function exportName() {
+  if (mode === "text") return "Translated text";
   const named = docs.filter((d) => pages.some((p) => p.doc === d && p.status === "done"));
   const list = named.length ? named : docs;
   return list.length > 1 ? `${list[0].name} and ${list.length - 1} more` : (list[0]?.name || "Anuvad");
@@ -1368,20 +1495,23 @@ function exportName() {
 // Translated pages grouped by PDF. With several PDFs, each group starts with that PDF's name;
 // page labels use the page number inside its own PDF.
 function exportGroups() {
+  if (mode === "text") return textItem.status === "done" ? [{ doc: { name: "" }, multi: false, pages: [textItem] }] : [];
   const multi = docs.length > 1;
   return docs.map((d) => ({ doc: d, multi, pages: pages.filter((p) => p.doc === d && p.status === "done") }))
     .filter((g) => g.pages.length);
 }
+// "Page 3" label before each page in downloads (none for Text mode).
+const pageLabel = (p) => (p.kind === "text" ? "" : `<p class="pg">Page ${p.local}</p>`);
 function combinedMd() {
   return `# ${exportName()} — ${exportLang().name} translation\n\n` + exportGroups().map((g) =>
     (g.multi ? `# ${g.doc.name}\n\n` : "") +
-    g.pages.map((p) => `<!-- Page ${p.local} -->\n\n${p.md}`).join("\n\n---\n\n")
+    g.pages.map((p) => (p.kind === "text" ? "" : `<!-- Page ${p.local} -->\n\n`) + p.md).join("\n\n---\n\n")
   ).join("\n\n---\n\n") + "\n";
 }
 function combinedHtml() {
   const body = exportGroups().map((g) =>
     (g.multi ? `<h1 class="doc">${esc(g.doc.name)}</h1>` : "") +
-    g.pages.map((p) => `<section ${langAttrs(p.to)}><p class="pg">Page ${p.local}</p>${renderMd(p.md).replace(/<div class="tbl">/g, "").replace(/<\/table><\/div>/g, "</table>")}</section>`).join("\n")
+    g.pages.map((p) => `<section ${langAttrs(p.to)}>${pageLabel(p)}${renderMd(p.md).replace(/<div class="tbl">/g, "").replace(/<\/table><\/div>/g, "</table>")}</section>`).join("\n")
   ).join("\n");
   const fileName = exportName(), lang = exportLang().name;
   return `<!doctype html><html lang="${exportLang().code}"><head><meta charset="utf-8"><title>${esc(fileName)} — ${esc(lang)} translation</title>
@@ -1461,12 +1591,12 @@ async function makePdf(onStep) {
   const box = document.createElement("div");
   box.className = "pdfdoc"; box.style.width = CSS_W + "px";
   document.body.append(box);
-  const done = pages.filter((p) => p.status === "done");
+  const done = exportGroups().flatMap((g) => g.pages);
   // One drawing per translated page; a PDF's name goes with its first page so it never sits alone at the bottom of a sheet.
   const parts = [`<h1>${esc(exportName())} — ${esc(exportLang().name)} translation</h1>`];
   for (const g of exportGroups()) g.pages.forEach((p, i) => parts.push(
     (g.multi && i === 0 ? `<h1 class="doc">${esc(g.doc.name)}</h1>` : "") +
-    `<section ${langAttrs(p.to)}><p class="pg">Page ${p.local}</p>${renderMd(p.md)}</section>`));
+    `<section ${langAttrs(p.to)}>${pageLabel(p)}${renderMd(p.md)}</section>`));
   let y = M;
   try {
     for (let i = 0; i < parts.length; i++) {
@@ -1510,6 +1640,11 @@ async function makePdf(onStep) {
 }
 // The download buttons are clickable as soon as a PDF is chosen; until a page is translated they only explain why.
 function readyToExport() {
+  if (mode === "text") {
+    if (textItem.status === "done") return true;
+    toast(running ? "Wait for the translation to finish, then download." : "Translate your text first, then download.");
+    return false;
+  }
   if (pages.some((p) => p.status === "done")) return true;
   toast(running ? "Wait for the first page to finish, then download." : "Translate some pages first, then download.");
   return false;
@@ -1557,6 +1692,7 @@ $("#zoom").addEventListener("click", () => $("#zoom").close());
 renderEmpty();
 fillLangs();
 restoreOptions();
+restoreText();
 updateButtons();
 restoreWork();
 (async () => {

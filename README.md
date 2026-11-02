@@ -29,6 +29,7 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
 ## Features
 
 - **Any language → any language**: 117 languages, with the original language detected automatically, a swap button, and your recent languages pinned at the top
+- **Text mode**: no PDF? Switch to **Text**, type or paste up to 20,000 characters and translate it with the same options and downloads
 - **Right-to-left output** for Urdu, Arabic, Persian, Hebrew and others, on screen and in downloads
 - **Page-by-page translation** with the original page shown beside the translation
 - **Several PDFs at once**: add as many as you like; each shows as a bubble with a ✕ to remove it, and they're translated and downloaded as one combined document with each PDF's name as a heading
