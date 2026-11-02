@@ -8,14 +8,24 @@ Last updated: 2 November 2026
 
 ## 🚧 In progress
 
-- Nothing right now. Word mode is next.
+- Nothing right now.
 
 ## ⏭️ Next up
 
-- [ ] **Word mode:** a single word gives a dictionary card (meanings, part of speech, examples, transliteration, pronunciation)
 - [ ] Decide whether to move to a Vite + React + TypeScript project (on a `v2` branch) before Phase 2, or keep growing the single-file site
 
 ## ✅ Done
+
+### v1.6: Word mode (Phase 1, step 3)
+- [x] **Word** added to the PDF / Text switch
+- [x] Type a word or short phrase (up to 60 characters) and press Enter or **Look up in …**
+- [x] Dictionary card: the word, transliteration, IPA pronunciation, its language, meanings grouped by part of speech, 1–2 example sentences per meaning with translations, synonyms, opposites, forms and a usage note
+- [x] Subject field puts the subject's meaning first; Detect automatically works; the same language on both sides gives a one-language dictionary entry
+- [x] **🔊 Listen** reads the word aloud with the browser's own voice for its language
+- [x] Edit, Copy, Look up again; download as PDF, `.html` or `.md`, or Copy all ("Dictionary - शांति - English.pdf")
+- [x] Technical terms, Output and Word limit are hidden in Word mode (they don't apply)
+- [x] A sentence typed in Word mode points to Text mode instead
+- [x] The word and its card are kept after a refresh
 
 ### v1.5: Text mode (Phase 1, step 2)
 - [x] **PDF / Text** switch at the top of the left column; the choice is remembered

@@ -71,19 +71,27 @@ details[open] summary { margin-bottom: 8px; }
 .drop strong { font-weight: 600; }
 .drop small { color: var(--muted); }
 .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-/* PDF / Text switch at the top of the left column. */
-.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+/* PDF / Text / Word switch at the top of the left column. */
+.modes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
 .modes button { border: 0; background: transparent; color: var(--muted); padding: 8px; border-radius: 7px; font-weight: 600; }
 .modes button:hover { color: var(--ink); }
 .modes button[aria-selected="true"] { background: var(--marigold-soft); color: var(--accent); }
-body.mode-text .pdfonly, body:not(.mode-text) .textonly { display: none !important; }
+body.mode-text .pdfonly, body.mode-word .pdfonly, body:not(.mode-text) .textonly, body:not(.mode-word) .wordonly, body.mode-word .notword { display: none !important; }
 .textview { display: grid; gap: 16px; min-width: 0; }
 .tcard { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; display: grid; gap: 10px; min-width: 0; }
 #srcText { min-height: 200px; resize: vertical; font-family: var(--font-read); font-size: 1.04rem; line-height: 1.6; }
 .tfoot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
 .tfoot .btns { align-items: center; }
-#textOut .tools { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
-#textOut textarea { min-height: 220px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.85rem; line-height: 1.5; resize: vertical; }
+#textOut .tools, #wordOut .tools { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+#textOut textarea, #wordOut textarea { min-height: 220px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.85rem; line-height: 1.5; resize: vertical; }
+/* Word mode: one search box and a dictionary card. */
+.wordrow { display: flex; gap: 8px; }
+.wordrow input { flex: 1; min-width: 0; font-family: var(--font-read); font-size: 1.2rem; padding: 9px 12px; }
+#wordOut .md h1 { font-size: 2rem; margin-bottom: 0.1em; }
+#wordOut .md h1 + p { color: var(--muted); font-family: var(--font-ui); font-size: 0.92rem; margin-top: 0; }
+#wordOut .md h2 { font-family: var(--font-ui); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-top: 1.2em; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+#wordOut .md ol > li { margin: 0.5em 0; }
+#wordOut .md ol ul { color: var(--muted); list-style: none; padding-inline-start: 0.6em; }
 .langs { display: grid; gap: 6px; }
 .langs .swap { justify-self: end; margin-bottom: -2px; }
 /* One bubble per uploaded PDF, each with its own ✕. */
@@ -195,7 +203,7 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
 <div class="wrap">
   <header>
     <h1><span class="hi">अनुवाद</span>Anuvad</h1>
-    <p>Upload PDFs or paste text in any language and translate them into the language you choose, with headings, lists and tables kept. Each page is read as an image, so scanned pages and old fonts (like Kruti Dev for Hindi) work too.</p>
+    <p>Upload PDFs, paste text or look up a word in any language and translate it into the language you choose, with headings, lists and tables kept. Each page is read as an image, so scanned pages and old fonts (like Kruti Dev for Hindi) work too.</p>
   </header>
 
   <div class="grid">
@@ -203,6 +211,7 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
       <div class="modes" role="tablist" aria-label="What to translate">
         <button type="button" role="tab" id="modePdf" aria-selected="true">PDF</button>
         <button type="button" role="tab" id="modeText" aria-selected="false">Text</button>
+        <button type="button" role="tab" id="modeWord" aria-selected="false">Word</button>
       </div>
       <section class="panel" id="keyPanel">
         <span class="label">Your free Google access code</span>
@@ -260,20 +269,20 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
           <input type="text" id="subject" placeholder="e.g. Music, History, Law">
           <small class="help">Translates with that field's own terms. Leave empty to detect it from the page.</small>
         </label>
-        <label class="field"><span>Technical terms</span>
+        <label class="field notword"><span>Technical terms</span>
           <select id="terms">
             <option value="explain">Keep term, add its meaning</option>
             <option value="keep">Keep term only, no meaning</option>
             <option value="translate">Translate fully</option>
           </select>
         </label>
-        <label class="field"><span>Output</span>
+        <label class="field notword"><span>Output</span>
           <select id="layout">
             <option value="en">Translation only</option>
             <option value="bi">Original line, then translation</option>
           </select>
         </label>
-        <div class="field">
+        <div class="field notword">
           <span>Word limit <span class="opt">(optional)</span></span>
           <div class="row2">
             <input type="text" inputmode="numeric" id="limit" placeholder="e.g. 300" aria-label="Word limit">
@@ -336,6 +345,21 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
           <div class="body"></div>
         </article>
       </section>
+      <!-- Word mode: one word or short phrase, a dictionary card below. -->
+      <section class="textview wordonly" aria-label="Word lookup">
+        <div class="tcard">
+          <label class="label" for="wordIn">Word or short phrase</label>
+          <div class="wordrow">
+            <input type="text" id="wordIn" dir="auto" maxlength="60" autocomplete="off" spellcheck="false" placeholder="e.g. शांति, bonjour, serendipity">
+            <button type="button" class="small" id="wordClear">Clear</button>
+          </div>
+          <span class="help">Press Enter to look it up: meanings, part of speech, examples, transliteration and pronunciation. For sentences, use Text.</span>
+        </div>
+        <article class="tcard" id="wordOut" aria-live="polite">
+          <div class="tools"></div>
+          <div class="body"></div>
+        </article>
+      </section>
     </div>
   </div>
 
@@ -372,8 +396,11 @@ let apiKey = "";
 let docs = [];             // uploaded PDFs, in the order they were added: {id, name, pdf}
 let docSeq = 0;
 let runLangs = { from: "auto", to: "en" };   // languages of the current translation run
-let mode = "pdf";          // "pdf" or "text"
+let mode = "pdf";          // "pdf", "text" or "word"
 const textItem = { kind: "text", num: 0, source: "", status: "idle", md: "" };   // Text mode's one translation, shaped like a page
+const wordItem = { kind: "word", num: 0, source: "", status: "idle", md: "" };   // Word mode's dictionary card, shaped the same way
+// The one item Text or Word mode works on (null in PDF mode).
+const single = () => (mode === "text" ? textItem : mode === "word" ? wordItem : null);
 let pages = [];            // every page of every PDF, in order: {num (1..total), doc, local (page in its PDF), thumb, status: idle|working|done|failed, md, error, editing}
 let ctl = null, running = false;
 
@@ -408,7 +435,7 @@ function renderEmpty() {
 }
 
 function renderPage(p) {
-  if (p.kind === "text") return renderText(p);
+  if (p.kind) return renderSingle(p);
   let el = document.getElementById("pg" + p.num);
   if (!el) {
     el = document.createElement("article");
@@ -431,22 +458,24 @@ function renderPage(p) {
 }
 // The translation side of a page or of the text: its tools (Edit, Copy, Translate again) and its body.
 function fillResult(p, tools, body) {
-  const isText = p.kind === "text";
+  const isSingle = !!p.kind, isWord = p.kind === "word";
   tools.innerHTML = "";
   if (p.status === "done" && !p.editing) {
     if (p.took) {
       const t = document.createElement("span"); t.className = "took";
-      t.textContent = `${langOf(p.to).name} · translated in ${fmtTime(p.took)}` + (p.words ? ` · ${p.words.toLocaleString()} ${unitOf(langOf(p.to))}${p.limit ? ` (limit ${p.limit})` : ""}` : "");
+      t.textContent = isWord ? `${langOf(p.to).name} · looked up in ${fmtTime(p.took)}`
+        : `${langOf(p.to).name} · translated in ${fmtTime(p.took)}` + (p.words ? ` · ${p.words.toLocaleString()} ${unitOf(langOf(p.to))}${p.limit ? ` (limit ${p.limit})` : ""}` : "");
       tools.append(t);
     }
+    if (isWord && window.speechSynthesis) tools.append(btn("🔊 Listen", () => speak(p)));
     tools.append(btn("Edit", () => { p.editing = true; renderPage(p); }));
     tools.append(btn("Copy", () => copyText(p.md)));
   }
   if ((p.status === "done" || p.status === "failed") && !p.editing) {
-    tools.append(btn("Translate again", () => (isText ? runText() : runPages([p.num]))));
+    tools.append(btn(isWord ? "Look up again" : "Translate again", () => (isSingle ? runSingle(p) : runPages([p.num]))));
   }
   if (p.editing) {
-    body.innerHTML = `<textarea ${langAttrs(p.to)} aria-label="Edit translation${isText ? "" : ` for page ${p.num}`}"></textarea>`;
+    body.innerHTML = `<textarea ${langAttrs(p.to)} aria-label="Edit ${isWord ? "dictionary card" : "translation"}${isSingle ? "" : ` for page ${p.num}`}"></textarea>`;
     body.querySelector("textarea").value = p.md;
     tools.append(btn("Save", () => { p.md = body.querySelector("textarea").value; p.editing = false; renderPage(p); }));
     tools.append(btn("Cancel", () => { p.editing = false; renderPage(p); }));
@@ -458,22 +487,25 @@ function fillResult(p, tools, body) {
   } else if (p.status === "failed") {
     body.innerHTML = (p.md ? `<div class="md" ${langAttrs(p.to)}>${renderMd(p.md)}</div>` : "") + `<p class="err">${esc(p.error || "Translation failed.")}</p>`;
   } else {
-    body.innerHTML = `<p class="placeholder">${isText ? "The translation will appear here." : "Not translated yet."}</p>`;
+    body.innerHTML = `<p class="placeholder">${isWord ? "The dictionary card will appear here." : isSingle ? "The translation will appear here." : "Not translated yet."}</p>`;
   }
 }
 function btn(label, fn) {
   const b = document.createElement("button"); b.className = "small"; b.textContent = label; b.onclick = fn;
-  b.disabled = (running && label !== "Copy") || (label === "Translate again" && !apiKey);
+  b.disabled = (running && label !== "Copy") || (/ again$/.test(label) && !apiKey);
   return b;
 }
 
 function updateButtons() {
-  const textMode = mode === "text";
-  const has = textMode ? textItem.source.trim().length > 0 || textItem.status === "done" : pages.length > 0;
+  const item = single(), isWord = mode === "word";
+  const has = item ? item.source.trim().length > 0 || item.status === "done" : pages.length > 0;
   for (const id of ["#exPdf", "#exHtml", "#exMd", "#copyAll"]) $(id).disabled = !has;
-  if (textMode) {
-    $("#wordTotal").textContent = textItem.status === "done"
-      ? `Text translated · ${countWords(textItem.md, langOf(textItem.to)).toLocaleString()} ${unitOf(langOf(textItem.to))}`
+  if (isWord) {
+    $("#wordTotal").textContent = item.status === "done" ? `Dictionary card for “${item.source.trim()}”`
+      : has ? "Nothing looked up yet" : "Type a word to download its dictionary card";
+  } else if (item) {
+    $("#wordTotal").textContent = item.status === "done"
+      ? `Text translated · ${countWords(item.md, langOf(item.to)).toLocaleString()} ${unitOf(langOf(item.to))}`
       : has ? "Nothing translated yet" : "Type or paste text to download its translation";
   } else {
     const done = pages.filter((p) => p.status === "done");
@@ -482,11 +514,11 @@ function updateButtons() {
       ? `${done.length} page${done.length === 1 ? "" : "s"} translated · ${words.toLocaleString()} ${unitOf(exportLang())}`
       : has ? "Nothing translated yet" : "Choose a PDF to download its translation";
   }
-  const ready = textMode ? textItem.source.trim().length > 0 : pages.length > 0;
+  const ready = item ? item.source.trim().length > 0 : pages.length > 0;
   $("#go").disabled = !ready || !apiKey || running;
-  $("#go").textContent = `Translate into ${target().name}`;
+  $("#go").textContent = isWord ? `Look up in ${target().name}` : `Translate into ${target().name}`;
   scheduleSave();
-  const what = textMode ? "type or paste some text" : "choose a PDF";
+  const what = isWord ? "type a word" : item ? "type or paste some text" : "choose a PDF";
   $("#goHint").hidden = ready && !!apiKey;
   $("#goHint").textContent = !apiKey && !ready ? `Save your access code and ${what} to start.`
     : !apiKey ? "Save your access code (at the top) to start." : `${what[0].toUpperCase() + what.slice(1)} to start.`;
@@ -955,7 +987,7 @@ const unitOf = (L) => (L.chars ? "characters" : "words");
 const langAttrs = (code) => { const L = langOf(code); return `lang="${L.code}" dir="${L.rtl ? "rtl" : "ltr"}"`; };
 // Language the translated pages are in (the one used most, if pages were translated into different ones).
 function exportLang() {
-  if (mode === "text") return langOf(textItem.to || $("#dst").value);
+  if (single()) return langOf(single().to || $("#dst").value);
   const count = new Map();
   for (const p of pages) if (p.status === "done") count.set(p.to, (count.get(p.to) || 0) + 1);
   const top = [...count].sort((a, b) => b[1] - a[1])[0];
@@ -1062,7 +1094,53 @@ function countWords(md, T) {
 }
 
 /* ---------- Translation ---------- */
+// Word mode: a bilingual dictionary entry in a fixed Markdown layout, explained in the target language.
+function wordPrompt(p) {
+  const subject = $("#subject").value.trim();
+  const T = langOf(p.to), S = p.from === "auto" ? null : langOf(p.from), tn = T.name;
+  const translit = T.latin ? "roman letters" : `${tn} script`;
+  return [
+    `You are an expert bilingual dictionary. Write the dictionary entry for the ${S ? S.name + " " : ""}word or phrase below, for a reader who speaks ${tn}.`,
+    S ? "" : "First identify which language it is in.",
+    subject ? `It is being looked up for ${subject}: give the meaning it has in ${subject} first, marked (${subject}), using the standard ${tn} terminology of ${subject}.` : "",
+    "",
+    "Reply in Markdown with exactly this layout:",
+    "<!-- lang: <ISO 639-1 code of the word's language, e.g. hi> -->",
+    "# <the word as given; fix the spelling if it is clearly misspelt>",
+    `<the word written in ${translit} (leave this out if it is already in ${translit})> · <pronunciation in IPA between slashes> · <the word's language, named in ${tn}>`,
+    "",
+    `## <part of speech, in ${tn}, e.g. Noun>`,
+    `1. **<${tn} equivalent(s), comma-separated>** — <short ${tn} explanation of this sense, with its gender or register if it matters>`,
+    `   - <example sentence in the word's own language> — *<its ${tn} translation>*`,
+    "2. …",
+    "",
+    `**<"Synonyms" in ${tn}>:** <synonyms in the word's own language>`,
+    `**<"Opposites" in ${tn}>:** <opposites>`,
+    `**<"Forms" in ${tn}>:** <plural, verb forms, related words>`,
+    `**<"Note" in ${tn}>:** <usage note: formal or colloquial, regional, common confusions, origin if interesting>`,
+    "",
+    "Rules:",
+    "- One ## section for each part of speech the word really has, most common first; 1 to 5 senses each, most common first; one or two short, natural examples per sense.",
+    "- Leave out any of the last four lines that has nothing useful.",
+    "- For a phrase or idiom, explain what it means as a whole and give its closest idiom or expression in " + tn + ".",
+    `- If the word is in ${tn} itself, write a ${tn} dictionary entry (meanings explained in ${tn}).`,
+    "- If it is not a real word, write the heading, then one line saying it was not found and up to three words that were probably meant.",
+    "- No preface, no notes, no code fences.",
+    "",
+    `Word: """${p.source.trim()}"""`,
+  ].join("\n");
+}
+// Plays the looked-up word with the browser's own voice for its language.
+function speak(p) {
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(p.source.trim());
+  const code = p.lang || (p.from !== "auto" ? p.from : "");
+  if (code) u.lang = code;
+  speechSynthesis.speak(u);
+}
+
 function buildPrompt(p, hint, tall, limit) {
+  if (p.kind === "word") return wordPrompt(p);
   const subject = $("#subject").value.trim();
   const T = langOf(p.to), S = p.from === "auto" ? null : langOf(p.from);
   const tn = T.name, orig = S ? S.name : "the original language";
@@ -1208,7 +1286,9 @@ function liveText(p) {
   if (p.phase === "queued") return "Waiting for a free slot…";
   if (p.phase === "prep") return "Preparing the page image…";
   const elapsed = p.tSend ? (now - p.tSend) / 1000 : 0;
-  if (p.kind === "text" && (p.phase === "send" || p.phase === "read" || p.phase === "prep")) return `Sending your text to Google… ${fmtTime(elapsed)}`;
+  if (p.kind && (p.phase === "send" || p.phase === "read" || p.phase === "prep"))
+    return p.kind === "word" ? `Looking up “${p.source.trim()}”… ${fmtTime(elapsed)}` : `Sending your text to Google… ${fmtTime(elapsed)}`;
+  if (p.kind === "word" && p.phase === "write") return `Writing the dictionary card… ${fmtTime(elapsed)}`;
   if (p.phase === "relang") return `Translating the parts still in the original language into ${langOf(p.to).name}… ${fmtTime(elapsed)}`;
   if (p.phase === "shorten") return `Condensing ${p.shortFrom} words to about ${p.limit}… ${fmtTime(elapsed)}`;
   if (p.phase === "write") return `Writing the translation… ${fmtTime(elapsed)}`;
@@ -1217,9 +1297,9 @@ function liveText(p) {
   return left > 1 ? `${step}… about ${fmtTime(left)} left` : `${step}… almost done (taking a little longer than usual)`;
 }
 function updateLive() {
-  for (const p of [...pages, textItem]) {
+  for (const p of [...pages, textItem, wordItem]) {
     if (p.status !== "working") continue;
-    const el = document.querySelector(p.kind === "text" ? "#textOut .live-text" : `#pg${p.num} .live-text`);
+    const el = document.querySelector(p.kind ? `#${p.kind}Out .live-text` : `#pg${p.num} .live-text`);
     if (el) el.textContent = liveText(p);
   }
   if (!running || !runState) return;
@@ -1242,7 +1322,7 @@ function learnSpeed(sec) {
 async function translateOne(p, limit = null) {
   p.status = "working"; p.md = ""; p.error = ""; p.phase = "prep"; p.tSend = 0; p.took = 0; p.limit = limit;
   p.from = runLangs.from; p.to = runLangs.to; p.settings = runLangs.key; renderPage(p);
-  const isText = p.kind === "text";
+  const isText = !!p.kind, isWord = p.kind === "word";   // Text and Word mode send no images
   const { parts, tall } = isText ? { parts: [], tall: true } : await pageImages(p);
   const prompt = buildPrompt(p, isText ? "" : await textLayer(p), tall, limit);
   let last = 0;
@@ -1250,7 +1330,7 @@ async function translateOne(p, limit = null) {
     try {
       p.phase = "send"; p.tSend = Date.now(); renderPage(p);
       const res = await gemini(prompt, parts, ctl.signal, (text) => {
-        p.md = text;
+        p.md = isWord ? text.replace(/^\s*<!--[\s\S]*?(?:-->\s*|$)/, "") : text;   // hide the card's language note while it streams
         if (p.phase !== "write") { p.phase = "write"; last = 0; }
         const now = Date.now();
         if (now - last > 250) { last = now; renderPage(p); }
@@ -1258,12 +1338,20 @@ async function translateOne(p, limit = null) {
       p.took = (Date.now() - p.tSend) / 1000;
       if (!isText) learnSpeed(p.took);   // the countdown is for pages only
       p.md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
-      if (!res.truncated && !runLangs.bilingual && targetShare(p.md, langOf(p.to)) < 0.8) await finishLanguage(p);
+      if (isWord) {
+        // The card starts with a hidden note of the word's language, used by Listen.
+        const m = p.md.match(/^<!--\s*lang:\s*([a-z]{2,3}(?:-[A-Za-z]+)?)\s*-->\s*/i);
+        p.lang = m ? m[1].toLowerCase() : "";
+        p.md = p.md.replace(/^<!--[\s\S]*?-->\s*/, "");
+      }
+      // The card quotes the word and its examples in the original language on purpose, so it skips this check.
+      if (!isWord && !res.truncated && !runLangs.bilingual && targetShare(p.md, langOf(p.to)) < 0.8) await finishLanguage(p);
       p.words = countWords(p.md, langOf(p.to));
       if (limit && !res.truncated && p.words > limit * 1.15) await shorten(p, limit);
       p.took = (Date.now() - p.tSend) / 1000;
       p.status = res.truncated ? "failed" : "done";
-      if (res.truncated) p.error = isText ? "The answer was cut short. Try a shorter text, or split it in two." : "The answer was cut short. Translate this page again.";
+      if (res.truncated) p.error = isWord ? "The answer was cut short. Look the word up again."
+        : isText ? "The answer was cut short. Try a shorter text, or split it in two." : "The answer was cut short. Translate this page again.";
       renderPage(p);
       return null;
     } catch (e) {
@@ -1393,23 +1481,24 @@ async function runPages(nums) {
   renderFiles();
 }
 
-/* ---------- Text mode ---------- */
-const MODE_STORE = "anuvad.mode", TEXT_STORE = "anuvad.text";
+/* ---------- Text and Word modes ---------- */
+const MODE_STORE = "anuvad.mode", TEXT_STORE = "anuvad.text", WORD_STORE = "anuvad.word";
+const MODES = { pdf: "#modePdf", text: "#modeText", word: "#modeWord" };
 function setMode(m) {
   if (running && m !== mode) { toast("Stop the current translation first."); return; }
   mode = m;
-  document.body.classList.toggle("mode-text", m === "text");
-  $("#modePdf").setAttribute("aria-selected", String(m === "pdf"));
-  $("#modeText").setAttribute("aria-selected", String(m === "text"));
+  for (const [k, sel] of Object.entries(MODES)) {
+    document.body.classList.toggle("mode-" + k, k === m);
+    $(sel).setAttribute("aria-selected", String(k === m));
+  }
   store.set(MODE_STORE, m);
   $("#runMsg").hidden = true; $("#prog").hidden = true;
-  if (m === "text") renderText(textItem); else updateButtons();
+  if (single()) renderSingle(single()); else updateButtons();
 }
-$("#modePdf").onclick = () => setMode("pdf");
-$("#modeText").onclick = () => setMode("text");
+for (const [k, sel] of Object.entries(MODES)) $(sel).onclick = () => setMode(k);
 
-function renderText(p) {
-  fillResult(p, $("#textOut .tools"), $("#textOut .body"));
+function renderSingle(p) {
+  fillResult(p, $(`#${p.kind}Out .tools`), $(`#${p.kind}Out .body`));
   updateButtons();
 }
 function updateSrcCount() {
@@ -1418,48 +1507,63 @@ function updateSrcCount() {
 }
 $("#srcText").addEventListener("input", () => { textItem.source = $("#srcText").value; updateSrcCount(); updateButtons(); });
 $("#srcText").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (!$("#go").disabled) runText(); }
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (!$("#go").disabled) runSingle(textItem); }
 });
-$("#srcClear").onclick = () => {
+$("#wordIn").addEventListener("input", () => { wordItem.source = $("#wordIn").value; updateButtons(); });
+$("#wordIn").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); if (!$("#go").disabled) runSingle(wordItem); }
+});
+const INPUTS = { text: "#srcText", word: "#wordIn" };
+function clearSingle(p) {
   if (running) return;
-  $("#srcText").value = ""; textItem.source = "";
-  Object.assign(textItem, { status: "idle", md: "", error: "", editing: false });
-  updateSrcCount(); renderText(textItem); $("#srcText").focus();
-};
+  $(INPUTS[p.kind]).value = ""; p.source = "";
+  Object.assign(p, { status: "idle", md: "", error: "", editing: false });
+  updateSrcCount(); renderSingle(p); $(INPUTS[p.kind]).focus();
+}
+$("#srcClear").onclick = () => clearSingle(textItem);
+$("#wordClear").onclick = () => clearSingle(wordItem);
+// The text, the word and their results are kept in this browser, like the PDFs.
 function saveText() {
-  const t = textItem, settled = t.status === "done" || t.status === "failed";
-  store.set(TEXT_STORE, JSON.stringify({ source: t.source, status: settled ? t.status : "idle", md: settled ? t.md : "", error: t.error || "",
-    from: t.from, to: t.to, words: t.words, took: t.took, limit: t.limit }));
+  for (const [p, key] of [[textItem, TEXT_STORE], [wordItem, WORD_STORE]]) {
+    const settled = p.status === "done" || p.status === "failed";
+    store.set(key, JSON.stringify({ source: p.source, status: settled ? p.status : "idle", md: settled ? p.md : "", error: p.error || "",
+      from: p.from, to: p.to, words: p.words, took: p.took, limit: p.limit, lang: p.lang }));
+  }
 }
 function restoreText() {
-  let t = {};
-  try { t = JSON.parse(store.get(TEXT_STORE) || "{}"); } catch {}
-  Object.assign(textItem, { source: t.source || "", status: t.status || "idle", md: t.md || "", error: t.error || "",
-    from: t.from, to: t.to, words: t.words, took: t.took, limit: t.limit });
-  $("#srcText").value = textItem.source;
+  for (const [p, key] of [[textItem, TEXT_STORE], [wordItem, WORD_STORE]]) {
+    let t = {};
+    try { t = JSON.parse(store.get(key) || "{}"); } catch {}
+    Object.assign(p, { source: t.source || "", status: t.status || "idle", md: t.md || "", error: t.error || "",
+      from: t.from, to: t.to, words: t.words, took: t.took, limit: t.limit, lang: t.lang });
+    $(INPUTS[p.kind]).value = p.source;
+  }
   updateSrcCount();
-  setMode(store.get(MODE_STORE) === "text" ? "text" : "pdf");
+  const m = store.get(MODE_STORE);
+  setMode(MODES[m] ? m : "pdf");
 }
 
-// Translates the text box. The word limit applies to the whole text.
-async function runText() {
+// Translates the text box (the word limit applies to the whole text) or looks up the word.
+async function runSingle(p) {
   if (!apiKey || running) return;
-  textItem.source = $("#srcText").value;
-  if (!textItem.source.trim()) { toast("Type or paste some text first."); return; }
-  if ($("#src").value === $("#dst").value) { toast("Choose two different languages."); return; }
-  runLangs = { from: $("#src").value, to: $("#dst").value, bilingual: $("#layout").value === "bi", key: settingsKey() };
+  const isWord = p.kind === "word";
+  p.source = $(INPUTS[p.kind]).value;
+  if (!p.source.trim()) { toast(isWord ? "Type a word first." : "Type or paste some text first."); return; }
+  if (isWord && p.source.trim().split(/\s+/).length > 6) { toast("That looks like a sentence. Use Text to translate sentences."); return; }
+  if ($("#src").value === $("#dst").value && !isWord) { toast("Choose two different languages."); return; }
+  runLangs = { from: $("#src").value, to: $("#dst").value, bilingual: !isWord && $("#layout").value === "bi", key: settingsKey() };
   rememberLangs();
   running = true; ctl = new AbortController(); slots = MAX_PARALLEL;
   $("#stop").hidden = false; $("#runMsg").hidden = true; $("#prog").hidden = true;
-  textItem.editing = false;
+  p.editing = false;
   const n = parseInt($("#limit").value.replace(/[^0-9]/g, ""), 10);
-  const code = await translateOne(textItem, n > 0 ? n : null);
-  if (code === "stop" && textItem.error) {
-    $("#runMsg").textContent = textItem.error;
+  const code = await translateOne(p, !isWord && n > 0 ? n : null);
+  if (code === "stop" && p.error) {
+    $("#runMsg").textContent = p.error;
     $("#runMsg").className = "notice bad"; $("#runMsg").hidden = false;
   }
   running = false; $("#stop").hidden = true;
-  renderText(textItem);
+  renderSingle(p);
 }
 
 // Everything in the Options panel that changes a translation, as one comparable string.
@@ -1469,7 +1573,7 @@ function settingsKey() {
 }
 
 $("#go").onclick = () => {
-  if (mode === "text") { runText(); return; }
+  if (single()) { runSingle(single()); return; }
   const n = pages.length;
   let a = parseInt($("#from").value, 10), b = parseInt($("#to").value, 10);
   if (!(a >= 1)) a = 1;
@@ -1488,6 +1592,7 @@ $("#stop").onclick = () => ctl?.abort();
 // Name used for downloads: the PDF's own name, or "<first> and N more" when several are combined.
 function exportName() {
   if (mode === "text") return "Translated text";
+  if (mode === "word") return `Dictionary - ${wordItem.source.trim().replace(/[\\/:*?"<>|]/g, "") || "word"}`;
   const named = docs.filter((d) => pages.some((p) => p.doc === d && p.status === "done"));
   const list = named.length ? named : docs;
   return list.length > 1 ? `${list[0].name} and ${list.length - 1} more` : (list[0]?.name || "Anuvad");
@@ -1495,17 +1600,20 @@ function exportName() {
 // Translated pages grouped by PDF. With several PDFs, each group starts with that PDF's name;
 // page labels use the page number inside its own PDF.
 function exportGroups() {
-  if (mode === "text") return textItem.status === "done" ? [{ doc: { name: "" }, multi: false, pages: [textItem] }] : [];
+  const item = single();
+  if (item) return item.status === "done" ? [{ doc: { name: "" }, multi: false, pages: [item] }] : [];
   const multi = docs.length > 1;
   return docs.map((d) => ({ doc: d, multi, pages: pages.filter((p) => p.doc === d && p.status === "done") }))
     .filter((g) => g.pages.length);
 }
-// "Page 3" label before each page in downloads (none for Text mode).
-const pageLabel = (p) => (p.kind === "text" ? "" : `<p class="pg">Page ${p.local}</p>`);
+// "Page 3" label before each page in downloads (none for Text and Word mode).
+const pageLabel = (p) => (p.kind ? "" : `<p class="pg">Page ${p.local}</p>`);
+// Title at the top of downloads. A dictionary card already starts with the word as its heading.
+const exportTitle = () => (mode === "word" ? "" : `${exportName()} — ${exportLang().name} translation`);
 function combinedMd() {
-  return `# ${exportName()} — ${exportLang().name} translation\n\n` + exportGroups().map((g) =>
+  return (exportTitle() ? `# ${exportTitle()}\n\n` : "") + exportGroups().map((g) =>
     (g.multi ? `# ${g.doc.name}\n\n` : "") +
-    g.pages.map((p) => (p.kind === "text" ? "" : `<!-- Page ${p.local} -->\n\n`) + p.md).join("\n\n---\n\n")
+    g.pages.map((p) => (p.kind ? "" : `<!-- Page ${p.local} -->\n\n`) + p.md).join("\n\n---\n\n")
   ).join("\n\n---\n\n") + "\n";
 }
 function combinedHtml() {
@@ -1514,7 +1622,8 @@ function combinedHtml() {
     g.pages.map((p) => `<section ${langAttrs(p.to)}>${pageLabel(p)}${renderMd(p.md).replace(/<div class="tbl">/g, "").replace(/<\/table><\/div>/g, "</table>")}</section>`).join("\n")
   ).join("\n");
   const fileName = exportName(), lang = exportLang().name;
-  return `<!doctype html><html lang="${exportLang().code}"><head><meta charset="utf-8"><title>${esc(fileName)} — ${esc(lang)} translation</title>
+  const title = exportTitle() || `${fileName} — ${lang}`;
+  return `<!doctype html><html lang="${exportLang().code}"><head><meta charset="utf-8"><title>${esc(title)}</title>
 <style>body{font-family:Georgia,"Times New Roman",serif;max-width:780px;margin:40px auto;padding:0 20px;line-height:1.55;color:#111}
 h1,h2,h3,h4{line-height:1.25}table{border-collapse:collapse;width:100%;font-size:0.92em;margin:0.6em 0}
 th,td{border:1px solid #999;padding:4px 7px;text-align:start;vertical-align:top}th{background:#eee}
@@ -1522,7 +1631,7 @@ body{font-family:Georgia,"Times New Roman","Nirmala UI","Mangal","Segoe UI",seri
 h1.doc{margin-top:48px;padding-top:14px;border-top:3px solid #111}
 @page{margin:18mm}@media print{body{margin:0;max-width:none;padding:0}table,tr{break-inside:avoid}h1,h2,h3{break-after:avoid}}
 .pg{font-family:Arial,sans-serif;font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.08em;border-top:1px solid #ccc;padding-top:8px;margin-top:28px}</style>
-</head><body><h1>${esc(fileName)} — ${esc(lang)} translation</h1>${body}</body></html>`;
+</head><body>${exportTitle() ? `<h1>${esc(exportTitle())}</h1>` : ""}${body}</body></html>`;
 }
 // Opens the computer's "Save as" window (Chrome, Edge) so people choose the folder and name.
 // Returns a file handle, false if they cancelled, or null when the browser has no such window (then it's a normal download).
@@ -1593,7 +1702,7 @@ async function makePdf(onStep) {
   document.body.append(box);
   const done = exportGroups().flatMap((g) => g.pages);
   // One drawing per translated page; a PDF's name goes with its first page so it never sits alone at the bottom of a sheet.
-  const parts = [`<h1>${esc(exportName())} — ${esc(exportLang().name)} translation</h1>`];
+  const parts = exportTitle() ? [`<h1>${esc(exportTitle())}</h1>`] : [];
   for (const g of exportGroups()) g.pages.forEach((p, i) => parts.push(
     (g.multi && i === 0 ? `<h1 class="doc">${esc(g.doc.name)}</h1>` : "") +
     `<section ${langAttrs(p.to)}>${pageLabel(p)}${renderMd(p.md)}</section>`));
@@ -1640,9 +1749,9 @@ async function makePdf(onStep) {
 }
 // The download buttons are clickable as soon as a PDF is chosen; until a page is translated they only explain why.
 function readyToExport() {
-  if (mode === "text") {
-    if (textItem.status === "done") return true;
-    toast(running ? "Wait for the translation to finish, then download." : "Translate your text first, then download.");
+  if (single()) {
+    if (single().status === "done") return true;
+    toast(running ? "Wait for it to finish, then download." : mode === "word" ? "Look up a word first, then download." : "Translate your text first, then download.");
     return false;
   }
   if (pages.some((p) => p.status === "done")) return true;
