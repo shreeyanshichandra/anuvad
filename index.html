@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Anuvad</title>
-<meta name="description" content="Translate Hindi PDFs into structured English, page by page. Free, runs in your browser.">
+<meta name="description" content="Translate PDFs between 100+ languages, page by page, with headings, lists and tables kept. Free, runs in your browser.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f0a43a'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%23161412' font-family='serif'%3E%E0%A4%85%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Tiro+Devanagari+Hindi&display=swap">
 <style>
-/* Layout: a control rail on the left, a ledger of pages on the right — each row pairs the original page with its English text. */
+/* Layout: a control rail on the left, a ledger of pages on the right — each row pairs the original page with its translation. */
 :root {
   --bg: #161412;
   --surface: #221f1b;
@@ -71,6 +71,8 @@ details[open] summary { margin-bottom: 8px; }
 .drop strong { font-weight: 600; }
 .drop small { color: var(--muted); }
 .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.langs { display: grid; gap: 6px; }
+.langs .swap { justify-self: end; margin-bottom: -2px; }
 /* One bubble per uploaded PDF, each with its own ✕. */
 .files { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .fbubble { display: flex; align-items: center; gap: 8px; max-width: 100%; min-width: 0; background: var(--marigold-soft); border: 1px solid color-mix(in srgb, var(--marigold) 45%, transparent); border-radius: 99px; padding: 4px 4px 4px 12px; font-size: 0.86rem; }
@@ -121,7 +123,9 @@ button.dl:disabled { opacity: 1; background: transparent; border-color: var(--li
 .pdfdoc h1 { font-size: 22px; margin-top: 0; }
 .pdfdoc h1.doc { margin: 14px 0 6px; padding-top: 12px; border-top: 3px solid #111; } .pdfdoc h2 { font-size: 19px; } .pdfdoc h3 { font-size: 16.5px; } .pdfdoc h4 { font-size: 15px; }
 .pdfdoc p { margin: 0.45em 0; }
-.pdfdoc ul, .pdfdoc ol { margin: 0.4em 0; padding-left: 1.5em; }
+.pdfdoc ul, .pdfdoc ol { margin: 0.4em 0; padding-inline-start: 1.5em; }
+.pdfdoc [dir=rtl] th, .pdfdoc [dir=rtl] td { text-align: right; }
+.pdfdoc .mk { unicode-bidi: isolate; }
 .pdfdoc li { margin: 0.15em 0; }
 .pdfdoc table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 12.5px; margin: 0.6em 0; }
 .pdfdoc th, .pdfdoc td { border: 1px solid #999; padding: 4px 7px; text-align: left; vertical-align: top; }
@@ -146,7 +150,8 @@ button.dl:disabled { opacity: 1; background: transparent; border-color: var(--li
 .md h1 { font-size: 1.4rem; } .md h2 { font-size: 1.22rem; } .md h3 { font-size: 1.08rem; } .md h4 { font-size: 1rem; }
 .md > :first-child { margin-top: 0; }
 .md p { margin: 0.45em 0; }
-.md ul, .md ol { margin: 0.4em 0; padding-left: 1.4em; }
+.md ul, .md ol { margin: 0.4em 0; padding-inline-start: 1.4em; }
+.md[dir=rtl] th, .md[dir=rtl] td { text-align: right; }
 .md li { margin: 0.15em 0; }
 .md .tbl { overflow-x: auto; margin: 0.6em 0; }
 .md table { border-collapse: collapse; font-family: var(--font-ui); font-size: 0.88rem; min-width: 100%; }
@@ -177,7 +182,7 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
 <div class="wrap">
   <header>
     <h1><span class="hi">अनुवाद</span>Anuvad</h1>
-    <p>Upload a Hindi PDF. Each page is read as an image, so scanned pages and old Hindi fonts work too, and translated into structured English with headings, lists and tables kept.</p>
+    <p>Upload PDFs in any language and translate them into the language you choose, page by page, with headings, lists and tables kept. Each page is read as an image, so scanned pages and old fonts (like Kruti Dev for Hindi) work too.</p>
   </header>
 
   <div class="grid">
@@ -228,21 +233,27 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
 
       <section class="panel">
         <span class="label">2 · Options</span>
+        <div class="langs">
+          <label class="field"><span>Translate from</span><select id="src" aria-label="Original language"></select></label>
+          <button type="button" class="small swap" id="swap" title="Swap the two languages" aria-label="Swap languages">⇅ Swap</button>
+          <label class="field"><span>Translate to</span><select id="dst" aria-label="Language to translate into"></select></label>
+          <small class="help">Type a letter to jump through the list.</small>
+        </div>
         <label class="field"><span>Subject</span>
           <input type="text" id="subject" placeholder="e.g. Music, History, Law">
           <small class="help">Translates with that field's own terms. Leave empty to detect it from the page.</small>
         </label>
         <label class="field"><span>Technical terms</span>
           <select id="terms">
-            <option value="explain">Keep term, add English meaning</option>
+            <option value="explain">Keep term, add its meaning</option>
             <option value="keep">Keep term only, no meaning</option>
-            <option value="translate">Translate to English</option>
+            <option value="translate">Translate fully</option>
           </select>
         </label>
         <label class="field"><span>Output</span>
           <select id="layout">
-            <option value="en">English only</option>
-            <option value="bi">Hindi line, then English</option>
+            <option value="en">Translation only</option>
+            <option value="bi">Original line, then translation</option>
           </select>
         </label>
         <div class="field">
@@ -254,7 +265,7 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
               <option value="doc">in total</option>
             </select>
           </div>
-          <small class="help">Condenses the English to about this many words, keeping the main points, facts and subject terms. Leave empty for a full translation.</small>
+          <small class="help">Condenses the translation to about this many words, keeping the main points, facts and subject terms. Leave empty for a full translation.</small>
         </div>
         <div class="row2">
           <label class="field"><span>From page</span><input type="text" inputmode="numeric" id="from" value="1"></label>
@@ -297,7 +308,7 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
   </div>
 
   <footer>
-    <p>Your PDF and access code stay in your browser and are sent only to Google for translation. On Google's free plan, Google may use what you send to improve its services, so don't upload private documents.</p>
+    <p>Your PDFs, translations and access code stay in this browser (so a refresh loses nothing; ✕ removes a PDF) and are sent only to Google for translation. On Google's free plan, Google may use what you send to improve its services, so don't upload private documents.</p>
     <p>© 2026 Shreeyanshi Chandra · <a href="https://github.com/shreeyanshichandra/anuvad" target="_blank" rel="noopener">View code on GitHub</a></p>
   </footer>
 </div>
@@ -328,6 +339,7 @@ let avgSec = 20;              // learned seconds per page, for the countdown (lo
 let apiKey = "";
 let docs = [];             // uploaded PDFs, in the order they were added: {id, name, pdf}
 let docSeq = 0;
+let runLangs = { from: "auto", to: "en" };   // languages of the current translation run
 let pages = [];            // every page of every PDF, in order: {num (1..total), doc, local (page in its PDF), thumb, status: idle|working|done|failed, md, error, editing}
 let ctl = null, running = false;
 
@@ -358,7 +370,7 @@ function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function renderEmpty() {
-  $("#pages").innerHTML = `<p class="empty">Your PDFs' pages and their English translation will appear here.</p>`;
+  $("#pages").innerHTML = `<p class="empty">Your PDFs' pages and their translation will appear here.</p>`;
 }
 
 function renderPage(p) {
@@ -385,7 +397,7 @@ function renderPage(p) {
   if (p.status === "done" && !p.editing) {
     if (p.took) {
       const t = document.createElement("span"); t.className = "took";
-      t.textContent = `Translated in ${fmtTime(p.took)}` + (p.words ? ` · ${p.words.toLocaleString()} words${p.limit ? ` (limit ${p.limit})` : ""}` : "");
+      t.textContent = `${langOf(p.to).name} · translated in ${fmtTime(p.took)}` + (p.words ? ` · ${p.words.toLocaleString()} ${unitOf(langOf(p.to))}${p.limit ? ` (limit ${p.limit})` : ""}` : "");
       tools.append(t);
     }
     tools.append(btn("Edit", () => { p.editing = true; renderPage(p); }));
@@ -395,17 +407,17 @@ function renderPage(p) {
     tools.append(btn("Translate again", () => runPages([p.num])));
   }
   if (p.editing) {
-    body.innerHTML = `<textarea id="ed${p.num}" aria-label="Edit translation for page ${p.num}"></textarea>`;
+    body.innerHTML = `<textarea id="ed${p.num}" ${langAttrs(p.to)} aria-label="Edit translation for page ${p.num}"></textarea>`;
     body.querySelector("textarea").value = p.md;
     tools.append(btn("Save", () => { p.md = body.querySelector("textarea").value; p.editing = false; renderPage(p); }));
     tools.append(btn("Cancel", () => { p.editing = false; renderPage(p); }));
   } else if (p.status === "done") {
-    body.innerHTML = `<div class="md">${renderMd(p.md)}</div>`;
+    body.innerHTML = `<div class="md" ${langAttrs(p.to)}>${renderMd(p.md)}</div>`;
   } else if (p.status === "working") {
-    body.innerHTML = (p.md ? `<div class="md">${renderMd(p.md)}</div>` : "") +
+    body.innerHTML = (p.md ? `<div class="md" ${langAttrs(p.to)}>${renderMd(p.md)}</div>` : "") +
       `<div class="live${p.phase === "wait" ? " waiting" : ""}"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="live-text">${esc(liveText(p))}</span></div>`;
   } else if (p.status === "failed") {
-    body.innerHTML = (p.md ? `<div class="md">${renderMd(p.md)}</div>` : "") + `<p class="err">${esc(p.error || "Translation failed.")}</p>`;
+    body.innerHTML = (p.md ? `<div class="md" ${langAttrs(p.to)}>${renderMd(p.md)}</div>` : "") + `<p class="err">${esc(p.error || "Translation failed.")}</p>`;
   } else {
     body.innerHTML = `<p class="placeholder">Not translated yet.</p>`;
   }
@@ -421,11 +433,13 @@ function updateButtons() {
   const has = pages.length > 0;
   for (const id of ["#exPdf", "#exHtml", "#exMd", "#copyAll"]) $(id).disabled = !has;
   const done = pages.filter((p) => p.status === "done");
-  const words = done.reduce((x, p) => x + countWords(p.md), 0);
+  const words = done.reduce((x, p) => x + countWords(p.md, langOf(p.to)), 0);
   $("#wordTotal").textContent = done.length
-    ? `${done.length} page${done.length === 1 ? "" : "s"} translated · ${words.toLocaleString()} English words`
+    ? `${done.length} page${done.length === 1 ? "" : "s"} translated · ${words.toLocaleString()} ${unitOf(exportLang())}`
     : has ? "Nothing translated yet" : "Choose a PDF to download its translation";
   $("#go").disabled = !has || !apiKey || running;
+  $("#go").textContent = `Translate into ${target().name}`;
+  scheduleSave();
   $("#goHint").hidden = has && !!apiKey;
   $("#goHint").textContent = !apiKey && !has ? "Save your access code and choose a PDF to start."
     : !apiKey ? "Save your access code (at the top) to start." : "Choose a PDF to start.";
@@ -538,14 +552,18 @@ async function loadFiles(files) {
     if (bad.includes(file)) continue;
     const doc = { id: ++docSeq, name: file.name.replace(/\.pdf$/i, ""), pdf: null };
     docs.push(doc); renderFiles();
+    let bytes;
     try {
-      doc.pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+      bytes = await file.arrayBuffer();
+      // PDF.js takes over the buffer it is given, so it gets a copy and the original is kept for saving.
+      doc.pdf = await pdfjsLib.getDocument({ data: new Uint8Array(bytes.slice(0)) }).promise;
     } catch {
       docs = docs.filter((d) => d !== doc);
       toast(`“${file.name}” could not be opened. It may be damaged or password-protected.`);
       continue;
     }
     if (!docs.includes(doc)) continue;   // removed while it was opening
+    saveDocFile(doc, bytes);
     for (let i = 1; i <= doc.pdf.numPages; i++) pages.push({ doc, local: i, thumb: "", status: "idle", md: "" });
     pagesChanged();
     makeThumbs(doc);
@@ -560,8 +578,100 @@ function removeDoc(id) {
   if (!doc) return;
   docs = docs.filter((d) => d !== doc);
   pages = pages.filter((p) => p.doc !== doc);
+  dbRun("docs", "readwrite", (s) => s.delete(doc.id));
   pagesChanged();
   toast(`Removed ${doc.name}.pdf`);
+}
+
+/* ---------- Keeping work after a refresh ---------- */
+// The PDFs, translations and options are saved in this browser (IndexedDB), never uploaded anywhere,
+// so refreshing or closing the tab loses nothing. ✕ on a PDF deletes it from here too.
+const OPTS_STORE = "anuvad.opts";
+let dbOpen = null, restored = false, saveTimer = 0;
+function openDb() {
+  if (!dbOpen) dbOpen = new Promise((ok) => {
+    try {
+      const r = indexedDB.open("anuvad", 1);
+      r.onupgradeneeded = () => { r.result.createObjectStore("docs", { keyPath: "id" }); r.result.createObjectStore("state"); };
+      r.onsuccess = () => ok(r.result);
+      r.onerror = r.onblocked = () => ok(null);
+    } catch { ok(null); }
+  });
+  return dbOpen;
+}
+// Runs one request; resolves with its result, or null if storage is unavailable or full (the app then just works without it).
+async function dbRun(name, mode, fn) {
+  const d = await openDb();
+  if (!d) return null;
+  return new Promise((ok) => {
+    try {
+      const tx = d.transaction(name, mode);
+      const req = fn(tx.objectStore(name));
+      tx.oncomplete = () => ok(req ? req.result : null);
+      tx.onerror = tx.onabort = () => ok(null);
+    } catch { ok(null); }
+  });
+}
+function saveDocFile(doc, bytes) {
+  dbRun("docs", "readwrite", (s) => s.put({ id: doc.id, name: doc.name, bytes }));
+}
+// Saves page texts and the page range shortly after anything changes.
+function scheduleSave() {
+  if (!restored) return;   // don't overwrite saved work before it has been loaded back
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    const keep = pages.map((p) => {
+      const settled = p.status === "done" || p.status === "failed";
+      return { doc: p.doc.id, local: p.local, status: settled ? p.status : "idle", md: settled ? p.md : "", error: p.error || "",
+        from: p.from, to: p.to, settings: p.settings, words: p.words, took: p.took, limit: p.limit };
+    });
+    dbRun("state", "readwrite", (s) => s.put({ pages: keep, range: [$("#from").value, $("#to").value] }, "main"));
+  }, 600);
+}
+const OPTION_IDS = ["subject", "terms", "layout", "limit", "limitScope"];
+function saveOptions() {
+  store.set(OPTS_STORE, JSON.stringify(Object.fromEntries(OPTION_IDS.map((id) => [id, $("#" + id).value]))));
+}
+function restoreOptions() {
+  let o = {};
+  try { o = JSON.parse(store.get(OPTS_STORE) || "{}"); } catch {}
+  for (const id of OPTION_IDS) if (typeof o[id] === "string") $("#" + id).value = o[id];
+  for (const id of ["terms", "layout", "limitScope"]) if (!$("#" + id).value) $("#" + id).selectedIndex = 0;
+}
+for (const id of OPTION_IDS) {
+  $("#" + id).addEventListener("change", saveOptions);
+  $("#" + id).addEventListener("input", saveOptions);
+}
+for (const id of ["from", "to"]) $("#" + id).addEventListener("input", scheduleSave);
+
+// On page load: reopen the saved PDFs and put their translations back.
+async function restoreWork() {
+  try {
+    const files = (await dbRun("docs", "readonly", (s) => s.getAll())) || [];
+    if (!files.length) return;
+    const state = (await dbRun("state", "readonly", (s) => s.get("main"))) || {};
+    const saved = new Map((state.pages || []).map((q) => [`${q.doc}:${q.local}`, q]));
+    files.sort((a, b) => a.id - b.id);
+    for (const f of files) {
+      let pdf;
+      try { pdf = await pdfjsLib.getDocument({ data: new Uint8Array(f.bytes.slice(0)) }).promise; }
+      catch { dbRun("docs", "readwrite", (s) => s.delete(f.id)); continue; }
+      const doc = { id: f.id, name: f.name, pdf };
+      docs.push(doc); docSeq = Math.max(docSeq, f.id);
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const q = saved.get(`${f.id}:${i}`) || {};
+        pages.push({ doc, local: i, thumb: "", status: q.status === "done" || q.status === "failed" ? q.status : "idle", md: q.md || "",
+          error: q.error || "", from: q.from, to: q.to, settings: q.settings, words: q.words, took: q.took, limit: q.limit });
+      }
+    }
+    if (!docs.length) return;
+    pagesChanged();
+    if (state.range) { $("#from").value = state.range[0]; $("#to").value = state.range[1]; }
+    docs.forEach(makeThumbs);
+  } finally {
+    restored = true;
+    scheduleSave();
+  }
 }
 
 // After PDFs are added or removed: renumber the pages, reset the page range and redraw.
@@ -663,11 +773,184 @@ async function textLayer(p) {
   } catch { return ""; }
 }
 
+/* ---------- Languages ---------- */
+// name | code | Unicode script(s) its words are written in (for counting) | flags: r = right-to-left, c = no spaces between words (count characters)
+const LANGS = `
+Afrikaans|af|Latin
+Albanian|sq|Latin
+Amharic|am|Ethiopic
+Arabic|ar|Arabic|r
+Armenian|hy|Armenian
+Assamese|as|Bengali
+Azerbaijani|az|Latin
+Basque|eu|Latin
+Belarusian|be|Cyrillic
+Bengali|bn|Bengali
+Bhojpuri|bho|Devanagari
+Bosnian|bs|Latin
+Bulgarian|bg|Cyrillic
+Burmese|my|Myanmar
+Catalan|ca|Latin
+Cebuano|ceb|Latin
+Chinese (Simplified)|zh-CN|Han|c
+Chinese (Traditional)|zh-TW|Han|c
+Croatian|hr|Latin
+Czech|cs|Latin
+Danish|da|Latin
+Dogri|doi|Devanagari
+Dutch|nl|Latin
+English|en|Latin
+Esperanto|eo|Latin
+Estonian|et|Latin
+Filipino|fil|Latin
+Finnish|fi|Latin
+French|fr|Latin
+Galician|gl|Latin
+Georgian|ka|Georgian
+German|de|Latin
+Greek|el|Greek
+Gujarati|gu|Gujarati
+Haitian Creole|ht|Latin
+Hausa|ha|Latin
+Hebrew|he|Hebrew|r
+Hindi|hi|Devanagari
+Hungarian|hu|Latin
+Icelandic|is|Latin
+Igbo|ig|Latin
+Indonesian|id|Latin
+Irish|ga|Latin
+Italian|it|Latin
+Japanese|ja|Han,Hiragana,Katakana|c
+Javanese|jv|Latin
+Kannada|kn|Kannada
+Kashmiri|ks|Arabic|r
+Kazakh|kk|Cyrillic
+Khmer|km|Khmer
+Kinyarwanda|rw|Latin
+Konkani|kok|Devanagari
+Korean|ko|Hangul
+Kurdish (Kurmanji)|ku|Latin
+Kurdish (Sorani)|ckb|Arabic|r
+Kyrgyz|ky|Cyrillic
+Lao|lo|Lao
+Latin|la|Latin
+Latvian|lv|Latin
+Lithuanian|lt|Latin
+Luxembourgish|lb|Latin
+Macedonian|mk|Cyrillic
+Maithili|mai|Devanagari
+Malagasy|mg|Latin
+Malay|ms|Latin
+Malayalam|ml|Malayalam
+Maltese|mt|Latin
+Manipuri (Meitei)|mni|Bengali,Meetei_Mayek
+Maori|mi|Latin
+Marathi|mr|Devanagari
+Mongolian|mn|Cyrillic
+Nepali|ne|Devanagari
+Norwegian|no|Latin
+Odia|or|Oriya
+Pashto|ps|Arabic|r
+Persian|fa|Arabic|r
+Polish|pl|Latin
+Portuguese|pt|Latin
+Punjabi (Gurmukhi)|pa|Gurmukhi
+Punjabi (Shahmukhi)|pnb|Arabic|r
+Romanian|ro|Latin
+Russian|ru|Cyrillic
+Samoan|sm|Latin
+Sanskrit|sa|Devanagari
+Santali|sat|Ol_Chiki
+Scottish Gaelic|gd|Latin
+Serbian|sr|Cyrillic
+Sesotho|st|Latin
+Shona|sn|Latin
+Sindhi|sd|Arabic|r
+Sinhala|si|Sinhala
+Slovak|sk|Latin
+Slovenian|sl|Latin
+Somali|so|Latin
+Spanish|es|Latin
+Sundanese|su|Latin
+Swahili|sw|Latin
+Swedish|sv|Latin
+Tajik|tg|Cyrillic
+Tamil|ta|Tamil
+Tatar|tt|Cyrillic
+Telugu|te|Telugu
+Thai|th|Thai
+Tibetan|bo|Tibetan
+Tigrinya|ti|Ethiopic
+Turkish|tr|Latin
+Turkmen|tk|Latin
+Ukrainian|uk|Cyrillic
+Urdu|ur|Arabic|r
+Uyghur|ug|Arabic|r
+Uzbek|uz|Latin
+Vietnamese|vi|Latin
+Welsh|cy|Latin
+Xhosa|xh|Latin
+Yiddish|yi|Hebrew|r
+Yoruba|yo|Latin
+Zulu|zu|Latin`.trim().split("\n").map((line) => {
+  const [name, code, scripts, flags = ""] = line.split("|");
+  return { name, code, latin: scripts === "Latin", rtl: flags.includes("r"), chars: flags.includes("c"),
+    letter: new RegExp(`[${scripts.split(",").map((s) => `\\p{Script=${s}}`).join("")}]`, "u") };
+});
+const POPULAR = ["hi", "en", "ur", "bn", "mr", "ta", "te", "gu", "kn", "ml", "pa", "or", "sa", "ne", "as"];
+const SRC_STORE = "anuvad.src", DST_STORE = "anuvad.dst", RECENT_STORE = "anuvad.recent";
+const langOf = (code) => LANGS.find((l) => l.code === code) || LANGS.find((l) => l.code === "en");
+const target = () => langOf($("#dst").value);
+const source = () => ($("#src").value === "auto" ? null : langOf($("#src").value));
+const unitOf = (L) => (L.chars ? "characters" : "words");
+// lang and dir attributes for translated text, so Urdu, Arabic, Persian and Hebrew read right to left.
+const langAttrs = (code) => { const L = langOf(code); return `lang="${L.code}" dir="${L.rtl ? "rtl" : "ltr"}"`; };
+// Language the translated pages are in (the one used most, if pages were translated into different ones).
+function exportLang() {
+  const count = new Map();
+  for (const p of pages) if (p.status === "done") count.set(p.to, (count.get(p.to) || 0) + 1);
+  const top = [...count].sort((a, b) => b[1] - a[1])[0];
+  return langOf(top ? top[0] : $("#dst").value);
+}
+
+function recentLangs() {
+  try { return JSON.parse(store.get(RECENT_STORE) || "[]").filter((c) => LANGS.some((l) => l.code === c)); } catch { return []; }
+}
+function fillLangs() {
+  const recent = recentLangs();
+  const opt = (L) => `<option value="${L.code}">${esc(L.name)}</option>`;
+  const groups = (recent.length ? `<optgroup label="Recent">${recent.map((c) => opt(langOf(c))).join("")}</optgroup>` : "") +
+    `<optgroup label="Popular">${POPULAR.map((c) => opt(langOf(c))).join("")}</optgroup>` +
+    `<optgroup label="All languages">${LANGS.map(opt).join("")}</optgroup>`;
+  const keep = (sel, fallback) => sel.value || fallback;
+  const src = keep($("#src"), store.get(SRC_STORE) || "auto"), dst = keep($("#dst"), store.get(DST_STORE) || "en");
+  $("#src").innerHTML = `<option value="auto">Detect automatically</option>` + groups;
+  $("#dst").innerHTML = groups;
+  $("#src").value = src; if (!$("#src").value) $("#src").value = "auto";
+  $("#dst").value = dst; if (!$("#dst").value) $("#dst").value = "en";
+}
+// The languages used in a run are pinned at the top of both lists next time.
+function rememberLangs() {
+  const used = [$("#dst").value, $("#src").value].filter((c) => c !== "auto");
+  store.set(RECENT_STORE, JSON.stringify([...new Set([...used, ...recentLangs()])].slice(0, 5)));
+  fillLangs();
+}
+$("#src").addEventListener("change", (e) => store.set(SRC_STORE, e.target.value));
+$("#dst").addEventListener("change", (e) => { store.set(DST_STORE, e.target.value); updateButtons(); });
+$("#swap").onclick = () => {
+  const s = $("#src").value, d = $("#dst").value;
+  if (s === "auto") { toast("Choose the original language first, then you can swap."); return; }
+  $("#src").value = d; $("#dst").value = s;
+  store.set(SRC_STORE, d); store.set(DST_STORE, s);
+  updateButtons();
+};
+
 /* ---------- Word limit ---------- */
-// Optional: condense the English to about N words without losing the gist or the subject matter.
-function lengthRules(limit) {
+// Optional: condense the translation to about N words without losing the gist or the subject matter.
+function lengthRules(limit, T) {
+  const unit = unitOf(T);
   return [
-    `LENGTH: the reader wants a condensed English version of this page of about ${limit} words (stay within 10% of that; never go more than 10% over).`,
+    `LENGTH: the reader wants a condensed ${T.name} version of this page of about ${limit} ${unit} (stay within 10% of that; never go more than 10% over).`,
     "Condense, don't cut. The gist and the subject matter must not be lost:",
     "- Keep every main point, argument and conclusion of the page.",
     "- Keep the key facts, names, dates, numbers and technical terms (in the field's terminology).",
@@ -675,7 +958,7 @@ function lengthRules(limit) {
     "- Drop only repetition, extra examples and minor detail; merge sentences where that helps.",
     "- Never add information, explanations or opinions that aren't on the page.",
     "- If a full translation would already be shorter than the limit, translate the page in full instead.",
-    "- The limit counts only the English words (in bilingual output, the Hindi lines are kept in full and do not count).",
+    `- The limit counts only the ${T.name} ${unit} (in bilingual output, the original lines are kept in full and do not count).`,
   ].join("\n");
 }
 
@@ -702,17 +985,17 @@ async function wordBudgets(nums) {
 }
 
 // Second step when the first answer runs over the limit (fast models often ignore it while also reading images).
-function shortenPrompt(md, limit, words) {
-  const subject = $("#subject").value.trim();
+function shortenPrompt(md, limit, words, T) {
+  const subject = $("#subject").value.trim(), unit = unitOf(T);
   return [
-    `This English translation of one page is ${words} words long. Rewrite it in at most ${limit} English words (aim for ${Math.round(limit * 0.92)}-${limit}).`,
+    `This ${T.name} translation of one page is ${words} ${unit} long. Rewrite it in ${T.name} in at most ${limit} ${unit} (aim for ${Math.round(limit * 0.92)}-${limit}).`,
     "Condense, don't cut. The gist and the subject matter must not be lost:",
     "- Keep every main point, argument and conclusion, in the same order.",
     `- Keep the key facts, names, dates, numbers and technical terms${subject ? ` (in ${subject} terminology)` : ""}, spelled exactly as they are.`,
     "- Keep the Markdown structure: headings stay headings; lists may be merged into fewer, shorter items.",
     "- Drop repetition, extra examples and minor detail; merge sentences.",
     "- Never add anything that isn't in the text.",
-    "- Lines in Hindi (Devanagari) stay exactly as they are and do not count towards the limit.",
+    `- Lines in the original language (not ${T.name}) stay exactly as they are and do not count towards the limit.`,
     "Reply with the Markdown only: no preface, no notes, no code fences.",
     "",
     '"""',
@@ -721,52 +1004,66 @@ function shortenPrompt(md, limit, words) {
   ].join("\n");
 }
 
-// Counts English words only (Devanagari lines in bilingual output are not counted).
-function countWords(md) {
-  return (md.replace(/[#*_>|\-\[\]()`]/g, " ").match(/[A-Za-z0-9][A-Za-z0-9'’.,]*/g) || []).length;
+// Counts the words (or, for Chinese and Japanese, the characters) written in the target language's script,
+// so the original lines in bilingual output are not counted.
+function countWords(md, T) {
+  const text = md.replace(/[#*_>|\-\[\]()`]/g, " ");
+  if (T.chars) return [...text].filter((ch) => T.letter.test(ch)).length;
+  return text.split(/\s+/).filter((w) => T.letter.test(w) || (/^[0-9.,:/]+$/.test(w) && /[0-9]/.test(w))).length;
 }
 
 /* ---------- Translation ---------- */
 function buildPrompt(p, hint, tall, limit) {
   const subject = $("#subject").value.trim();
+  const T = langOf(p.to), S = p.from === "auto" ? null : langOf(p.from);
+  const tn = T.name, orig = S ? S.name : "the original language";
+  // How terms are written in the target: roman transliteration for Latin-script languages, otherwise the target's own script.
+  const translit = T.latin ? "standard roman transliteration" : `${tn} script (transliterated)`;
   const terms = {
-    explain: "Technical or culture-specific terms that have no exact English equivalent (in any field: music, law, religion, medicine, administration, etc.): keep the term in standard roman transliteration and add a short English meaning in parentheses the first time it appears on the page, e.g. Panchayat (village council), Raag (melodic framework). Spell each term the same way every time.",
-    keep: "Technical or culture-specific terms that have no exact English equivalent: keep them in standard roman transliteration without explanation, spelled the same way every time.",
-    translate: "Translate technical terms into their closest plain English equivalents; keep proper names (people, places, works, institutions) transliterated.",
+    explain: `Technical or culture-specific terms that have no exact ${tn} equivalent (in any field: music, law, religion, medicine, administration, etc.): keep the term in ${translit} and add a short ${tn} meaning in parentheses the first time it appears on the page${p.to === "en" ? ", e.g. Panchayat (village council), Raag (melodic framework)" : ""}. Spell each term the same way every time.`,
+    keep: `Technical or culture-specific terms that have no exact ${tn} equivalent: keep them in ${translit} without explanation, spelled the same way every time.`,
+    translate: `Translate technical terms into their closest plain ${tn} equivalents; keep proper names (people, places, works, institutions) transliterated.`,
   }[$("#terms").value];
   const layout = $("#layout").value === "bi"
-    ? "Write the output bilingually: for every heading, list item, paragraph and table cell group, first give the original Hindi text exactly as printed (in Devanagari), then the English translation on the next line in italics. Keep the Markdown structure."
-    : "Write only the English translation.";
+    ? `Write the output bilingually: for every heading, list item, paragraph and table cell group, first give the original text exactly as printed (in its own script), then the ${tn} translation on the next line in italics. Keep the Markdown structure.`
+    : `Write only the ${tn} translation.`;
   return [
-    `Translate page ${p.local} of ${p.doc.pdf.numPages} of a Hindi document into English.`,
+    S ? `Translate page ${p.local} of ${p.doc.pdf.numPages} of a ${S.name} document into ${tn}.`
+      : `Translate page ${p.local} of ${p.doc.pdf.numPages} of a document into ${tn}. First identify the language (or languages) it is written in.`,
     `The page is attached as two overlapping images (${tall ? "top part first, then bottom part" : "left part first, then right part"}). Text in the overlapping strip appears in both: include it only once.`,
     "",
     subject
       ? [
           `FIELD: this is a ${subject} document. Translate it the way a subject expert in ${subject} would:`,
-          `- Use the standard English terminology that ${subject} textbooks, scholars and professionals actually use, not general everyday words.`,
+          `- Use the standard ${tn} terminology that ${subject} textbooks, scholars and professionals actually use, not general everyday words.`,
           `- When a word or phrase has several possible meanings, always choose the meaning it has in ${subject}.`,
-          `- Recognise the field's technical terms, concepts, names and works, and render them the way the ${subject} field conventionally does in English (including established transliterations).`,
+          `- Recognise the field's technical terms, concepts, names and works, and render them the way the ${subject} field conventionally does in ${tn} (including established transliterations).`,
           `- Keep the field's conventions for units, notation, dates, citations and abbreviations.`,
         ].join("\n")
-      : "FIELD: first work out the subject field of this page (e.g. music, history, law, medicine, administration) from its content, then translate it the way a subject expert in that field would: use the field's standard English terminology, and choose the field-specific meaning of any ambiguous word.",
-    limit ? "\n" + lengthRules(limit) : "",
+      : `FIELD: first work out the subject field of this page (e.g. music, history, law, medicine, administration) from its content, then translate it the way a subject expert in that field would: use the field's standard ${tn} terminology, and choose the field-specific meaning of any ambiguous word.`,
+    limit ? "\n" + lengthRules(limit, T) : "",
     "",
     "Rules:",
-    "- Read every piece of Hindi (Devanagari) text on the page: titles, headings, numbering, paragraphs, lists, tables, captions, notes and footnotes.",
+    `- Read every piece of text on the page in ${orig}: titles, headings, numbering, paragraphs, lists, tables, captions, notes and footnotes.`,
     limit
-      ? "- Translate faithfully into clear, natural English that matches the tone of the original (formal for official or academic text, plain for everyday text). Never add content or change the meaning."
-      : "- Translate faithfully into clear, natural English that matches the tone of the original (formal for official or academic text, plain for everyday text). Do not summarise, skip, reorder or add content.",
+      ? `- Translate faithfully into clear, natural ${tn} that matches the tone of the original (formal for official or academic text, plain for everyday text). Never add content or change the meaning.`
+      : `- Translate faithfully into clear, natural ${tn} that matches the tone of the original (formal for official or academic text, plain for everyday text). Do not summarise, skip, reorder or add content.`,
     "- Keep the structure in Markdown: # / ## / ### headings, numbered and bulleted lists with the original numbering, and Markdown tables for tables (same rows and columns).",
-    "- Convert Devanagari digits (०१२३४५६७८९) to 0-9. Keep marks, years and numbers exactly.",
-    "- Names of people, books, institutions and places: standard roman transliteration (e.g. Pt. Vishnu Narayan Bhatkhande).",
+    T.latin
+      ? "- Convert other digits (e.g. Devanagari ०१२३४५६७८९, Arabic-Indic ٠١٢٣٤٥٦٧٨٩) to 0-9. Keep marks, years and numbers exactly."
+      : `- Write numbers with the digits normally used in modern ${tn} writing. Keep marks, years and numbers exactly.`,
+    T.latin
+      ? "- Names of people, books, institutions and places: standard roman transliteration (e.g. Pt. Vishnu Narayan Bhatkhande)."
+      : `- Names of people, books, institutions and places: their standard ${tn} spelling, transliterated into ${tn} script where needed.`,
     "- " + terms,
-    "- Text already in English stays as is.",
+    `- Text already in ${tn} stays as is.`,
     "- Leave out the book's printed page numbers and repeated running headers or footers (the same title or chapter name at the top or bottom of every page).",
     "- Write [illegible] for anything you cannot read. If the page has no text, reply only: (blank page)",
     "- " + layout,
     "Reply with the Markdown only: no preface, no notes, no code fences.",
-    hint ? `\nText layer extracted from the PDF by software. It may have broken or reordered Devanagari characters or legacy-font gibberish, so trust the images; use this only to confirm spellings and numbers:\n"""\n${hint}\n"""` : "",
+    $("#layout").value === "bi" ? ""
+      : `IMPORTANT: the whole answer must be in ${tn}, including every heading, table cell and list item. Never copy the original ${orig} text into the answer; translate it.`,
+    hint ? `\nText layer extracted from the PDF by software. It may have broken or reordered characters (common with Indic and Arabic scripts) or legacy-font gibberish, so trust the images; use this only to confirm spellings and numbers:\n"""\n${hint}\n"""` : "",
   ].join("\n");
 }
 
@@ -857,6 +1154,7 @@ function liveText(p) {
   if (p.phase === "queued") return "Waiting for a free slot…";
   if (p.phase === "prep") return "Preparing the page image…";
   const elapsed = p.tSend ? (now - p.tSend) / 1000 : 0;
+  if (p.phase === "relang") return `Translating the parts still in the original language into ${langOf(p.to).name}… ${fmtTime(elapsed)}`;
   if (p.phase === "shorten") return `Condensing ${p.shortFrom} words to about ${p.limit}… ${fmtTime(elapsed)}`;
   if (p.phase === "write") return `Writing the translation… ${fmtTime(elapsed)}`;
   const left = avgSec - elapsed;
@@ -887,7 +1185,8 @@ function learnSpeed(sec) {
 }
 
 async function translateOne(p, limit = null) {
-  p.status = "working"; p.md = ""; p.error = ""; p.phase = "prep"; p.tSend = 0; p.took = 0; p.limit = limit; renderPage(p);
+  p.status = "working"; p.md = ""; p.error = ""; p.phase = "prep"; p.tSend = 0; p.took = 0; p.limit = limit;
+  p.from = runLangs.from; p.to = runLangs.to; p.settings = runLangs.key; renderPage(p);
   const { parts, tall } = await pageImages(p);
   const prompt = buildPrompt(p, await textLayer(p), tall, limit);
   let last = 0;
@@ -903,7 +1202,8 @@ async function translateOne(p, limit = null) {
       p.took = (Date.now() - p.tSend) / 1000;
       learnSpeed(p.took);
       p.md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
-      p.words = countWords(p.md);
+      if (!res.truncated && !runLangs.bilingual && targetShare(p.md, langOf(p.to)) < 0.8) await finishLanguage(p);
+      p.words = countWords(p.md, langOf(p.to));
       if (limit && !res.truncated && p.words > limit * 1.15) await shorten(p, limit);
       p.took = (Date.now() - p.tSend) / 1000;
       p.status = res.truncated ? "failed" : "done";
@@ -933,18 +1233,56 @@ async function translateOne(p, limit = null) {
   }
 }
 
-// Condenses an over-long page to its word limit. If this step fails, the longer version is kept.
-async function shorten(p, limit) {
-  const full = p.md, fullWords = p.words;
-  p.phase = "shorten"; p.shortFrom = fullWords; renderPage(p);
+// Share of the letters in a translation that are in the target language's script (1 = all of it).
+// Fast models sometimes copy dense pages (tables, handwriting) in the original language instead of translating them.
+function targetShare(md, T) {
+  const letters = md.match(/\p{L}/gu) || [];
+  if (letters.length < 20) return 1;
+  return letters.filter((ch) => T.letter.test(ch)).length / letters.length;
+}
+// Second, text-only step for a page that came back partly untranslated. If it fails, the first answer is kept.
+async function finishLanguage(p) {
+  const T = langOf(p.to), subject = $("#subject").value.trim();
+  const first = p.md;
+  p.phase = "relang"; renderPage(p);
+  const prompt = [
+    `The text below should be a ${T.name} translation of one page of a document, but parts of it are still in the original language.`,
+    `Rewrite it so that all of it is in ${T.name}: translate every heading, sentence, list item and table cell that is not in ${T.name} yet.${subject ? ` It is a ${subject} document: use the standard ${T.name} terminology of ${subject}.` : ""}`,
+    "- Keep the parts that are already translated, the Markdown structure (headings, lists, tables with the same rows and columns), and all numbers, symbols and marks exactly.",
+    T.latin
+      ? "- Names of people, works and places: standard roman transliteration. Technical terms with no exact equivalent: roman transliteration with a short meaning in brackets the first time."
+      : `- Names of people, works and places: their standard ${T.name} spelling, in ${T.name} script.`,
+    "- Never add or drop content.",
+    "Reply with the Markdown only: no preface, no notes, no code fences.",
+    "",
+    '"""', first, '"""',
+  ].join("\n");
   try {
     let last = 0;
-    const res = await gemini(shortenPrompt(full, limit, fullWords), [], ctl.signal, (text) => {
+    const res = await gemini(prompt, [], ctl.signal, (text) => {
       const now = Date.now();
       if (now - last > 250) { last = now; p.md = text; renderPage(p); }
     });
     const md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
-    const words = countWords(md);
+    p.md = !res.truncated && targetShare(md, T) > targetShare(first, T) ? md : first;
+  } catch (e) {
+    if (e.name === "AbortError" || ctl.signal.aborted) throw e;
+    p.md = first;
+  }
+}
+
+// Condenses an over-long page to its word limit. If this step fails, the longer version is kept.
+async function shorten(p, limit) {
+  const full = p.md, fullWords = p.words, T = langOf(p.to);
+  p.phase = "shorten"; p.shortFrom = fullWords; renderPage(p);
+  try {
+    let last = 0;
+    const res = await gemini(shortenPrompt(full, limit, fullWords, T), [], ctl.signal, (text) => {
+      const now = Date.now();
+      if (now - last > 250) { last = now; p.md = text; renderPage(p); }
+    });
+    const md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
+    const words = countWords(md, T);
     if (res.truncated || !words || words >= fullWords) { p.md = full; p.words = fullWords; }
     else { p.md = md; p.words = words; }
   } catch (e) {
@@ -955,6 +1293,9 @@ async function shorten(p, limit) {
 
 async function runPages(nums) {
   if (!apiKey || !pages.length || running) return;
+  if ($("#src").value === $("#dst").value) { toast("Choose two different languages."); return; }
+  runLangs = { from: $("#src").value, to: $("#dst").value, bilingual: $("#layout").value === "bi", key: settingsKey() };
+  rememberLangs();
   running = true; ctl = new AbortController(); slots = MAX_PARALLEL;
   renderFiles();   // ✕ buttons are off while translating
   $("#stop").hidden = false; $("#prog").hidden = false; $("#runMsg").hidden = true;
@@ -996,16 +1337,24 @@ async function runPages(nums) {
   renderFiles();
 }
 
+// Everything in the Options panel that changes a translation, as one comparable string.
+function settingsKey() {
+  return JSON.stringify([$("#src").value, $("#dst").value, $("#subject").value.trim().toLowerCase(), $("#terms").value,
+    $("#layout").value, $("#limit").value.replace(/[^0-9]/g, ""), $("#limitScope").value]);
+}
+
 $("#go").onclick = () => {
   const n = pages.length;
   let a = parseInt($("#from").value, 10), b = parseInt($("#to").value, 10);
   if (!(a >= 1)) a = 1;
   if (!(b >= 1) || b > n) b = n;
   if (a > b) { toast("“From page” must be before “To page”."); return; }
-  const nums = [];
-  for (let i = a; i <= b; i++) if (pages[i - 1].status !== "done") nums.push(i);
-  if (!nums.length) { toast("Those pages are already translated. Use Translate again on a page to redo it."); return; }
-  runPages(nums);
+  // Pages not translated yet, or translated with different settings (language, subject, terms, output, word limit),
+  // are translated now. If every page in the range is already up to date, clicking Translate redoes them all.
+  const key = settingsKey(), range = [];
+  for (let i = a; i <= b; i++) range.push(i);
+  const stale = range.filter((i) => pages[i - 1].status !== "done" || pages[i - 1].settings !== key);
+  runPages(stale.length ? stale : range);
 };
 $("#stop").onclick = () => ctl?.abort();
 
@@ -1024,7 +1373,7 @@ function exportGroups() {
     .filter((g) => g.pages.length);
 }
 function combinedMd() {
-  return `# ${exportName()} — English translation\n\n` + exportGroups().map((g) =>
+  return `# ${exportName()} — ${exportLang().name} translation\n\n` + exportGroups().map((g) =>
     (g.multi ? `# ${g.doc.name}\n\n` : "") +
     g.pages.map((p) => `<!-- Page ${p.local} -->\n\n${p.md}`).join("\n\n---\n\n")
   ).join("\n\n---\n\n") + "\n";
@@ -1032,18 +1381,18 @@ function combinedMd() {
 function combinedHtml() {
   const body = exportGroups().map((g) =>
     (g.multi ? `<h1 class="doc">${esc(g.doc.name)}</h1>` : "") +
-    g.pages.map((p) => `<section><p class="pg">Page ${p.local}</p>${renderMd(p.md).replace(/<div class="tbl">/g, "").replace(/<\/table><\/div>/g, "</table>")}</section>`).join("\n")
+    g.pages.map((p) => `<section ${langAttrs(p.to)}><p class="pg">Page ${p.local}</p>${renderMd(p.md).replace(/<div class="tbl">/g, "").replace(/<\/table><\/div>/g, "</table>")}</section>`).join("\n")
   ).join("\n");
-  const fileName = exportName();
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(fileName)} — English translation</title>
+  const fileName = exportName(), lang = exportLang().name;
+  return `<!doctype html><html lang="${exportLang().code}"><head><meta charset="utf-8"><title>${esc(fileName)} — ${esc(lang)} translation</title>
 <style>body{font-family:Georgia,"Times New Roman",serif;max-width:780px;margin:40px auto;padding:0 20px;line-height:1.55;color:#111}
 h1,h2,h3,h4{line-height:1.25}table{border-collapse:collapse;width:100%;font-size:0.92em;margin:0.6em 0}
-th,td{border:1px solid #999;padding:4px 7px;text-align:left;vertical-align:top}th{background:#eee}
-body{font-family:Georgia,"Times New Roman","Nirmala UI","Mangal",serif}
+th,td{border:1px solid #999;padding:4px 7px;text-align:start;vertical-align:top}th{background:#eee}
+body{font-family:Georgia,"Times New Roman","Nirmala UI","Mangal","Segoe UI",serif}
 h1.doc{margin-top:48px;padding-top:14px;border-top:3px solid #111}
 @page{margin:18mm}@media print{body{margin:0;max-width:none;padding:0}table,tr{break-inside:avoid}h1,h2,h3{break-after:avoid}}
 .pg{font-family:Arial,sans-serif;font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.08em;border-top:1px solid #ccc;padding-top:8px;margin-top:28px}</style>
-</head><body><h1>${esc(fileName)} — English translation</h1>${body}</body></html>`;
+</head><body><h1>${esc(fileName)} — ${esc(lang)} translation</h1>${body}</body></html>`;
 }
 // Opens the computer's "Save as" window (Chrome, Edge) so people choose the folder and name.
 // Returns a file handle, false if they cancelled, or null when the browser has no such window (then it's a normal download).
@@ -1114,15 +1463,26 @@ async function makePdf(onStep) {
   document.body.append(box);
   const done = pages.filter((p) => p.status === "done");
   // One drawing per translated page; a PDF's name goes with its first page so it never sits alone at the bottom of a sheet.
-  const parts = [`<h1>${esc(exportName())} — English translation</h1>`];
+  const parts = [`<h1>${esc(exportName())} — ${esc(exportLang().name)} translation</h1>`];
   for (const g of exportGroups()) g.pages.forEach((p, i) => parts.push(
     (g.multi && i === 0 ? `<h1 class="doc">${esc(g.doc.name)}</h1>` : "") +
-    `<section><p class="pg">Page ${p.local}</p>${renderMd(p.md)}</section>`));
+    `<section ${langAttrs(p.to)}><p class="pg">Page ${p.local}</p>${renderMd(p.md)}</section>`));
   let y = M;
   try {
     for (let i = 0; i < parts.length; i++) {
       onStep?.(Math.max(i, 1), done.length);
       box.innerHTML = parts[i];
+      // html2canvas draws no list numbers or bullets in right-to-left text, so write them in as text.
+      for (const list of box.querySelectorAll("[dir=rtl] ol, [dir=rtl] ul")) {
+        let n = parseInt(list.getAttribute("start"), 10) || 1;
+        for (const li of list.children) {
+          const mk = document.createElement("span");
+          mk.className = "mk"; mk.dir = "ltr";
+          mk.textContent = list.tagName === "OL" ? `${n++}.` : "•";
+          li.prepend(mk, " ");
+        }
+        list.style.listStyle = "none";
+      }
       const canvas = await html2canvas(box, { scale: SCALE, backgroundColor: "#ffffff", logging: false });
       let sy = 0;
       while (sy < canvas.height) {
@@ -1154,13 +1514,13 @@ function readyToExport() {
   toast(running ? "Wait for the first page to finish, then download." : "Translate some pages first, then download.");
   return false;
 }
-$("#exMd").onclick = () => readyToExport() && download(`${exportName()} - English.md`, combinedMd(), "text/markdown;charset=utf-8", ".md", "Markdown file");
-$("#exHtml").onclick = () => readyToExport() && download(`${exportName()} - English.html`, combinedHtml(), "text/html;charset=utf-8", ".html", "Web page (opens in Word)");
+$("#exMd").onclick = () => readyToExport() && download(`${exportName()} - ${exportLang().name}.md`, combinedMd(), "text/markdown;charset=utf-8", ".md", "Markdown file");
+$("#exHtml").onclick = () => readyToExport() && download(`${exportName()} - ${exportLang().name}.html`, combinedHtml(), "text/html;charset=utf-8", ".html", "Web page (opens in Word)");
 $("#copyAll").onclick = () => readyToExport() && copyText(combinedMd());
 let makingPdf = false;
 $("#exPdf").onclick = async () => {
   if (makingPdf || !readyToExport()) return;
-  const name = `${exportName()} - English.pdf`;
+  const name = `${exportName()} - ${exportLang().name}.pdf`;
   // Ask where to save first: the browser only allows this window straight after the click.
   const handle = await pickFile(name, "application/pdf", ".pdf", "PDF document");
   if (handle === false) return;
@@ -1195,6 +1555,10 @@ $("#zoom").addEventListener("click", () => $("#zoom").close());
 
 /* ---------- Boot ---------- */
 renderEmpty();
+fillLangs();
+restoreOptions();
+updateButtons();
+restoreWork();
 (async () => {
   avgSec = parseFloat(store.get(AVG_STORE)) || 20;
   apiKey = store.get(KEY_STORE);

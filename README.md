@@ -1,8 +1,8 @@
 # अनुवाद Anuvad
 
-**Translate Hindi PDFs into clean, structured English — free, right in your browser.**
+**Translate PDFs between 117 languages into clean, structured text — free, right in your browser.**
 
-Upload one or more Hindi PDFs (a book, syllabus, notice, letter or form), pick the pages, and Anuvad gives you an English version that keeps the headings, lists and tables of the original. Edit anything you want, then download it as a PDF, a Word-ready `.html` file or Markdown.
+Upload one or more PDFs (a book, syllabus, notice, letter or form), pick the languages and pages, and Anuvad gives you a translation that keeps the headings, lists and tables of the original. It started as a Hindi → English tool and still shines there, but any pair works: Hindi → Urdu, Bengali → English, French → Hindi and so on. Edit anything you want, then download it as a PDF, a Word-ready `.html` file or Markdown.
 
 **▶ Try it:** https://shreeyanshichandra.github.io/anuvad/
 
@@ -28,18 +28,21 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
 
 ## Features
 
-- **Page-by-page translation** with the original page shown beside the English
+- **Any language → any language**: 117 languages, with the original language detected automatically, a swap button, and your recent languages pinned at the top
+- **Right-to-left output** for Urdu, Arabic, Persian, Hebrew and others, on screen and in downloads
+- **Page-by-page translation** with the original page shown beside the translation
 - **Several PDFs at once**: add as many as you like; each shows as a bubble with a ✕ to remove it, and they're translated and downloaded as one combined document with each PDF's name as a heading
 - **Fast**: several pages are translated at once, usually about 15 seconds per page
 - **Live progress**: each page shows what is happening (preparing, reading, writing) with a countdown, plus an overall time-left estimate that learns from real page times
 - **Keeps the structure**: headings, numbered lists, line breaks and tables; skips the book's printed page numbers and running headers
-- **Subject-aware terms**: keep terms like *Panchayat* or *Raag* with an English meaning, keep them as they are, or fully translate them
-- **Subject field**: type the subject (music, history, law…) and it translates with that field's own English terminology; left empty, it works out the field from the page
-- **Optional word limit**: condense the English to about N words, per page or in total, while keeping every main point, key fact, name, number and subject term. If a page comes out over the limit, Anuvad condenses it in a quick second step. Word counts are shown per page and in total
-- **Bilingual mode**: each Hindi line followed by its English translation, handy for checking
+- **Subject-aware terms**: keep terms like *Panchayat* or *Raag* with a meaning in brackets, keep them as they are, or fully translate them
+- **Subject field**: type the subject (music, history, law…) and it translates with that field's own terminology in the target language; left empty, it works out the field from the page
+- **Optional word limit**: condense the translation to about N words, per page or in total, while keeping every main point, key fact, name, number and subject term. If a page comes out over the limit, Anuvad condenses it in a quick second step. Word counts are shown per page and in total
+- **Bilingual mode**: each original line followed by its translation, handy for checking
 - **Edit, copy or redo** any page
 - **Download** as **PDF**, `.html` (opens in Word) or `.md`, or copy everything, from the download bar at the top right. In Chrome and Edge, a Save window lets you choose the folder
-- **Private by design**: no server and no sign-up. Your PDF and access code stay in your browser and go only to Google for the translation.
+- **Nothing lost on refresh**: your PDFs, translations and settings are kept in your browser, so a refresh or reopening the tab picks up where you left off
+- **Private by design**: no server and no sign-up. Your PDFs, translations and access code stay in your browser and go only to Google for the translation.
 
 ## How to use it
 
@@ -50,7 +53,7 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
    3. Accept the terms if asked, then click **Create API key**.
    4. Copy the code (it starts with `AIza`), paste it into Anuvad and click **Save**.
 3. **Upload one or more PDFs**, optionally type the subject (for example *History* or *Law*), and click **Translate pages**.
-4. **Review and download** the English version.
+4. **Review and download** the translation.
 
 No card or payment is needed. The code is remembered on your device, so you only do step 2 once.
 
@@ -64,7 +67,7 @@ No card or payment is needed. The code is remembered on your device, so you only
 
 ```
 PDF ──▶ PDF.js renders each page to an image (split into two overlapping halves so small Devanagari stays sharp)
-     ──▶ Gemini reads the Hindi from the images and translates it, keeping the layout as Markdown
+     ──▶ Gemini reads the text from the images and translates it into the chosen language, keeping the layout as Markdown
      ──▶ the answer streams back as Markdown and is shown with marked.js
      ──▶ export as PDF (built in the browser with html2canvas + jsPDF), .html or .md
 ```

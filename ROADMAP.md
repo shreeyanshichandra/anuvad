@@ -1,6 +1,6 @@
 # Anuvad roadmap
 
-Where Anuvad is going: translate **anything** (a word, text, an image, a PDF or a document) between **any languages**, with results you can edit, refine and download.
+Where Anuvad is going (see [TASKS.md](TASKS.md) for what's done and what's next): translate **anything** (a word, text, an image, a PDF or a document) between **any languages**, with results you can edit, refine and download.
 
 Anuvad stays a website that opens from a link. It is not an installable app.
 
@@ -44,19 +44,19 @@ Anuvad stays a website that opens from a link. It is not an installable app.
 
 ## Phase 1: any language, text and word modes
 
-- **New project structure** (Vite + TypeScript; React still to be decided) on a `v2` branch, merged into `main` through one pull request
-- **Any language → any language:** searchable list of 100+ languages, auto-detect the source, swap button, recent languages pinned
+Day-to-day progress is tracked in [TASKS.md](TASKS.md).
+
+- ✅ **Any language → any language** (v1.4): 117 languages, auto-detect the source, swap button, recent languages pinned. Built into the current single-file site.
+- ✅ Right-to-left support (Urdu, Arabic, Persian, Hebrew…) on screen and in downloads
+- **New project structure** (Vite + TypeScript; React still to be decided) on a `v2` branch, merged into `main` through one pull request. Only if the single file gets too big to manage.
 - **Text mode** (new home screen): type or paste text, translate, edit, copy
 - **Word mode:** a single word gives a dictionary card with meanings, part of speech, examples, transliteration and pronunciation
-- **PDF mode** carried over and working for any language
-- Right-to-left support (Urdu, Arabic, Persian) and correct fonts for every script
 - Subject field and word limit available in every mode
 
 ## Phase 2: more inputs
 
 - **Images and photos:** upload, paste a screenshot (Ctrl+V), or take a photo with the phone camera
 - **Word (.docx), PowerPoint and .txt files**
-- PDFs in any language
 
 ## Phase 3: editing and refining
 
@@ -64,7 +64,8 @@ Anuvad stays a website that opens from a link. It is not an installable app.
 - **Refine with an instruction:** select a part (or the whole document) and say *"more formal"*, *"simpler English"*, *"keep terms in Hindi"* to retranslate just that part
 - **Glossary:** fix a term once and every page follows it
 - Tone presets: Formal, Simple, Academic, Literal
-- Auto-saved history in the browser, so a refresh never loses work
+- ✅ Work is saved in the browser, so a refresh never loses it (done in v1.4)
+- History of past documents to reopen
 
 ## Phase 4: downloads
 
