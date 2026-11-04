@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
 <title>Shreeyanshi Chandra: building software by voice</title>
-<meta name="description" content="Portfolio of Shreeyanshi Chandra, featuring Anuvad, a translator for PDFs, photos, documents and audio, built by voice with Wispr Flow and Claude Code.">
+<meta name="description" content="Portfolio of Shreeyanshi Chandra, featuring Anuvad, a subject-aware translator for PDFs, photos, documents and audio, built by voice with Wispr Flow and Claude Code.">
 <meta property="og:title" content="Shreeyanshi Chandra: building software by voice">
-<meta property="og:description" content="Featuring Anuvad, a translator for PDFs, photos, documents and audio, built by voice with Wispr Flow and Claude Code.">
+<meta property="og:description" content="Featuring Anuvad, a subject-aware translator for PDFs, photos, documents and audio, built by voice with Wispr Flow and Claude Code.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://shreeyanshichandra.github.io/anuvad/portfolio/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23a85a00'/%3E%3Ctext x='32' y='45' font-size='36' text-anchor='middle' fill='%23fff' font-family='Georgia,serif'%3ES%3C/text%3E%3C/svg%3E">
@@ -16,73 +16,106 @@
 <style>
 :root {
   --paper: #f7f2e8; --card: #fffdf8; --ink: #1f1b16; --soft: #5f564a; --line: #ddd3c1;
-  --saffron: #a85a00; --night: #1f1b16; --night-ink: #f1ece4; --night-soft: #b8afa2;
+  --saffron: #a85a00; --night: #1f1b16; --night-ink: #f1ece4; --night-soft: #b8afa2; --night-line: #3a342c; --gold: #f0a43a;
   --ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --read: "Newsreader", Georgia, "Times New Roman", serif;
   --hindi: "Tiro Devanagari Hindi", "Nirmala UI", serif;
 }
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 400 1.05rem/1.6 var(--ui); }
-.wrap { max-width: 1000px; margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-left)); }
+.wrap { max-width: 1060px; margin: 0 auto; padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right)); }
 a { color: var(--saffron); text-underline-offset: 3px; }
 a:focus-visible { outline: 2px solid var(--saffron); outline-offset: 3px; border-radius: 3px; }
 h1, h2, h3 { font-family: var(--read); font-weight: 600; line-height: 1.12; margin: 0; text-wrap: balance; }
 p { margin: 0; }
+img { display: block; max-width: 100%; height: auto; }
 .eyebrow { font-size: .78rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--saffron); }
+.shot { border-radius: 10px; box-shadow: 0 8px 26px rgba(31, 27, 22, .22); }
 
-.hero { padding: clamp(48px, 9vw, 104px) 0 clamp(40px, 7vw, 72px); }
+.hero { padding: clamp(48px, 8vw, 92px) 0 clamp(36px, 6vw, 64px); }
 .hero .name { font-size: 1.05rem; font-weight: 600; }
-.hero h1 { font-size: clamp(2.6rem, 8.2vw, 5.4rem); letter-spacing: -.02em; margin: 14px 0 22px; max-width: 13ch; }
+.hero h1 { font-size: clamp(2.6rem, 8vw, 5.3rem); letter-spacing: -.02em; margin: 14px 0 22px; max-width: 13ch; }
 .hero .lead { font-size: clamp(1.1rem, 2.2vw, 1.3rem); color: var(--soft); max-width: 40em; }
-.links { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-top: 30px; }
+.links { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-top: 28px; }
 .btn { display: inline-block; background: var(--saffron); color: #fff; font-weight: 600; text-decoration: none; padding: 12px 22px; border-radius: 8px; }
 .btn:hover { background: #8c4b00; }
 
-section { padding: clamp(40px, 7vw, 72px) 0; border-top: 1px solid var(--line); }
-section > .wrap > h2 { font-size: clamp(1.9rem, 4.6vw, 2.9rem); margin: 8px 0 18px; }
-.intro { max-width: 40em; }
+section { padding: clamp(44px, 7vw, 76px) 0; border-top: 1px solid var(--line); }
+.big { font-size: clamp(1.9rem, 4.6vw, 2.9rem); margin: 8px 0 18px; }
+.intro { max-width: 42em; }
 .intro + .intro { margin-top: 14px; }
 .hi { font-family: var(--hindi); font-weight: 400; color: var(--saffron); margin-right: .25em; }
 .garble { display: block; font-family: ui-monospace, Consolas, monospace; font-size: .92rem; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; margin: 14px 0; overflow-wrap: anywhere; }
 
-.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 34px 0; border-block: 1px solid var(--line); }
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 32px 0; border-block: 1px solid var(--line); }
 .facts div { padding: 16px 18px 16px 0; }
 .facts b { display: block; font-family: var(--read); font-weight: 600; font-size: clamp(1.9rem, 4.4vw, 2.7rem); line-height: 1.1; }
 .facts span { font-size: .9rem; color: var(--soft); }
 @media (max-width: 640px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
-figure { margin: 30px 0 0; }
-figure img { display: block; width: 100%; height: auto; border-radius: 10px; }
-figcaption { font-size: .88rem; color: var(--soft); margin-top: 10px; max-width: 46em; }
+figure { margin: 0; min-width: 0; }
+figcaption { font-size: .88rem; color: var(--soft); margin-top: 10px; }
 
-.subhead { font-size: clamp(1.4rem, 3vw, 1.75rem); margin: 38px 0 10px; }
-.can { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 36px; margin: 26px 0 0; padding: 0; list-style: none; }
-.can li { padding: 10px 0; border-top: 1px solid var(--line); }
-.can b { font-weight: 600; }
-@media (max-width: 640px) { .can { grid-template-columns: minmax(0, 1fr); } }
+/* The headline feature gets its own dark band. */
+.subject { background: var(--night); color: var(--night-ink); border-top: 0; }
+.subject .eyebrow { color: var(--gold); }
+.subject .intro, .subject figcaption { color: var(--night-soft); }
+.subject .big em { font-style: italic; color: var(--gold); }
+.subgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: clamp(24px, 5vw, 56px); align-items: start; margin-top: 30px; }
+.subgrid .shot { box-shadow: none; border: 1px solid var(--night-line); max-width: 300px; }
+.how { list-style: none; margin: 0; padding: 0; }
+.how li { padding: 15px 0; border-top: 1px solid var(--night-line); color: var(--night-soft); }
+.how li:first-child { border-top: 0; padding-top: 0; }
+.how b { display: block; color: var(--night-ink); font-family: var(--read); font-weight: 600; font-size: 1.22rem; margin-bottom: 3px; }
+.meanings { margin-top: 42px; }
+.meanings h3 { font-size: clamp(1.4rem, 3vw, 1.8rem); margin-bottom: 6px; }
+.scroller { overflow-x: auto; margin-top: 18px; }
+.meanings table { border-collapse: collapse; width: 100%; min-width: 520px; }
+.meanings th, .meanings td { text-align: left; padding: 13px 16px 13px 0; border-top: 1px solid var(--night-line); vertical-align: top; }
+.meanings th { font-size: .78rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); border-top: 0; }
+.meanings .w { font-family: var(--hindi); font-size: 1.5rem; line-height: 1.2; }
+.meanings td { color: var(--night-soft); }
+.meanings td b { color: var(--night-ink); font-weight: 600; }
+
+/* One feature per row, the picture swapping sides. */
+.feature { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: clamp(22px, 5vw, 56px); align-items: center; padding: clamp(30px, 5vw, 50px) 0; border-top: 1px solid var(--line); }
+.feature:first-of-type { border-top: 0; }
+.feature:nth-of-type(even) figure { order: -1; }
+.feature h3 { font-size: clamp(1.5rem, 3.2vw, 2rem); margin-bottom: 10px; }
+.feature p + p { margin-top: 10px; }
+.feature ul { margin: 12px 0 0; padding-inline-start: 1.2em; }
+.feature li { margin: 5px 0; }
+.feature.wide { grid-template-columns: minmax(0, 1fr); }
+.feature.wide:nth-of-type(even) figure { order: 0; }
+.feature.wide > div { max-width: 44em; }
+.narrow img { max-width: 340px; margin-inline: auto; }
+.stack { display: grid; gap: 14px; justify-items: center; }
+@media (max-width: 760px) {
+  .subgrid, .feature { grid-template-columns: minmax(0, 1fr); }
+  .feature:nth-of-type(even) figure { order: 0; }
+  .subgrid .shot { max-width: 100%; }
+}
 
 .voice { background: var(--night); color: var(--night-ink); border-top: 0; }
-.voice .eyebrow { color: #f0a43a; }
+.voice .eyebrow { color: var(--gold); }
 .voice .intro { color: var(--night-soft); }
-.said { display: grid; gap: 0; margin-top: 30px; }
-.said article { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 8px 36px; padding: 22px 0; border-top: 1px solid #3a342c; }
+.said { display: grid; margin-top: 30px; }
+.said article { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 8px 36px; padding: 22px 0; border-top: 1px solid var(--night-line); }
 .said blockquote { margin: 0; font-family: var(--read); font-size: clamp(1.12rem, 2.2vw, 1.3rem); line-height: 1.4; }
 .said p { color: var(--night-soft); font-size: .97rem; }
-.said p b { display: block; color: #f0a43a; font-size: .74rem; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin-bottom: 4px; }
+.said p b { display: block; color: var(--gold); font-size: .74rem; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin-bottom: 4px; }
 @media (max-width: 640px) { .said article { grid-template-columns: minmax(0, 1fr); } }
 
 .found { margin: 26px 0 0; padding: 0; list-style: none; max-width: 46em; }
 .found li { padding: 14px 0; border-top: 1px solid var(--line); }
 .found b { font-weight: 600; }
-
 .time { margin: 26px 0 0; padding: 0; list-style: none; max-width: 46em; }
 .time li { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 4px 14px; padding: 12px 0; border-top: 1px solid var(--line); }
 .time time { font-weight: 600; font-variant-numeric: tabular-nums; }
 @media (max-width: 480px) { .time li { grid-template-columns: minmax(0, 1fr); } }
-
-.limits { margin: 14px 0 0; padding-inline-start: 1.2em; max-width: 44em; }
-.limits li { margin: 8px 0; }
+.try { background: var(--card); }
 footer { border-top: 1px solid var(--line); padding: 30px 0 calc(40px + env(safe-area-inset-bottom)); font-size: .92rem; color: var(--soft); }
 footer .links { margin-top: 0; }
 </style>
@@ -92,7 +125,7 @@ footer .links { margin-top: 0; }
   <div class="wrap">
     <p class="name">Shreeyanshi Chandra</p>
     <h1>I build software by saying what it should do.</h1>
-    <p class="lead">My main project is Anuvad, a subject-aware translator for PDFs, photos, documents and audio. Name a subject, and it uses that field's own keywords. I built it by voice: I spoke every request through Wispr Flow, Claude Code wrote the code, and I tested each version and decided what came next.</p>
+    <p class="lead">My main project is Anuvad, a subject-aware translator for PDFs, photos, documents and audio. Name a subject, and it writes the way an expert in that field would. I built it by voice: I spoke every request through Wispr Flow, Claude Code wrote the code, and I tested each version and decided what came next.</p>
     <div class="links">
       <a class="btn" href="https://shreeyanshichandra.github.io/anuvad/">Open Anuvad</a>
       <a href="https://github.com/shreeyanshichandra/anuvad">Public code: github.com/shreeyanshichandra/anuvad</a>
@@ -104,10 +137,10 @@ footer .links { margin-top: 0; }
   <section aria-labelledby="anuvad">
     <div class="wrap">
       <p class="eyebrow">Featured project</p>
-      <h2 id="anuvad"><span class="hi">अनुवाद</span>Anuvad</h2>
+      <h2 class="big" id="anuvad"><span class="hi">अनुवाद</span>Anuvad</h2>
       <p class="intro">Copy text out of many Hindi PDFs and you get gibberish, because they're typed in old fonts such as Kruti Dev. This is what a Hindi sentence can look like:</p>
       <code class="garble">lEekfur ikBdksa dks lwfpr djrs gq;s g"kZ gks jgk gS</code>
-      <p class="intro">Ordinary translators can't do anything with that. Anuvad reads each page as an image, the way a person would, so old fonts and scanned pages work. Then it keeps the headings, lists and tables, and lets you edit and download the result.</p>
+      <p class="intro">Ordinary translators can't do anything with that. Anuvad reads each page as an image, the way a person would, so old fonts and scanned pages work. Then it keeps the headings, lists and tables, and lets you edit, refine and download the result.</p>
       <div class="facts">
         <div><b>117</b><span>languages, either direction</span></div>
         <div><b>8</b><span>kinds of input, from PDF to voice</span></div>
@@ -115,32 +148,187 @@ footer .links { margin-top: 0; }
         <div><b>7</b><span>days from first commit to v1.11</span></div>
       </div>
       <figure>
-        <img src="real-translation.png" width="815" height="360" alt="A Hindi page about Indian music systems beside its English translation, with a heading, a sub-heading and a numbered list kept.">
-        <figcaption>A real result from an early version: a Hindi page on the left, and its English translation on the right with the heading and numbered list kept.</figcaption>
+        <img class="shot" loading="lazy" src="img/real-page.png" width="815" height="360" alt="A Hindi page about Indian music systems beside its English translation, with its heading, sub-heading and numbered list kept.">
+        <figcaption>A real result: a Hindi page about music on the left, and its English translation on the right, with the headings and numbered list kept and terms like "shrutis (microtones)" explained.</figcaption>
       </figure>
-      <h3 class="subhead">Made for your subject</h3>
-      <p class="intro">Most translators treat every document the same. In Anuvad, you can name the subject, such as Music, History, Law or Medicine, and it translates the way an expert in that field would write:</p>
-      <ul class="can">
-        <li><b>The field's own keywords:</b> it uses the terminology that textbooks and professionals in that subject actually use, not everyday words.</li>
-        <li><b>The right meaning:</b> when a word has several meanings, it chooses the one it has in your subject.</li>
-        <li><b>Terms explained:</b> technical terms can stay in place with their meaning beside them, like "shrutis (microtones)" in the result above.</li>
-        <li><b>Works on its own too:</b> leave the subject empty and it works out the field from your content. In Word mode, the subject's meaning comes first.</li>
-      </ul>
-      <h3 class="subhead">What else it does</h3>
-      <ul class="can">
-        <li><b>Reads almost anything:</b> PDFs, photos, screenshots, Word, PowerPoint, text files, recordings, typed text and single words.</li>
-        <li><b>Refine by instruction:</b> select a sentence and ask for "more formal" or "simpler English".</li>
-        <li><b>Explain mode:</b> a plain summary, key terms and points to remember, for students.</li>
-        <li><b>Real downloads:</b> PDF with searchable text, Word, HTML and Markdown, with or without the originals.</li>
-        <li><b>No server, no sign-up:</b> your work stays in your browser, even after a refresh.</li>
-      </ul>
+    </div>
+  </section>
+
+  <section class="subject" aria-labelledby="subject">
+    <div class="wrap">
+      <p class="eyebrow">What makes it different</p>
+      <h2 class="big" id="subject">It knows <em>what you're reading about</em></h2>
+      <p class="intro">Most translators treat every document the same, so a music textbook and a legal notice get the same everyday words. Anuvad doesn't. Type one word into the Subject box, such as Music, History, Law or Medicine, and the whole translation changes how it thinks: it writes the way an expert in that field would.</p>
+      <div class="subgrid">
+        <figure>
+          <img class="shot" loading="lazy" src="img/subject.png" width="554" height="340" alt="The Subject box in Anuvad, optional, with Music typed in and a note explaining that most translations will use the subject's own keywords.">
+          <figcaption>One optional box, for any subject you can name.</figcaption>
+        </figure>
+        <ul class="how">
+          <li><b>The field's own keywords</b>It uses the terminology that textbooks, scholars and professionals in that subject actually use, not general everyday words.</li>
+          <li><b>The right meaning, every time</b>When a word has several meanings, it chooses the one it has in your subject.</li>
+          <li><b>Names and notation done properly</b>It recognises the field's concepts, names and works, and follows its conventions for units, notation, dates and citations.</li>
+          <li><b>Terms kept and explained</b>Technical terms can stay in place with their meaning beside them, stay as they are, or be fully translated. You choose, and each one is spelled the same way throughout.</li>
+          <li><b>No subject? It works it out</b>Leave the box empty, and Anuvad identifies the field from your content, then translates with that field's terminology.</li>
+        </ul>
+      </div>
+      <div class="meanings">
+        <h3>Why this matters: one word, different subjects</h3>
+        <p class="intro">Hindi words like these change meaning completely with the subject. These are the kind of words the Subject box is there to get right.</p>
+        <div class="scroller">
+          <table>
+            <thead><tr><th scope="col">Hindi word</th><th scope="col">In everyday use or another field</th><th scope="col">In the subject</th></tr></thead>
+            <tbody>
+              <tr><td class="w" lang="hi">ताल</td><td>a pond or lake</td><td><b>Music:</b> the rhythmic cycle of a composition</td></tr>
+              <tr><td class="w" lang="hi">धारा</td><td>a stream or current of water</td><td><b>Law:</b> a section of an Act, as in "Section 144"</td></tr>
+              <tr><td class="w" lang="hi">स्वर</td><td>Grammar: a vowel</td><td><b>Music:</b> a musical note</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="intro" style="margin-top:28px">It also works with Explain mode and Word mode: in a dictionary lookup, the subject's meaning comes first.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="features">
+    <div class="wrap">
+      <p class="eyebrow">Every feature</p>
+      <h2 class="big" id="features">Everything it does</h2>
+      <p class="intro">Each of these started as something I said out loud. The pictures are of the real app.</p>
+
+      <div class="feature">
+        <div>
+          <h3>Reads almost anything</h3>
+          <p>Drop in whatever you have. Files can be mixed, and they're translated and downloaded as one combined document, each with its own heading.</p>
+          <ul>
+            <li><b>PDFs</b>, including scans and old Hindi fonts</li>
+            <li><b>Photos and screenshots:</b> press Ctrl + V to paste, or take a photo on a phone</li>
+            <li><b>Word, PowerPoint and text files</b>, with one page per slide</li>
+            <li><b>Audio:</b> upload a recording, or record yourself</li>
+          </ul>
+          <p>Each file gets its own bubble with a ✕, so you can remove one without touching the rest.</p>
+        </div>
+        <figure class="narrow"><img class="shot" loading="lazy" src="img/upload.png" width="620" height="696" alt="The upload panel: a drop area, a Record your voice button, and bubbles for a photo and a text file."></figure>
+      </div>
+
+      <div class="feature">
+        <div>
+          <h3>117 languages, any direction</h3>
+          <p>Hindi to English is where it began, but any pair works: Hindi to Urdu, Bengali to English, French to Hindi.</p>
+          <ul>
+            <li><b>Detect automatically</b> works out the original language</li>
+            <li><b>Swap</b> flips the two languages in one click</li>
+            <li><b>Your recent languages</b> stay pinned at the top of the list</li>
+            <li><b>Right-to-left output</b> for Urdu, Arabic, Persian and Hebrew, on screen and in downloads</li>
+          </ul>
+        </div>
+        <figure class="narrow"><img class="shot" loading="lazy" src="img/languages.png" width="554" height="374" alt="Translate from and Translate to language pickers, with a Swap button."></figure>
+      </div>
+
+      <div class="feature wide">
+        <div>
+          <h3>Text mode</h3>
+          <p>No file? Type or paste up to 20,000 characters and get a translation beside it, with the same options and downloads as files.</p>
+          <p>Here, Anuvad detected the English by itself and even wrote my name correctly in Hindi.</p>
+        </div>
+        <figure><img class="shot" loading="lazy" src="img/real-text.png" width="1812" height="440" alt="English text on the left and its Hindi translation on the right: Namaste, mera naam Shreeyanshi hai."></figure>
+      </div>
+
+      <div class="feature wide">
+        <div>
+          <h3>Word mode: a dictionary card</h3>
+          <p>Type one word or a short phrase, in any language, and get a full dictionary card rather than a bare translation.</p>
+          <ul>
+            <li>Meanings grouped by part of speech</li>
+            <li>Example sentences with translations</li>
+            <li>Transliteration and pronunciation, plus a <b>Listen</b> button</li>
+            <li>Synonyms, opposites, word forms and usage notes</li>
+          </ul>
+        </div>
+        <figure><img class="shot" loading="lazy" src="img/real-word.png" width="1812" height="576" alt="A dictionary card for bonjour: its pronunciation, the language French, and meanings with a translated example."></figure>
+      </div>
+
+      <div class="feature">
+        <div>
+          <h3>Refine by instruction</h3>
+          <p>A first translation is rarely the last word. Select any sentence, click <b>Refine…</b> and say what you want, such as "more formal", "simpler English" or "keep terms in Hindi".</p>
+          <p>Only that part is rewritten. <b>Undo change</b> brings the old version back, and you can also refine every page at once.</p>
+        </div>
+        <figure><img class="shot" loading="lazy" src="img/refine.png" width="890" height="510" alt="A translation with Edit, Copy and Refine buttons, and an open box asking how it should change."></figure>
+      </div>
+
+      <div class="feature">
+        <div>
+          <h3>Explain mode, for students</h3>
+          <p>Sometimes you don't want a translation, you want to understand. Choose <b>Explain in simple words</b>, and any page, photo, recording or text becomes four clear parts, in your language:</p>
+          <ul>
+            <li><b>In short:</b> the main point in two or three sentences</li>
+            <li><b>Explanation:</b> the content in everyday words, with examples</li>
+            <li><b>Key terms:</b> each important term and what it means</li>
+            <li><b>Remember:</b> the points worth keeping</li>
+          </ul>
+        </div>
+        <figure class="narrow"><img class="shot" loading="lazy" src="img/explain-option.png" width="554" height="254" alt="The What to do option, with Translate and Explain in simple words."></figure>
+      </div>
+
+      <div class="feature">
+        <div>
+          <h3>Your words, your tone</h3>
+          <p>A glossary fixes a term once, and every new translation follows it. <b>Fix a word everywhere</b> also replaces it in the translations you've already made, instantly.</p>
+          <p>A tone setting matches the original, or makes it formal, simple, academic or literal.</p>
+        </div>
+        <figure class="narrow stack">
+          <img class="shot" loading="lazy" src="img/glossary.png" width="554" height="744" alt="The glossary, with Raga and Tala entries, and Fix a word everywhere.">
+          <img class="shot" loading="lazy" src="img/tone.png" width="554" height="122" alt="The Tone setting.">
+        </figure>
+      </div>
+
+      <div class="feature wide">
+        <div>
+          <h3>Downloads that are ready to use</h3>
+          <ul>
+            <li><b>PDF</b> with text you can select, search and copy, even in Hindi and Urdu</li>
+            <li><b>Word (.docx)</b> with real headings, lists and tables</li>
+            <li><b>.html and .md</b>, or copy everything at once</li>
+            <li><b>Include the originals</b> for a bilingual copy, with each original page before its translation</li>
+          </ul>
+          <p>Files save straight to the folder you choose, through your computer's own Save window.</p>
+        </div>
+        <figure><img class="shot" loading="lazy" src="img/export.png" width="1812" height="172" alt="The download bar: Download PDF, Word, html and md, Copy all, and Include the originals."></figure>
+      </div>
+
+      <div class="feature">
+        <div>
+          <h3>Your work is never lost</h3>
+          <p>Files, translations, edits and settings stay in your browser, so a refresh or a closed tab loses nothing. <b>History</b> keeps your last 30 translations to reopen any time.</p>
+          <p>There's no server and no sign-up: your files go only to the AI engine you choose.</p>
+        </div>
+        <figure class="narrow"><img class="shot" loading="lazy" src="img/history.png" width="620" height="422" alt="The History list, with a translated text and a word, each with an Open button."></figure>
+      </div>
+
+      <div class="feature">
+        <div>
+          <h3>Your choice of AI engine</h3>
+          <p>Use Google Gemini for free with your own code, which takes about 2 minutes to get with the step-by-step help on the page. Or use Anthropic Claude with your own key, or Chrome's built-in translator for plain text, with no code at all.</p>
+        </div>
+        <figure class="narrow"><img class="shot" loading="lazy" src="img/engine.png" width="620" height="758" alt="The AI engine picker with step-by-step help for getting a free Google access code."></figure>
+      </div>
+
+      <div class="feature">
+        <div>
+          <h3>A guide on your first visit</h3>
+          <p>New visitors get a 9-step tour that dims the page and points at each part, with Back, Next and Skip. <b>How it works</b> replays it any time, and it works on phones and with the keyboard.</p>
+          <p>The language you want is required and never assumed: if it's empty, a friendly pop-up asks, and the work then carries on by itself.</p>
+        </div>
+        <figure class="narrow"><img class="shot" loading="lazy" src="img/guide.png" width="680" height="566" alt="A step of the first-visit guide, explaining the optional Subject box."></figure>
+      </div>
     </div>
   </section>
 
   <section class="voice" aria-labelledby="spoken">
     <div class="wrap">
       <p class="eyebrow">How it was built</p>
-      <h2 id="spoken">Spoken, then built</h2>
+      <h2 class="big" id="spoken">Spoken, then built</h2>
       <p class="intro">These are my actual requests, dictated with Wispr Flow while I had the site open in front of me. Speaking meant I could describe a problem the moment I saw it, in the same words I'd use with a person.</p>
       <div class="said">
         <article>
@@ -149,7 +337,7 @@ footer .links { margin-top: 0; }
         </article>
         <article>
           <blockquote>"When I translated it to French, the second page did not translate well."</blockquote>
-          <p><b>What changed</b>Dense pages sometimes came back untranslated. Each page is now checked, and any leftover text gets a second pass.</p>
+          <p><b>What changed</b>Each page is now checked, and any text left in the original language gets a second pass.</p>
         </article>
         <article>
           <blockquote>"After refreshing, it's still not coming back. Everything is just vanishing."</blockquote>
@@ -165,43 +353,40 @@ footer .links { margin-top: 0; }
 
   <section aria-labelledby="judgement">
     <div class="wrap">
-      <p class="eyebrow">Testing</p>
-      <h2 id="judgement">Voice is fast. Checking is still the job.</h2>
-      <p class="intro">Before submitting, I had Claude Code test the live site from start to finish. It found problems that looking at the site would never have shown, and they were then fixed:</p>
+      <p class="eyebrow">Quality</p>
+      <h2 class="big" id="judgement">Built fast, then checked properly</h2>
+      <p class="intro">Before submitting, I had Claude Code test the live site from start to finish, the way a reviewer would, and fixed what it found:</p>
       <ul class="found">
-        <li><b>A security hole.</b> A link inside a translation could run code and read a saved access code. Now only web and mail links can be clicked.</li>
-        <li><b>A wrong error message.</b> A mistyped Claude key said "Couldn't reach Anthropic". It now says the key is wrong.</li>
-        <li><b>A word limit that overshot.</b> A limit of 50 words across 6 pages actually asked for 180. Shares now add up to the limit.</li>
-        <li><b>Silent text loss.</b> The Word download dropped anything shaped like an HTML tag. It's now kept.</li>
+        <li><b>Security hardened.</b> Links in translations can now only be web or mail links, HTML shows as plain text, and pictures from other sites never load, because an AI reading outside documents shouldn't be trusted blindly.</li>
+        <li><b>A security policy and library checks.</b> The page limits what it can load, and each library is checked against a known checksum.</li>
+        <li><b>Automated tests</b> run on every push through GitHub Actions.</li>
+        <li><b>Accuracy details.</b> Word limits add up across pages, and the Word download keeps text that looks like code.</li>
       </ul>
-      <p class="intro" style="margin-top:18px">Automated tests now run on every push, and the page has a security policy that limits what it can load.</p>
     </div>
   </section>
 
   <section aria-labelledby="timeline">
     <div class="wrap">
       <p class="eyebrow">Timeline</p>
-      <h2 id="timeline">One week, one request at a time</h2>
+      <h2 class="big" id="timeline">One week, one request at a time</h2>
       <ol class="time">
         <li><time datetime="2026-10-29">29 October</time><span>First version: a Hindi syllabus PDF into English. Then any Hindi document, subject-aware terms and a word limit.</span></li>
         <li><time datetime="2026-10-31">31 October</time><span>A word limit that's actually enforced, direct PDF download, and several PDFs translated as one.</span></li>
         <li><time datetime="2026-11-02">2 November</time><span>117 languages, work kept after a refresh, Text mode, and a dictionary card for single words.</span></li>
-        <li><time datetime="2026-11-04">4 November</time><span>Photos, Word and PowerPoint files, Refine, History, Word downloads, searchable PDFs, voice, Explain mode, a choice of AI engine, the first-visit guide, and the security fixes.</span></li>
+        <li><time datetime="2026-11-04">4 November</time><span>Photos, Word and PowerPoint files, Refine, History, Word downloads, searchable PDFs, voice, Explain mode, a choice of AI engine, the first-visit guide, and security hardening.</span></li>
       </ol>
     </div>
   </section>
 
-  <section aria-labelledby="limits">
+  <section class="try" aria-labelledby="try">
     <div class="wrap">
-      <p class="eyebrow">Being straight</p>
-      <h2 id="limits">Its limits</h2>
-      <ul class="limits">
-        <li>To translate, you need your own free Google access code, which takes about 2 minutes to get. In recent desktop Chrome, plain text also works without one.</li>
-        <li>AI translation is very good but not perfect, so check important names, dates and numbers.</li>
-        <li>PDFs in Chinese, Japanese and Korean download as pictures, without searchable text.</li>
-        <li>The app is one large file. That was the fastest way to build it, and it's now due for splitting up.</li>
-      </ul>
-      <p class="intro" style="margin-top:22px"><b>Built with:</b> Wispr Flow, Claude Code, HTML, CSS and JavaScript, PDF.js, the Gemini API, and GitHub Pages. All the code is public on <a href="https://github.com/shreeyanshichandra/anuvad">GitHub</a>.</p>
+      <h2 class="big" id="try">Try it yourself</h2>
+      <p class="intro">Open Anuvad, get a free Google access code in about 2 minutes using the steps on the page, and translate anything. In recent desktop Chrome, you can also translate plain text with no code by choosing Chrome translator.</p>
+      <p class="intro"><b>Built with:</b> Wispr Flow, Claude Code, HTML, CSS and JavaScript, PDF.js, the Gemini API, and GitHub Pages.</p>
+      <div class="links">
+        <a class="btn" href="https://shreeyanshichandra.github.io/anuvad/">Open Anuvad</a>
+        <a href="https://github.com/shreeyanshichandra/anuvad">See all the code on GitHub</a>
+      </div>
     </div>
   </section>
 </main>
