@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<title>Shreeyanshi Chandra: building software by voice</title>
+<meta name="description" content="Portfolio of Shreeyanshi Chandra, featuring Anuvad, a translator for PDFs, photos, documents and audio, built by voice with Wispr Flow and Claude Code.">
+<meta property="og:title" content="Shreeyanshi Chandra: building software by voice">
+<meta property="og:description" content="Featuring Anuvad, a translator for PDFs, photos, documents and audio, built by voice with Wispr Flow and Claude Code.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://shreeyanshichandra.github.io/anuvad/portfolio/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23a85a00'/%3E%3Ctext x='32' y='45' font-size='36' text-anchor='middle' fill='%23fff' font-family='Georgia,serif'%3ES%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Tiro+Devanagari+Hindi&display=swap">
+<style>
+:root {
+  --paper: #f7f2e8; --card: #fffdf8; --ink: #1f1b16; --soft: #5f564a; --line: #ddd3c1;
+  --saffron: #a85a00; --night: #1f1b16; --night-ink: #f1ece4; --night-soft: #b8afa2;
+  --ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --read: "Newsreader", Georgia, "Times New Roman", serif;
+  --hindi: "Tiro Devanagari Hindi", "Nirmala UI", serif;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 1.05rem/1.6 var(--ui); }
+.wrap { max-width: 1000px; margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-left)); }
+a { color: var(--saffron); text-underline-offset: 3px; }
+a:focus-visible { outline: 2px solid var(--saffron); outline-offset: 3px; border-radius: 3px; }
+h1, h2, h3 { font-family: var(--read); font-weight: 600; line-height: 1.12; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.eyebrow { font-size: .78rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--saffron); }
+
+.hero { padding: clamp(48px, 9vw, 104px) 0 clamp(40px, 7vw, 72px); }
+.hero .name { font-size: 1.05rem; font-weight: 600; }
+.hero h1 { font-size: clamp(2.6rem, 8.2vw, 5.4rem); letter-spacing: -.02em; margin: 14px 0 22px; max-width: 13ch; }
+.hero .lead { font-size: clamp(1.1rem, 2.2vw, 1.3rem); color: var(--soft); max-width: 40em; }
+.links { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-top: 30px; }
+.btn { display: inline-block; background: var(--saffron); color: #fff; font-weight: 600; text-decoration: none; padding: 12px 22px; border-radius: 8px; }
+.btn:hover { background: #8c4b00; }
+
+section { padding: clamp(40px, 7vw, 72px) 0; border-top: 1px solid var(--line); }
+section > .wrap > h2 { font-size: clamp(1.9rem, 4.6vw, 2.9rem); margin: 8px 0 18px; }
+.intro { max-width: 40em; }
+.intro + .intro { margin-top: 14px; }
+.hi { font-family: var(--hindi); font-weight: 400; color: var(--saffron); margin-right: .25em; }
+.garble { display: block; font-family: ui-monospace, Consolas, monospace; font-size: .92rem; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; margin: 14px 0; overflow-wrap: anywhere; }
+
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 34px 0; border-block: 1px solid var(--line); }
+.facts div { padding: 16px 18px 16px 0; }
+.facts b { display: block; font-family: var(--read); font-weight: 600; font-size: clamp(1.9rem, 4.4vw, 2.7rem); line-height: 1.1; }
+.facts span { font-size: .9rem; color: var(--soft); }
+@media (max-width: 640px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+figure { margin: 30px 0 0; }
+figure img { display: block; width: 100%; height: auto; border-radius: 10px; }
+figcaption { font-size: .88rem; color: var(--soft); margin-top: 10px; max-width: 46em; }
+
+.can { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 36px; margin: 26px 0 0; padding: 0; list-style: none; }
+.can li { padding: 10px 0; border-top: 1px solid var(--line); }
+.can b { font-weight: 600; }
+@media (max-width: 640px) { .can { grid-template-columns: minmax(0, 1fr); } }
+
+.voice { background: var(--night); color: var(--night-ink); border-top: 0; }
+.voice .eyebrow { color: #f0a43a; }
+.voice .intro { color: var(--night-soft); }
+.said { display: grid; gap: 0; margin-top: 30px; }
+.said article { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 8px 36px; padding: 22px 0; border-top: 1px solid #3a342c; }
+.said blockquote { margin: 0; font-family: var(--read); font-size: clamp(1.12rem, 2.2vw, 1.3rem); line-height: 1.4; }
+.said p { color: var(--night-soft); font-size: .97rem; }
+.said p b { display: block; color: #f0a43a; font-size: .74rem; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin-bottom: 4px; }
+@media (max-width: 640px) { .said article { grid-template-columns: minmax(0, 1fr); } }
+
+.found { margin: 26px 0 0; padding: 0; list-style: none; max-width: 46em; }
+.found li { padding: 14px 0; border-top: 1px solid var(--line); }
+.found b { font-weight: 600; }
+
+.time { margin: 26px 0 0; padding: 0; list-style: none; max-width: 46em; }
+.time li { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 4px 14px; padding: 12px 0; border-top: 1px solid var(--line); }
+.time time { font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 480px) { .time li { grid-template-columns: minmax(0, 1fr); } }
+
+.limits { margin: 14px 0 0; padding-inline-start: 1.2em; max-width: 44em; }
+.limits li { margin: 8px 0; }
+footer { border-top: 1px solid var(--line); padding: 30px 0 calc(40px + env(safe-area-inset-bottom)); font-size: .92rem; color: var(--soft); }
+footer .links { margin-top: 0; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <p class="name">Shreeyanshi Chandra</p>
+    <h1>I build software by saying what it should do.</h1>
+    <p class="lead">My main project is Anuvad, a translator for PDFs, photos, documents and audio. I built it by voice: I spoke every request through Wispr Flow, Claude Code wrote the code, and I tested each version and decided what came next.</p>
+    <div class="links">
+      <a class="btn" href="https://shreeyanshichandra.github.io/anuvad/">Open Anuvad</a>
+      <a href="https://github.com/shreeyanshichandra/anuvad">See the code on GitHub</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section aria-labelledby="anuvad">
+    <div class="wrap">
+      <p class="eyebrow">Featured project</p>
+      <h2 id="anuvad"><span class="hi">अनुवाद</span>Anuvad</h2>
+      <p class="intro">Copy text out of many Hindi PDFs and you get gibberish, because they're typed in old fonts such as Kruti Dev. This is what a Hindi sentence can look like:</p>
+      <code class="garble">lEekfur ikBdksa dks lwfpr djrs gq;s g"kZ gks jgk gS</code>
+      <p class="intro">Ordinary translators can't do anything with that. Anuvad reads each page as an image, the way a person would, so old fonts and scanned pages work. Then it keeps the headings, lists and tables, and lets you edit and download the result.</p>
+      <div class="facts">
+        <div><b>117</b><span>languages, either direction</span></div>
+        <div><b>8</b><span>kinds of input, from PDF to voice</span></div>
+        <div><b>12</b><span>versions released</span></div>
+        <div><b>7</b><span>days from first commit to v1.11</span></div>
+      </div>
+      <figure>
+        <img src="real-translation.png" width="815" height="360" alt="A Hindi page about Indian music systems beside its English translation, with a heading, a sub-heading and a numbered list kept.">
+        <figcaption>A real result from an early version: a Hindi page on the left, and its English translation on the right with the heading and numbered list kept.</figcaption>
+      </figure>
+      <ul class="can">
+        <li><b>Reads almost anything:</b> PDFs, photos, screenshots, Word, PowerPoint, text files, recordings, typed text and single words.</li>
+        <li><b>Subject-aware:</b> name a subject, and most translations use that field's own keywords.</li>
+        <li><b>Refine by instruction:</b> select a sentence and ask for "more formal" or "simpler English".</li>
+        <li><b>Explain mode:</b> a plain summary, key terms and points to remember, for students.</li>
+        <li><b>Real downloads:</b> PDF with searchable text, Word, HTML and Markdown, with or without the originals.</li>
+        <li><b>No server, no sign-up:</b> your work stays in your browser, even after a refresh.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="voice" aria-labelledby="spoken">
+    <div class="wrap">
+      <p class="eyebrow">How it was built</p>
+      <h2 id="spoken">Spoken, then built</h2>
+      <p class="intro">These are my actual requests, dictated with Wispr Flow while I had the site open in front of me. Speaking meant I could describe a problem the moment I saw it, in the same words I'd use with a person.</p>
+      <div class="said">
+        <article>
+          <blockquote>"When I'm saving a file as a PDF, why is the print option opening? I want you to save it to the file on the computer and show the computer option, not the print option."</blockquote>
+          <p><b>What changed</b>PDFs are now made inside the browser and saved through the computer's own Save window.</p>
+        </article>
+        <article>
+          <blockquote>"When I translated it to French, the second page did not translate well."</blockquote>
+          <p><b>What changed</b>Dense pages sometimes came back untranslated. Each page is now checked, and any leftover text gets a second pass.</p>
+        </article>
+        <article>
+          <blockquote>"After refreshing, it's still not coming back. Everything is just vanishing."</blockquote>
+          <p><b>What changed</b>Files, translations and settings are now saved in the browser, and come back after a refresh.</p>
+        </article>
+        <article>
+          <blockquote>"First time, I should get the hints and a guide pop-up type of thing to know how this app works."</blockquote>
+          <p><b>What changed</b>First-time visitors get a 9-step guide that points at each part of the page.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="judgement">
+    <div class="wrap">
+      <p class="eyebrow">Testing</p>
+      <h2 id="judgement">Voice is fast. Checking is still the job.</h2>
+      <p class="intro">Before submitting, I had Claude Code test the live site from start to finish. It found problems that looking at the site would never have shown, and they were then fixed:</p>
+      <ul class="found">
+        <li><b>A security hole.</b> A link inside a translation could run code and read a saved access code. Now only web and mail links can be clicked.</li>
+        <li><b>A wrong error message.</b> A mistyped Claude key said "Couldn't reach Anthropic". It now says the key is wrong.</li>
+        <li><b>A word limit that overshot.</b> A limit of 50 words across 6 pages actually asked for 180. Shares now add up to the limit.</li>
+        <li><b>Silent text loss.</b> The Word download dropped anything shaped like an HTML tag. It's now kept.</li>
+      </ul>
+      <p class="intro" style="margin-top:18px">Automated tests now run on every push, and the page has a security policy that limits what it can load.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="timeline">
+    <div class="wrap">
+      <p class="eyebrow">Timeline</p>
+      <h2 id="timeline">One week, one request at a time</h2>
+      <ol class="time">
+        <li><time datetime="2026-10-29">29 October</time><span>First version: a Hindi syllabus PDF into English. Then any Hindi document, subject-aware terms and a word limit.</span></li>
+        <li><time datetime="2026-10-31">31 October</time><span>A word limit that's actually enforced, direct PDF download, and several PDFs translated as one.</span></li>
+        <li><time datetime="2026-11-02">2 November</time><span>117 languages, work kept after a refresh, Text mode, and a dictionary card for single words.</span></li>
+        <li><time datetime="2026-11-04">4 November</time><span>Photos, Word and PowerPoint files, Refine, History, Word downloads, searchable PDFs, voice, Explain mode, a choice of AI engine, the first-visit guide, and the security fixes.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section aria-labelledby="limits">
+    <div class="wrap">
+      <p class="eyebrow">Being straight</p>
+      <h2 id="limits">Its limits</h2>
+      <ul class="limits">
+        <li>To translate, you need your own free Google access code, which takes about 2 minutes to get. In recent desktop Chrome, plain text also works without one.</li>
+        <li>AI translation is very good but not perfect, so check important names, dates and numbers.</li>
+        <li>PDFs in Chinese, Japanese and Korean download as pictures, without searchable text.</li>
+        <li>The app is one large file. That was the fastest way to build it, and it's now due for splitting up.</li>
+      </ul>
+      <p class="intro" style="margin-top:22px"><b>Built with:</b> Wispr Flow, Claude Code, HTML, CSS and JavaScript, PDF.js, the Gemini API, and GitHub Pages.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap links">
+    <span>© 2026 Shreeyanshi Chandra</span>
+    <a href="https://shreeyanshichandra.github.io/anuvad/">Anuvad</a>
+    <a href="https://github.com/shreeyanshichandra">GitHub</a>
+  </div>
+</footer>
+</body>
+</html>
