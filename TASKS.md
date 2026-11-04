@@ -9,13 +9,20 @@ Last updated: 4 November 2026
 ## 🚧 In progress
 
 - [ ] Check v1.7 and v1.8 on the live site: real translations with a real access code, the Word download opened in Word, and **Take a photo** on a phone (tested so far with sample replies only)
+- [ ] Check v1.9 on the live site with real services: a real recording through Gemini, a real Anthropic key, and Chrome's translator in real Chrome (tested so far with stand-ins)
 
 ## ⏭️ Next up
 
 - [ ] Decide on moving to Vite + TypeScript: `index.html` is now about 2,560 lines, close to the 3,000-line point set on 2 November 2026
-- [ ] Later ideas in ROADMAP.md (on-device translation, Explain mode, voice input, other AI engines): not scheduled
 
 ## ✅ Done
+
+### v1.9: the "Later ideas"
+- [x] **AI engine** choice at the top of the left column: Google Gemini, Anthropic Claude or Chrome's translator; each keeps its own key
+- [x] **Claude**: Opus 5.5, Sonnet 5.5 or Haiku 5.5 with the person's own Anthropic key, for pages, photos, text, words and Refine (no audio)
+- [x] **Chrome's translator**: free plain-text translation on the computer in Text mode, in browsers that have it; language detection, line breaks kept, and a clear message if it doesn't respond
+- [x] **Explain mode** (*What to do* in Options): a short summary, a plain explanation, key terms and points to remember, for every file type and Text mode
+- [x] **Voice input**: **Record your voice** (up to 7 minutes) or upload audio; a player beside a transcript and its translation, or an explanation; kept after a refresh and in History
 
 ### v1.8: documents, refining and downloads (Phases 2–4)
 **More inputs**

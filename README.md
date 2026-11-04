@@ -32,6 +32,9 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
 - **Photos, scans and screenshots**: add JPG, PNG or WebP images alongside PDFs, paste a screenshot with **Ctrl + V**, or tap **Take a photo** on a phone. Each image is translated like a page, with the original beside it; big phone photos are scaled down first so they send quickly
 - **Word, PowerPoint and text files**: add `.docx`, `.pptx` or `.txt` files too. They're split into parts (one per slide for PowerPoint), shown side by side with their translation, and the original text can be corrected with **Edit original**
 - **Text mode**: no PDF? Switch to **Text**, type or paste up to 20,000 characters and translate it with the same options and downloads
+- **Voice and audio**: click **Record your voice** or add an audio file (MP3, WAV, M4A and others, up to about 14 MB) to get a transcript and its translation (Gemini only)
+- **Explain mode**: choose **Explain in simple words** under *What to do* for a short summary, a plain explanation, the key terms and points to remember, instead of a line-by-line translation
+- **Choice of AI engine**: Google Gemini (free, with your own code), Anthropic Claude (paid, with your own key) or, for plain text in Chrome, Chrome's built-in translator (free, no code, runs on your computer)
 - **Word mode**: type a single word or short phrase and get a dictionary card: meanings by part of speech, example sentences with translations, transliteration, pronunciation (IPA, plus a **Listen** button), synonyms, opposites and usage notes. With a subject set, the subject's meaning comes first
 - **Right-to-left output** for Urdu, Arabic, Persian, Hebrew and others, on screen and in downloads
 - **Page-by-page translation** with the original page shown beside the translation
@@ -50,7 +53,7 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
 - **History**: everything you translate is kept in your browser, so you can reopen past documents, texts and words later
 - **Download** as **PDF**, **Word (.docx)**, `.html` or `.md`, or copy everything, from the download bar at the top right. The PDF's text can be selected, searched and copied. Tick **Include the originals** for a bilingual download with each original page (or its text) before its translation. In Chrome and Edge, a Save window lets you choose the folder
 - **Nothing lost on refresh**: your PDFs, translations and settings are kept in your browser, so a refresh or reopening the tab picks up where you left off
-- **Private by design**: no server and no sign-up. Your PDFs, translations and access code stay in your browser and go only to Google for the translation.
+- **Private by design**: no server and no sign-up. Your files, translations and keys stay in your browser and go only to the AI engine you choose.
 
 ## How to use it
 
@@ -87,7 +90,8 @@ The PDF's own text layer is sent along as a hint for numbers and spellings, but 
 
 - Everything is one file, `index.html`: plain HTML, CSS and JavaScript, with no build step and no backend.
 - Libraries load from cdnjs: [PDF.js](https://mozilla.github.io/pdf.js/) and [marked](https://marked.js.org/).
-- Translation uses the [Gemini API](https://ai.google.dev/) with each user's own key. By default it picks the newest stable **Gemini Flash-Lite** model with minimal thinking, which is the fastest; slower, more careful models can be chosen under **AI model**.
+- Claude (optional) is called directly from the browser with the user's own Anthropic key; Chrome's [Translator API](https://developer.chrome.com/docs/ai/translator-api) (optional) runs on the user's computer.
+- Translation uses the [Gemini API](https://ai.google.dev/) by default, with each user's own key. By default it picks the newest stable **Gemini Flash-Lite** model with minimal thinking, which is the fastest; slower, more careful models can be chosen under **AI model**.
 - Up to 3 pages are translated in parallel. If Google's free per-minute limit is hit, Anuvad lowers the number of parallel pages, waits as long as Google asks, and continues.
 - PDF parsing runs in a background Web Worker, so the page stays responsive while translating.
 

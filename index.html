@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Anuvad</title>
-<meta name="description" content="Translate PDFs and photos between 100+ languages, page by page, with headings, lists and tables kept. Free, runs in your browser.">
+<meta name="description" content="Translate or explain PDFs, photos, documents, audio and text between 100+ languages, with headings, lists and tables kept. Free, runs in your browser.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f0a43a'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%23161412' font-family='serif'%3E%E0%A4%85%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Tiro+Devanagari+Hindi&display=swap">
@@ -84,6 +84,8 @@ details[open] summary { margin-bottom: 8px; }
 .drop small { color: var(--muted); }
 .drop input, .camera input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 /* The camera button only shows on phones and tablets. */
+#recBtn.recording { border-color: var(--bad); color: var(--bad); }
+.orig audio { width: 100%; }
 .btnlink.camera { position: relative; display: none; }
 @media (pointer: coarse) { .btnlink.camera { display: block; } }
 /* PDF / Text / Word switch at the top of the left column. */
@@ -230,7 +232,7 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
 <div class="wrap">
   <header>
     <h1><span class="hi">अनुवाद</span>Anuvad</h1>
-    <p>Upload PDFs or photos, paste text or look up a word in any language and translate it into the language you choose, with headings, lists and tables kept. Each page is read as an image, so scanned pages and old fonts (like Kruti Dev for Hindi) work too.</p>
+    <p>Upload PDFs, photos, documents or audio, paste text or look up a word in any language, and translate or explain it in the language you choose, with headings, lists and tables kept. Each page is read as an image, so scanned pages and old fonts (like Kruti Dev for Hindi) work too.</p>
   </header>
 
   <div class="grid">
@@ -241,7 +243,29 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
         <button type="button" role="tab" id="modeWord" aria-selected="false">Word</button>
       </div>
       <section class="panel" id="keyPanel">
-        <span class="label">Your free Google access code</span>
+        <label class="field"><span>AI engine</span>
+          <select id="engine">
+            <option value="gemini">Google Gemini (free)</option>
+            <option value="claude">Anthropic Claude (paid)</option>
+            <option value="chrome" id="engineChrome" hidden>Chrome translator (free, text only)</option>
+          </select>
+        </label>
+        <span class="label" id="keyTitle">Your free Google access code</span>
+        <div id="chromeNote" hidden>
+          <p class="help">Translates plain text on your own computer, with no code and nothing sent to an AI service. It works in <b>Text</b> mode only, and the first use of a language pair downloads a small language pack. Subject, tone, glossary, word limit and Refine need Gemini or Claude.</p>
+        </div>
+        <div id="keyEmptyClaude" hidden>
+          <div style="display:grid;gap:10px">
+            <p class="help">Claude uses your own Anthropic API key, and Anthropic charges your account for what you use. Claude can read pages and photos, but it can't listen to audio.</p>
+            <a class="btnlink primary" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Get a key from Anthropic ↗</a>
+            <div class="keyrow">
+              <input type="password" id="keyInClaude" placeholder="Paste your key here (sk-ant-…)" autocomplete="off" spellcheck="false" aria-label="Anthropic API key">
+              <button id="keySaveClaude">Save</button>
+            </div>
+            <label class="check"><input type="checkbox" id="keyRememberClaude" checked> Remember on this device</label>
+            <div id="keyMsgClaude" class="status" hidden></div>
+          </div>
+        </div>
         <div id="keyEmpty">
           <div style="display:grid;gap:10px">
             <p class="help">Anuvad uses Google's Gemini AI to read and translate pages. It's free: you only need an access code (called an "API key") from your Google account. You do this once.</p>
@@ -277,10 +301,11 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
       <section class="panel pdfonly" id="uploadPanel">
         <span class="label">1 · Upload</span>
         <label class="drop" id="drop">
-          <input type="file" id="fileIn" accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/gif,image/bmp,image/avif,.txt,.docx,.pptx,text/plain" multiple>
+          <input type="file" id="fileIn" accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/gif,image/bmp,image/avif,.txt,.docx,.pptx,text/plain,audio/*,.mp3,.wav,.m4a,.aac,.ogg,.opus,.flac,.webm,.aiff" multiple>
           <strong id="dropTitle">Choose PDFs, images or documents</strong>
-          <small>PDF, JPG, PNG, Word (.docx), PowerPoint (.pptx) or .txt · drop them here · paste a screenshot with Ctrl + V · several files are translated as one</small>
+          <small>PDF, JPG, PNG, Word (.docx), PowerPoint (.pptx), .txt or audio · drop them here · paste a screenshot with Ctrl + V · several files are translated as one</small>
         </label>
+        <button type="button" id="recBtn">🎤 Record your voice</button>
         <label class="btnlink camera" id="cameraBtn">📷 Take a photo
           <input type="file" id="cameraIn" accept="image/*" capture="environment">
         </label>
@@ -305,6 +330,13 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
             <option value="keep">Keep term only, no meaning</option>
             <option value="translate">Translate fully</option>
           </select>
+        </label>
+        <label class="field notword"><span>What to do</span>
+          <select id="task">
+            <option value="translate">Translate</option>
+            <option value="explain">Explain in simple words</option>
+          </select>
+          <small class="help">Explain gives a short summary, a plain explanation and the key terms, for students. (Not with Chrome's translator.)</small>
         </label>
         <label class="field notword"><span>Tone</span>
           <select id="tone">
@@ -436,7 +468,7 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
   </div>
 
   <footer>
-    <p>Your PDFs, images, translations and access code stay in this browser (so a refresh loses nothing; ✕ removes a file) and are sent only to Google for translation. On Google's free plan, Google may use what you send to improve its services, so don't upload private documents.</p>
+    <p>Your PDFs, images, translations and access code stay in this browser (so a refresh loses nothing; ✕ removes a file) and are sent only to the AI engine you choose (Chrome's translator sends nothing). On Google's free plan, Google may use what you send to improve its services, so don't upload private documents.</p>
     <p>© 2026 Shreeyanshi Chandra · <a href="https://github.com/shreeyanshichandra/anuvad" target="_blank" rel="noopener">View code on GitHub</a></p>
   </footer>
 </div>
@@ -458,6 +490,8 @@ try {
 } catch {}
 
 const API = "https://generativelanguage.googleapis.com/v1beta";
+const CLAUDE_API = "https://api.anthropic.com/v1";
+let engine = "gemini";        // "gemini", "claude" or "chrome"
 const KEY_STORE = "anuvad.key", MODEL_STORE = "anuvad.model.v2", AVG_STORE = "anuvad.avgSec";
 const FALLBACK_MODEL = "models/gemini-flash-lite-latest";
 const MAX_PARALLEL = 3;       // pages translated at once; lowered automatically if Google's per-minute limit is hit
@@ -515,7 +549,7 @@ function renderPage(p) {
     el.innerHTML = `
       <div class="orig">
         <div class="pnum"><span>Page ${p.num}</span><span class="st"></span></div>
-        ${p.doc.parts ? `<div class="srcbox"></div>` : `<img alt="Page ${p.num}, the original" ${p.thumb ? `src="${p.thumb}"` : "hidden"}>`}
+        ${p.doc.audio ? `<audio controls preload="metadata" src="${audioUrl(p.doc)}"></audio>` : p.doc.parts ? `<div class="srcbox"></div>` : `<img alt="Page ${p.num}, the original" ${p.thumb ? `src="${p.thumb}"` : "hidden"}>`}
       </div>
       <div class="trans">
         <div class="tools"></div>
@@ -557,7 +591,7 @@ function fillResult(p, tools, body) {
     if (p.took) {
       const t = document.createElement("span"); t.className = "took";
       t.textContent = isWord ? `${langOf(p.to).name} · looked up in ${fmtTime(p.took)}`
-        : `${langOf(p.to).name} · translated in ${fmtTime(p.took)}` + (p.words ? ` · ${p.words.toLocaleString()} ${unitOf(langOf(p.to))}${p.limit ? ` (limit ${p.limit})` : ""}` : "");
+        : `${langOf(p.to).name} · ${p.task === "explain" ? "explained" : "translated"} in ${fmtTime(p.took)}` + (p.words ? ` · ${p.words.toLocaleString()} ${unitOf(langOf(p.to))}${p.limit ? ` (limit ${p.limit})` : ""}` : "");
       tools.append(t);
     }
     if (isWord && window.speechSynthesis) tools.append(btn("🔊 Listen", () => speak(p)));
@@ -639,6 +673,7 @@ function refinePrompt(p, instruction, excerpt) {
 // Rewrites translations following an instruction, a few at a time. The previous version is kept for "Undo change".
 async function refineItems(items, instruction, excerpt = "") {
   if (!apiKey || running || !items.length) return;
+  if (engine === "chrome") { toast("Refine needs Google Gemini or Claude. Choose one under AI engine."); return; }
   running = true; ctl = new AbortController();
   $("#stop").hidden = false; $("#runMsg").hidden = true;
   if (!items[0].kind) renderFiles();
@@ -651,7 +686,7 @@ async function refineItems(items, instruction, excerpt = "") {
       p.phase = "refine"; p.tSend = Date.now(); renderPage(p);
       try {
         let last = 0;
-        const res = await gemini(refinePrompt({ ...p, md: old }, instruction, excerpt), [], ctl.signal, (text) => {
+        const res = await ai(refinePrompt({ ...p, md: old }, instruction, excerpt), [], ctl.signal, (text) => {
           const now = Date.now();
           if (now - last > 250) { last = now; p.md = text; renderPage(p); }
         });
@@ -660,7 +695,7 @@ async function refineItems(items, instruction, excerpt = "") {
         p.md = md; p.took = (Date.now() - p.tSend) / 1000;
       } catch (e) {
         p.md = old; p.prevMd = null;
-        if (!(e.name === "AbortError" || ctl.signal.aborted)) failed = e instanceof TypeError ? "Couldn't reach Google. Check your internet connection." : e.message;
+        if (!(e.name === "AbortError" || ctl.signal.aborted)) failed = e instanceof TypeError ? `Couldn't reach ${aiName()}. Check your internet connection.` : e.message;
         if (e.stopAll || e.rate) queue.length = 0;
       }
       p.status = "done"; p.words = countWords(p.md, langOf(p.to)); renderPage(p);
@@ -675,7 +710,7 @@ async function refineItems(items, instruction, excerpt = "") {
 }
 function btn(label, fn) {
   const b = document.createElement("button"); b.className = "small"; b.textContent = label; b.onclick = fn;
-  b.disabled = (running && label !== "Copy") || (/ again$/.test(label) && !apiKey);
+  b.disabled = (running && label !== "Copy") || (/ again$/.test(label) && (!apiKey || (engine === "chrome" && mode !== "text")));
   return b;
 }
 
@@ -698,12 +733,14 @@ function updateButtons() {
       : has ? "Nothing translated yet" : "Choose a PDF or image to download its translation";
   }
   const ready = item ? item.source.trim().length > 0 : pages.length > 0;
-  $("#go").disabled = !ready || !apiKey || running;
-  $("#go").textContent = isWord ? `Look up in ${target().name}` : `Translate into ${target().name}`;
+  const chromeOff = engine === "chrome" && mode !== "text";   // Chrome's translator only takes plain text
+  $("#go").disabled = !ready || !apiKey || running || chromeOff;
+  $("#go").textContent = isWord ? `Look up in ${target().name}` : `${explaining() ? "Explain in" : "Translate into"} ${target().name}`;
   scheduleSave();
-  const what = isWord ? "type a word" : item ? "type or paste some text" : "choose a PDF or image";
-  $("#goHint").hidden = ready && !!apiKey;
-  $("#goHint").textContent = !apiKey && !ready ? `Save your access code and ${what} to start.`
+  const what = isWord ? "type a word" : item ? "type or paste some text" : "choose a file";
+  $("#goHint").hidden = ready && !!apiKey && !chromeOff;
+  $("#goHint").textContent = chromeOff ? "Chrome's translator only works in Text mode. Switch to Text, or choose another AI engine."
+    : !apiKey && !ready ? `Save your access code and ${what} to start.`
     : !apiKey ? "Save your access code (at the top) to start." : `${what[0].toUpperCase() + what.slice(1)} to start.`;
 }
 
@@ -763,13 +800,83 @@ function fillModels(models) {
 }
 
 function showKeyState() {
-  $("#keyEmpty").hidden = !!apiKey;
-  $("#keyFull").hidden = !apiKey;
+  const chrome = engine === "chrome";
+  $("#keyTitle").textContent = chrome ? "No code needed" : engine === "claude" ? "Your Anthropic API key" : "Your free Google access code";
+  $("#chromeNote").hidden = !chrome;
+  $("#keyEmpty").hidden = engine !== "gemini" || !!apiKey;
+  $("#keyEmptyClaude").hidden = engine !== "claude" || !!apiKey;
+  $("#keyFull").hidden = chrome || !apiKey;
   $("#keyPanel").classList.toggle("key-needed", !apiKey);
-  $("#keyMask").textContent = apiKey ? "••••" + apiKey.slice(-4) : "";
+  $("#keyMask").textContent = apiKey && !chrome ? "••••" + apiKey.slice(-4) : "";
   updateButtons();
   pages.forEach(renderPage);
+  if (single()) renderSingle(single());
 }
+
+/* ---------- Choosing the AI engine ---------- */
+// Each engine keeps its own key. "chrome" needs none, so apiKey just holds a marker that lets the buttons work.
+const ENGINE_STORE = "anuvad.engine", CLAUDE_KEY_STORE = "anuvad.key.claude", CLAUDE_MODEL_STORE = "anuvad.model.claude";
+const CLAUDE_MODELS = [
+  ["claude-opus-5-5", "Claude Opus 5.5 · most careful, costs most"],
+  ["claude-sonnet-5-5", "Claude Sonnet 5.5 · balanced"],
+  ["claude-haiku-5-5", "Claude Haiku 5.5 · fastest, costs least"],
+];
+const hasChromeTranslator = () => "Translator" in self;
+const explaining = () => $("#task").value === "explain" && mode !== "word" && engine !== "chrome";
+const aiName = () => (engine === "claude" ? "Anthropic" : "Google");
+const sessionKeys = {};   // keys not remembered on this device stay here until the tab closes
+function keyFor(e) {
+  if (e === "chrome") return "chrome";
+  return sessionKeys[e] || store.get(e === "claude" ? CLAUDE_KEY_STORE : KEY_STORE) || "";
+}
+function fillClaudeModels() {
+  $("#model").innerHTML = CLAUDE_MODELS.map(([id, label]) => `<option value="${id}">${esc(label)}</option>`).join("");
+  const saved = store.get(CLAUDE_MODEL_STORE);
+  if (saved && CLAUDE_MODELS.some(([id]) => id === saved)) $("#model").value = saved;
+}
+async function setEngine(e) {
+  if (running) { toast("Stop the current translation first."); $("#engine").value = engine; return; }
+  if (engine !== "chrome" && apiKey) sessionKeys[engine] = apiKey;
+  engine = e; $("#engine").value = e;
+  store.set(ENGINE_STORE, e);
+  apiKey = keyFor(e);
+  showKeyState();
+  if (e === "claude") fillClaudeModels();
+  else if (e === "gemini" && apiKey) {
+    try { fillModels(await loadModels()); }
+    catch (err) {
+      if (keyProblem(err)) { apiKey = ""; store.del(KEY_STORE); delete sessionKeys.gemini; showKeyState(); toast("Your saved code no longer works. Please add it again."); }
+      else fillModels([]);
+    }
+  }
+}
+$("#engine").addEventListener("change", (ev) => setEngine(ev.target.value));
+
+const claudeHeaders = (key) => ({ "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2026-10-21",
+  "anthropic-dangerous-direct-browser-access": "true" });
+async function saveClaudeKey() {
+  const k = $("#keyInClaude").value.trim().replace(/\s+/g, ""), msg = $("#keyMsgClaude");
+  msg.hidden = false; msg.className = "status";
+  if (!k) { msg.textContent = "Paste your key first."; return; }
+  msg.textContent = "Checking the key with Anthropic…";
+  $("#keySaveClaude").disabled = true;
+  try {
+    const res = await fetch(`${CLAUDE_API}/models?limit=1`, { headers: claudeHeaders(k) });
+    if (!res.ok) throw new Error(res.status === 401 ? "This key doesn't work. Check that you copied the whole key, starting with sk-ant-." : `Anthropic said: ${(await res.json().catch(() => null))?.error?.message || res.statusText}`);
+    apiKey = k; sessionKeys.claude = k;
+    if ($("#keyRememberClaude").checked) store.set(CLAUDE_KEY_STORE, k); else store.del(CLAUDE_KEY_STORE);
+    $("#keyInClaude").value = ""; msg.hidden = true;
+    fillClaudeModels(); showKeyState();
+    toast("Key saved. You're ready to translate.");
+  } catch (e) {
+    msg.className = "err";
+    msg.textContent = e instanceof TypeError ? "Couldn't reach Anthropic. Check your internet connection." : e.message;
+  } finally {
+    $("#keySaveClaude").disabled = false;
+  }
+}
+$("#keySaveClaude").onclick = saveClaudeKey;
+$("#keyInClaude").addEventListener("keydown", (e) => { if (e.key === "Enter") saveClaudeKey(); });
 
 async function saveKey() {
   const k = $("#keyIn").value.trim().replace(/\s+/g, "");
@@ -798,9 +905,10 @@ $("#keySave").onclick = saveKey;
 $("#keyIn").addEventListener("keydown", (e) => { if (e.key === "Enter") saveKey(); });
 $("#keyRemove").onclick = () => {
   if (running) { toast("Stop the translation first."); return; }
-  apiKey = ""; store.del(KEY_STORE); showKeyState();
+  apiKey = ""; delete sessionKeys[engine];
+  store.del(engine === "claude" ? CLAUDE_KEY_STORE : KEY_STORE); showKeyState();
 };
-$("#model").addEventListener("change", (e) => store.set(MODEL_STORE, e.target.value));
+$("#model").addEventListener("change", (e) => store.set(engine === "claude" ? CLAUDE_MODEL_STORE : MODEL_STORE, e.target.value));
 
 /* ---------- PDFs and images ---------- */
 // Several PDFs and images can be added; they are translated and downloaded as one combined document.
@@ -810,8 +918,9 @@ const isImageFile = (f) => /^image\/(jpeg|png|webp|gif|bmp|avif)$/.test(f.type) 
 // Word, PowerPoint and plain-text files are read as text, split into parts (a slide each for PowerPoint).
 const TEXT_TYPES = { ".txt": "text/plain", ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation" };
+const isAudioFile = (f) => f.type.startsWith("audio/") || /\.(mp3|wav|m4a|aac|ogg|oga|opus|flac|webm|aiff?)$/i.test(f.name);
 const isTextDocFile = (f) => /\.(txt|docx|pptx)$/i.test(f.name) || Object.values(TEXT_TYPES).includes(f.type);
-const pageCount = (d) => (d.img ? 1 : d.parts ? d.parts.length : d.pdf?.numPages || 0);
+const pageCount = (d) => (d.img || d.audio ? 1 : d.parts ? d.parts.length : d.pdf?.numPages || 0);
 const fileLabel = (d) => d.name + (d.pdf ? ".pdf" : d.ext);
 // What one page of a file is called: a slide in PowerPoint, a part in Word and text files.
 const unitName = (d) => (d.ext === ".pptx" ? "slide" : d.parts ? "part" : "page");
@@ -823,20 +932,24 @@ async function loadFiles(files) {
   files = [...files];
   if (!files.length) return;
   if (running) { toast("Stop the current translation first."); return; }
-  const bad = files.filter((f) => !isPdfFile(f) && !isImageFile(f) && !isTextDocFile(f));
+  const bad = files.filter((f) => !isPdfFile(f) && !isImageFile(f) && !isTextDocFile(f) && !isAudioFile(f));
   const oldOffice = bad.some((f) => /\.(doc|ppt)$/i.test(f.name)) ? " Old .doc and .ppt files: open them in Word or PowerPoint and save as .docx or .pptx first." : "";
-  if (bad.length) toast((bad.length === files.length ? "Choose PDFs, images, Word (.docx), PowerPoint (.pptx) or .txt files."
+  if (bad.length) toast((bad.length === files.length ? "Choose PDFs, images, Word (.docx), PowerPoint (.pptx), .txt or audio files."
     : `Skipped ${bad.map((f) => f.name).join(", ")}: not a file Anuvad can read.`) + oldOffice);
   if (docs.length && bad.length < files.length) grownFrom.add("files:" + docs.map((d) => d.id).join(","));
   for (const file of files) {
     if (bad.includes(file)) continue;
-    const kind = isPdfFile(file) ? "pdf" : isTextDocFile(file) ? "text" : "image";
+    const kind = isPdfFile(file) ? "pdf" : isTextDocFile(file) ? "text" : isImageFile(file) ? "image" : "audio";
     const ext = ((file.name.match(/\.[a-z0-9]+$/i) || [".png"])[0]).toLowerCase();
-    const doc = { id: nextDocId(), name: file.name.replace(/\.[a-z0-9]+$/i, "") || "Image", ext, pdf: null, img: null, parts: null };
+    const doc = { id: nextDocId(), name: file.name.replace(/\.[a-z0-9]+$/i, "") || "Image", ext, pdf: null, img: null, parts: null, audio: null };
     docs.push(doc); renderFiles();
     let bytes, type = "application/pdf";
     try {
-      if (kind === "image") {
+      if (kind === "audio") {
+        ({ bytes, type } = await prepareAudio(file));
+        doc.audio = { type, bytes };
+        if (type === "audio/wav") doc.ext = ".wav";
+      } else if (kind === "image") {
         ({ bytes, type } = await shrinkImage(file));
         doc.img = await openImage(bytes, type);
       } else if (kind === "text") {
@@ -850,7 +963,8 @@ async function loadFiles(files) {
       }
     } catch (e) {
       docs = docs.filter((d) => d !== doc);
-      toast(kind === "image" ? `“${file.name}” could not be opened. Try saving it as JPG or PNG.`
+      toast(kind === "audio" ? (e.message?.startsWith("“") ? e.message : `“${file.name}” could not be read as audio. Try saving it as MP3 or WAV.`)
+        : kind === "image" ? `“${file.name}” could not be opened. Try saving it as JPG or PNG.`
         : kind === "text" ? (e.message === "empty" ? `“${file.name}” has no text to translate.` : e.message?.startsWith("Couldn't load") ? e.message : `“${file.name}” could not be read. It may be damaged.`)
         : `“${file.name}” could not be opened. It may be damaged or password-protected.`);
       continue;
@@ -951,6 +1065,70 @@ function splitText(text, size = 3500) {
   if (cur.trim()) parts.push(cur);
   return parts;
 }
+/* ---------- Voice ---------- */
+// Formats Gemini takes directly; anything else (a browser recording, .m4a, .webm) is turned into 16 kHz mono WAV first.
+const AUDIO_TYPES = { "audio/mpeg": "audio/mp3", "audio/mp3": "audio/mp3", "audio/wav": "audio/wav", "audio/x-wav": "audio/wav", "audio/wave": "audio/wav",
+  "audio/ogg": "audio/ogg", "audio/aac": "audio/aac", "audio/flac": "audio/flac", "audio/x-flac": "audio/flac", "audio/aiff": "audio/aiff", "audio/x-aiff": "audio/aiff" };
+const AUDIO_EXT = { mp3: "audio/mp3", wav: "audio/wav", ogg: "audio/ogg", oga: "audio/ogg", opus: "audio/ogg", aac: "audio/aac", flac: "audio/flac", aif: "audio/aiff", aiff: "audio/aiff" };
+const AUDIO_MAX = 14e6;   // a request can carry about 20 MB, and sending it as text adds a third
+async function prepareAudio(file) {
+  let bytes = await file.arrayBuffer();
+  let type = AUDIO_TYPES[file.type.split(";")[0]] || AUDIO_EXT[(file.name.match(/\.([a-z0-9]+)$/i) || [])[1]?.toLowerCase()];
+  if (!type) { bytes = await toWav(bytes); type = "audio/wav"; }
+  if (bytes.byteLength > AUDIO_MAX) throw new Error(`“${file.name}” is too long (the limit is about ${type === "audio/wav" ? "7 minutes" : "14 MB"} at a time). Split it into shorter pieces.`);
+  return { bytes, type };
+}
+async function toWav(bytes) {
+  const rate = 16000;
+  const decoder = new (window.AudioContext || window.webkitAudioContext)();
+  let decoded;
+  try { decoded = await decoder.decodeAudioData(bytes.slice(0)); } finally { decoder.close?.(); }
+  const off = new OfflineAudioContext(1, Math.ceil(decoded.duration * rate), rate);
+  const src = off.createBufferSource(); src.buffer = decoded; src.connect(off.destination); src.start();
+  const samples = (await off.startRendering()).getChannelData(0);
+  const out = new DataView(new ArrayBuffer(44 + samples.length * 2));
+  const tag = (at, t) => { for (let i = 0; i < t.length; i++) out.setUint8(at + i, t.charCodeAt(i)); };
+  tag(0, "RIFF"); out.setUint32(4, 36 + samples.length * 2, true); tag(8, "WAVEfmt "); out.setUint32(16, 16, true); out.setUint16(20, 1, true);
+  out.setUint16(22, 1, true); out.setUint32(24, rate, true); out.setUint32(28, rate * 2, true); out.setUint16(32, 2, true); out.setUint16(34, 16, true);
+  tag(36, "data"); out.setUint32(40, samples.length * 2, true);
+  samples.forEach((v, i) => out.setInt16(44 + i * 2, Math.max(-1, Math.min(1, v)) * 0x7fff, true));
+  return out.buffer;
+}
+const audioUrl = (d) => (d.audio.url ||= URL.createObjectURL(new Blob([d.audio.bytes], { type: d.audio.type })));
+function bytesToB64(buf) {
+  const u8 = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode(...u8.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+// 🎤 Record your voice: stops by itself at 7 minutes, the most one request can carry.
+let recorder = null, recTimer = 0;
+function setRecButton(text, on) { $("#recBtn").textContent = text; $("#recBtn").classList.toggle("recording", on); }
+async function toggleRecording() {
+  if (recorder) { recorder.stop(); return; }
+  if (running) { toast("Stop the current translation first."); return; }
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) { toast("This browser can't record. Upload an audio file instead."); return; }
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch { toast("Anuvad needs your permission to use the microphone. Allow it in the browser and try again."); return; }
+  const chunks = [], rec = new MediaRecorder(stream), started = Date.now();
+  rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  rec.onstop = () => {
+    clearInterval(recTimer); recorder = null;
+    stream.getTracks().forEach((t) => t.stop());
+    setRecButton("🎤 Record your voice", false);
+    const type = (rec.mimeType || "audio/webm").split(";")[0];
+    loadFiles([new File(chunks, `Recording ${++pasteSeq}.${type.includes("mp4") ? "m4a" : "webm"}`, { type })]);
+  };
+  recorder = rec; rec.start();
+  const tick = () => {
+    const sec = Math.floor((Date.now() - started) / 1000);
+    setRecButton(`⏹ Stop recording (${fmtTime(sec)})`, true);
+    if (sec >= 420) rec.stop();
+  };
+  tick(); recTimer = setInterval(tick, 1000);
+}
+$("#recBtn").onclick = toggleRecording;
 // Decodes saved image bytes (phone photos come out the right way up).
 // (img.decode() sometimes never settles, so this waits for onload instead.)
 function openImage(bytes, type) {
@@ -1036,13 +1214,13 @@ function scheduleSave() {
     const keep = pages.map((p) => {
       const settled = p.status === "done" || p.status === "failed";
       return { doc: p.doc.id, local: p.local, status: settled ? p.status : "idle", md: settled ? p.md : "", error: p.error || "",
-        from: p.from, to: p.to, settings: p.settings, words: p.words, took: p.took, limit: p.limit, source: p.source };
+        from: p.from, to: p.to, settings: p.settings, words: p.words, took: p.took, limit: p.limit, task: p.task, source: p.source };
     });
     dbRun("state", "readwrite", (s) => s.put({ pages: keep, range: [$("#from").value, $("#to").value] }, "main"));
     saveHistory(keep);
   }, 600);
 }
-const OPTION_IDS = ["subject", "terms", "tone", "glossary", "layout", "limit", "limitScope"];
+const OPTION_IDS = ["subject", "task", "terms", "tone", "glossary", "layout", "limit", "limitScope"];
 function saveOptions() {
   store.set(OPTS_STORE, JSON.stringify(Object.fromEntries(OPTION_IDS.map((id) => [id, $("#" + id).value]))));
 }
@@ -1050,7 +1228,7 @@ function restoreOptions() {
   let o = {};
   try { o = JSON.parse(store.get(OPTS_STORE) || "{}"); } catch {}
   for (const id of OPTION_IDS) if (typeof o[id] === "string") $("#" + id).value = o[id];
-  for (const id of ["terms", "tone", "layout", "limitScope"]) if (!$("#" + id).value) $("#" + id).selectedIndex = 0;
+  for (const id of ["task", "terms", "tone", "layout", "limitScope"]) if (!$("#" + id).value) $("#" + id).selectedIndex = 0;
   showGlossaryCount();
 }
 function showGlossaryCount() {
@@ -1058,6 +1236,7 @@ function showGlossaryCount() {
   $("#glossaryCount").textContent = n ? `(${n} word${n > 1 ? "s" : ""})` : "(optional)";
 }
 $("#glossary").addEventListener("input", showGlossaryCount);
+$("#task").addEventListener("change", () => updateButtons());
 // Find and replace across every translation that's already done (Text, Word and PDF pages alike).
 $("#fixGo").onclick = () => {
   const from = $("#fixFrom").value.trim(), to = $("#fixTo").value.trim();
@@ -1136,7 +1315,7 @@ async function saveHistory(keep) {
     const src = p.source.trim();
     changed = await putHistory({ id: p.kind === "word" ? `word:${p.to}:${src.toLowerCase()}` : `text:${hash(src)}`, kind: p.kind,
       title: src.length > 70 ? src.slice(0, 70) + "…" : src, to: p.to,
-      item: { source: p.source, md: p.md, from: p.from, to: p.to, words: p.words, took: p.took, limit: p.limit, lang: p.lang } }) || changed;
+      item: { source: p.source, md: p.md, from: p.from, to: p.to, words: p.words, took: p.took, limit: p.limit, task: p.task, lang: p.lang } }) || changed;
   }
   if (changed) { await pruneHistory(); renderHistory(); }
 }
@@ -1208,19 +1387,20 @@ async function openSaved(files, savedPages) {
   const saved = new Map(savedPages.map((q) => [`${q.doc}:${q.local}`, q]));
   files = [...files].sort((a, b) => a.id - b.id);
   for (const f of files) {
-    const doc = { id: f.id, name: f.name, ext: f.ext || ".pdf", pdf: null, img: null, parts: null };
+    const doc = { id: f.id, name: f.name, ext: f.ext || ".pdf", pdf: null, img: null, parts: null, audio: null };
     try {
-      if (f.type?.startsWith("image/")) doc.img = await openImage(f.bytes, f.type);
+      if (f.type?.startsWith("audio/")) doc.audio = { type: f.type, bytes: f.bytes };
+      else if (f.type?.startsWith("image/")) doc.img = await openImage(f.bytes, f.type);
       else if (Object.values(TEXT_TYPES).includes(f.type)) doc.parts = await readTextDoc(f.bytes, f.ext);
       else doc.pdf = await pdfjsLib.getDocument({ data: new Uint8Array(f.bytes.slice(0)) }).promise;
     } catch { dbRun("docs", "readwrite", (s) => s.delete(f.id)); continue; }
     docs.push(doc); docSeq = Math.max(docSeq, f.id);
-    const seq = doc.name.match(/^(?:Screenshot|Photo) (\d+)$/);
+    const seq = doc.name.match(/^(?:Screenshot|Photo|Recording) (\d+)$/);
     if (seq) pasteSeq = Math.max(pasteSeq, +seq[1]);
     for (let i = 1; i <= pageCount(doc); i++) {
       const q = saved.get(`${f.id}:${i}`) || {};
       pages.push({ doc, local: i, thumb: "", status: q.status === "done" || q.status === "failed" ? q.status : "idle", md: q.md || "",
-        error: q.error || "", from: q.from, to: q.to, settings: q.settings, words: q.words, took: q.took, limit: q.limit,
+        error: q.error || "", from: q.from, to: q.to, settings: q.settings, words: q.words, took: q.took, limit: q.limit, task: q.task,
         source: doc.parts ? q.source ?? doc.parts[i - 1] : undefined });
     }
   }
@@ -1256,7 +1436,7 @@ function renderFiles() {
   for (const d of docs) {
     const li = document.createElement("li"); li.className = "fbubble";
     const n = pageCount(d);
-    li.innerHTML = `<span class="fname" title="${esc(fileLabel(d))}">${esc(fileLabel(d))}</span><span class="fpages">${d.img ? "image" : n ? `${n} ${unitName(d)}${n > 1 ? "s" : ""}` : "Opening…"}</span>`;
+    li.innerHTML = `<span class="fname" title="${esc(fileLabel(d))}">${esc(fileLabel(d))}</span><span class="fpages">${d.audio ? "audio" : d.img ? "image" : n ? `${n} ${unitName(d)}${n > 1 ? "s" : ""}` : "Opening…"}</span>`;
     const x = document.createElement("button");
     x.className = "fx"; x.textContent = "✕"; x.disabled = running;
     x.setAttribute("aria-label", `Remove ${fileLabel(d)}`); x.title = "Remove this file";
@@ -1268,7 +1448,7 @@ function renderFiles() {
 
 // Previews fill in the background, so translation can start straight away.
 async function makeThumbs(doc) {
-  if (doc.parts) return;   // text files show their text instead of a picture
+  if (doc.parts || doc.audio) return;   // text files show their text and audio its player, instead of a picture
   for (const p of pages.filter((q) => q.doc === doc)) {
     if (!docs.includes(doc)) return;
     if (running) await sleep(150);   // give translation the main thread first
@@ -1310,6 +1490,7 @@ const toB64 = (c) => c.toDataURL("image/jpeg", 0.85).split(",")[1];
 // Split the page into overlapping halves so small Devanagari stays sharp.
 // A small image (a screenshot of a message, a sign) is sent whole: tall is then null.
 async function pageImages(p) {
+  if (p.doc.audio) return { parts: [{ mime: p.doc.audio.type, data: bytesToB64(p.doc.audio.bytes) }], tall: null };
   const full = await renderCanvas(p, 2000);
   if (p.doc.img && Math.max(p.doc.img.naturalWidth, p.doc.img.naturalHeight) <= 1600) return { parts: [toB64(full)], tall: null };
   const tall = full.height >= full.width;
@@ -1332,7 +1513,7 @@ async function pageImages(p) {
 
 async function textLayer(p) {
   if (p.doc.parts) return p.source || "";
-  if (p.doc.img) return "";   // images have no text layer
+  if (p.doc.img || p.doc.audio) return "";   // images and audio have no text layer
   try {
     const page = await p.doc.pdf.getPage(p.local);
     const tc = await page.getTextContent();
@@ -1649,8 +1830,64 @@ function glossaryRule(tn) {
   return g.length ? `- GLOSSARY (the reader's own choices; these always win over any other rule). Each line is "A → B": wherever A appears in the original, in any grammatical form, translate it as B; and where A is itself a ${tn} word, write B instead of it. Spell B exactly as given every time:\n${g.map(([a, b]) => `  - ${a} → ${b}`).join("\n")}` : "";
 }
 
+// Explain mode: what the page or text means in simple words, for a student, instead of a line-by-line translation.
+function explainPrompt(p, hint, tall, limit) {
+  const subject = $("#subject").value.trim(), T = langOf(p.to), tn = T.name, S = p.from === "auto" ? null : langOf(p.from);
+  const lang = S ? `${S.name} ` : "";
+  const what = p.kind ? `the ${lang}text below`
+    : p.doc.audio ? `the attached ${lang}audio recording (first listen to all of it)`
+    : p.doc.parts ? `${unitName(p.doc)} ${p.local} of ${pageCount(p.doc)} of the ${lang}document “${p.doc.name}” (given below)`
+    : p.doc.img ? `the ${lang}text in the attached image`
+    : `page ${p.local} of ${pageCount(p.doc)} of a ${lang}document, in the attached image${tall === null ? "" : `s (two overlapping parts, ${tall ? "top then bottom" : "left then right"})`}`;
+  return [
+    `You are a patient teacher. Explain ${what} in simple ${tn} for a school or college student who is new to the subject.`,
+    subject ? `The subject is ${subject}: use its standard ${tn} terms, and explain them.` : "First work out the subject from the content, and use that field's standard terms.",
+    limit ? `Keep the whole answer to about ${limit} ${unitOf(T)}.` : "",
+    "",
+    `Reply in ${tn}, in Markdown, with exactly these four sections (write the headings in ${tn}):`,
+    "## In short",
+    "Two or three sentences saying what this is about and its main point.",
+    "## Explanation",
+    "Go through the content in its own order, in short paragraphs or a list. Use everyday words and a small example where it helps.",
+    "## Key terms",
+    `A list of the important terms: **term** (in its original form, then in ${tn} if different): what it means.`,
+    "## Remember",
+    "Three to five short points worth remembering.",
+    "",
+    "Rules:",
+    "- Stay true to the content: keep its facts, names, dates and numbers exactly, and don't add claims it doesn't make. Where you add background to help understanding, keep it brief and general.",
+    "- If part of it can't be read or heard, say so rather than guessing.",
+    `- If there's no content to explain, reply only with that fact, in ${tn}.`,
+    glossaryRule(tn),
+    "Reply with the Markdown only: no preface, no notes, no code fences.",
+    p.kind || p.doc.parts ? `\nContent:\n"""\n${p.source}\n"""` : "",
+    hint ? `\nText layer extracted from the PDF by software (it may be garbled, so trust the images):\n"""\n${hint}\n"""` : "",
+  ].join("\n");
+}
+// An audio file: what was said, then its translation.
+function audioPrompt(p, limit) {
+  const subject = $("#subject").value.trim(), T = langOf(p.to), tn = T.name, S = p.from === "auto" ? null : langOf(p.from);
+  return [
+    `Listen to all of the attached ${S ? S.name + " " : ""}audio recording, write out what was said, then translate it into ${tn}.${S ? "" : " First identify the language (or languages) spoken."}`,
+    subject ? `The subject is ${subject}: use its standard terms and spellings.` : "",
+    "",
+    "Reply in Markdown with exactly these two sections:",
+    `## Transcript (written as "Transcript" in ${tn})`,
+    "Every word as it was spoken, in the original language and its own script, in sentences and paragraphs. If there are several speakers, start each turn with a label such as Speaker 1:. Leave out filler sounds. Write [inaudible] for anything you can't make out.",
+    `## Translation (written as "Translation" in ${tn})`,
+    `The full translation into ${tn}, with the same paragraphs and speaker labels.${limit ? ` Condense only this section, to about ${limit} ${unitOf(T)}.` : ""}`,
+    "",
+    "- " + toneRule(tn),
+    glossaryRule(tn),
+    `- If the spoken language is already ${tn}, give only the transcript. If nobody speaks in the recording, reply only with that fact, in ${tn}.`,
+    "Reply with the Markdown only: no preface, no notes, no code fences.",
+  ].join("\n");
+}
+
 function buildPrompt(p, hint, tall, limit) {
   if (p.kind === "word") return wordPrompt(p);
+  if (p.task === "explain") return explainPrompt(p, hint, tall, limit);
+  if (p.doc?.audio) return audioPrompt(p, limit);
   const subject = $("#subject").value.trim();
   const T = langOf(p.to), S = p.from === "auto" ? null : langOf(p.from);
   const tn = T.name, orig = S ? S.name : "the original language";
@@ -1732,7 +1969,8 @@ async function gemini(prompt, images, signal, onText, onReading) {
   const model = $("#model").value;
   const thinking = thinkingFor(model);
   const body = {
-    contents: [{ role: "user", parts: [{ text: prompt }, ...images.map((d) => ({ inline_data: { mime_type: "image/jpeg", data: d } }))] }],
+    // A plain string is a page picture; audio comes as { mime, data }.
+    contents: [{ role: "user", parts: [{ text: prompt }, ...images.map((d) => ({ inline_data: typeof d === "string" ? { mime_type: "image/jpeg", data: d } : { mime_type: d.mime, data: d.data } }))] }],
     generationConfig: { temperature: 0.2, maxOutputTokens: 16384, ...(thinking ? { thinkingConfig: thinking } : {}) },
   };
   const res = await apiFetch(`/${model}:streamGenerateContent?alt=sse`, {
@@ -1779,6 +2017,59 @@ async function gemini(prompt, images, signal, onText, onReading) {
   return { text, truncated: finish === "MAX_TOKENS" };
 }
 
+// The same job through Claude, with the person's own Anthropic key: returns the same { text, truncated }.
+async function claude(prompt, images, signal, onText, onReading) {
+  if (images.some((d) => typeof d !== "string")) throw new RunError("Claude can't listen to audio. Choose Google Gemini under AI engine for this file.");
+  const model = $("#model").value;
+  // If Claude's safety checks decline a page, Opus and Sonnet can pass it to another model on Anthropic's side.
+  const fallback = !/haiku/.test(model);
+  const res = await fetch(`${CLAUDE_API}/messages`, {
+    method: "POST", signal,
+    headers: { ...claudeHeaders(apiKey), ...(fallback ? { "anthropic-beta": "server-side-fallback-2026-07-01" } : {}) },
+    body: JSON.stringify({
+      model, max_tokens: 32000, stream: true, output_config: { effort: "medium" }, ...(fallback ? { fallbacks: "default" } : {}),
+      messages: [{ role: "user", content: [
+        ...images.map((data) => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data } })),
+        { type: "text", text: prompt },
+      ] }],
+    }),
+  });
+  if (!res.ok) {
+    const message = (await res.json().catch(() => null))?.error?.message || res.statusText;
+    if (res.status === 401 || res.status === 403) throw new RunError("Anthropic refused this key. Check it under AI engine.", { stopAll: true });
+    if (res.status === 429) throw new RunError("Anthropic's limit was reached.", { rate: parseFloat(res.headers.get("retry-after")) || 60 });
+    if (res.status === 404) throw new RunError("This Claude model isn't available to your key. Pick another one under AI model.", { stopAll: true });
+    if (res.status >= 500) throw new RunError("Anthropic's service had a hiccup. Translate this page again.");
+    if (/credit balance/i.test(message)) throw new RunError("Your Anthropic account has no credit left. Add some at console.anthropic.com, or switch to Google Gemini.", { stopAll: true });
+    throw new RunError(`Anthropic said: ${message}`);
+  }
+  onReading?.();
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "", text = "", stop = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line.startsWith("data:")) continue;
+      let ev; try { ev = JSON.parse(line.slice(5)); } catch { continue; }
+      if (ev.type === "content_block_delta" && ev.delta?.type === "text_delta") { text += ev.delta.text; onText(text); }
+      else if (ev.type === "message_delta" && ev.delta?.stop_reason) stop = ev.delta.stop_reason;
+      else if (ev.type === "error") {
+        if (ev.error?.type === "overloaded_error") throw new RunError("Anthropic is busy.", { rate: 30 });
+        throw new RunError(`Anthropic said: ${ev.error?.message || "something went wrong"}`);
+      }
+    }
+  }
+  if (stop === "refusal") throw new RunError("Claude declined to work on this page. Try again, or use Google Gemini for it.");
+  if (!text.trim()) throw new RunError("No text came back for this page. Translate it again.");
+  return { text, truncated: stop === "max_tokens" };
+}
+const ai = (...args) => (engine === "claude" ? claude(...args) : gemini(...args));
+
 /* ---------- Live activity and countdown ---------- */
 function fmtTime(sec) {
   sec = Math.max(0, Math.round(sec));
@@ -1794,19 +2085,21 @@ function pageLeft(p) {
 }
 function liveText(p) {
   const now = Date.now();
-  if (p.phase === "wait") return `Google's free per-minute limit was reached. Continuing in ${fmtTime((p.waitUntil - now) / 1000)}…`;
+  if (p.phase === "wait") return `${aiName()}'s per-minute limit was reached. Continuing in ${fmtTime((p.waitUntil - now) / 1000)}…`;
   if (p.phase === "queued") return "Waiting for a free slot…";
   if (p.phase === "prep") return "Preparing the page image…";
   const elapsed = p.tSend ? (now - p.tSend) / 1000 : 0;
   if (p.kind && (p.phase === "send" || p.phase === "read" || p.phase === "prep"))
-    return p.kind === "word" ? `Looking up “${p.source.trim()}”… ${fmtTime(elapsed)}` : `Sending your text to Google… ${fmtTime(elapsed)}`;
+    return p.kind === "word" ? `Looking up “${p.source.trim()}”… ${fmtTime(elapsed)}` : `Sending your text to ${aiName()}… ${fmtTime(elapsed)}`;
   if (p.kind === "word" && p.phase === "write") return `Writing the dictionary card… ${fmtTime(elapsed)}`;
   if (p.phase === "refine") return `Applying your change… ${fmtTime(elapsed)}`;
+  if (p.phase === "chromedl") return `Chrome is downloading this language pack… ${p.dl || 0}%`;
+  if (p.phase === "chrome") return `Translating on your computer… ${fmtTime(elapsed)}`;
   if (p.phase === "relang") return `Translating the parts still in the original language into ${langOf(p.to).name}… ${fmtTime(elapsed)}`;
   if (p.phase === "shorten") return `Condensing ${p.shortFrom} words to about ${p.limit}… ${fmtTime(elapsed)}`;
   if (p.phase === "write") return `Writing the translation… ${fmtTime(elapsed)}`;
   const left = avgSec - elapsed;
-  const step = p.phase === "send" ? "Sending the page to Google" : "Google is reading the page";
+  const step = p.doc?.audio ? (p.phase === "send" ? `Sending the audio to ${aiName()}` : `${aiName()} is listening`) : p.phase === "send" ? `Sending the page to ${aiName()}` : `${aiName()} is reading the page`;
   return left > 1 ? `${step}… about ${fmtTime(left)} left` : `${step}… almost done (taking a little longer than usual)`;
 }
 function updateLive() {
@@ -1834,6 +2127,7 @@ function learnSpeed(sec) {
 
 async function translateOne(p, limit = null) {
   p.status = "working"; p.md = ""; p.error = ""; p.phase = "prep"; p.tSend = 0; p.took = 0; p.limit = limit; p.prevMd = null; p.refineOpen = false;
+  p.task = p.kind !== "word" && $("#task").value === "explain" ? "explain" : "translate";
   p.from = runLangs.from; p.to = runLangs.to; p.settings = runLangs.key; renderPage(p);
   const isText = !!p.kind || !!p.doc.parts, isWord = p.kind === "word";   // Text mode, Word mode and text files send no images
   // An empty slide (or a part whose text was deleted) needs no request.
@@ -1847,14 +2141,14 @@ async function translateOne(p, limit = null) {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       p.phase = "send"; p.tSend = Date.now(); renderPage(p);
-      const res = await gemini(prompt, parts, ctl.signal, (text) => {
+      const res = await ai(prompt, parts, ctl.signal, (text) => {
         p.md = isWord ? text.replace(/^\s*<!--[\s\S]*?(?:-->\s*|$)/, "") : text;   // hide the card's language note while it streams
         if (p.phase !== "write") { p.phase = "write"; last = 0; }
         const now = Date.now();
         if (now - last > 250) { last = now; renderPage(p); }
       }, () => { p.phase = "read"; updateLive(); });
       p.took = (Date.now() - p.tSend) / 1000;
-      if (!isText) learnSpeed(p.took);   // the countdown is for pages only
+      if (!isText && !p.doc.audio) learnSpeed(p.took);   // the countdown is for pages only
       p.md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
       if (isWord) {
         // The card starts with a hidden note of the word's language, used by Listen.
@@ -1863,9 +2157,10 @@ async function translateOne(p, limit = null) {
         p.md = p.md.replace(/^<!--[\s\S]*?-->\s*/, "");
       }
       // The card quotes the word and its examples in the original language on purpose, so it skips this check.
-      if (!isWord && !res.truncated && !runLangs.bilingual && targetShare(p.md, langOf(p.to)) < 0.8) await finishLanguage(p);
+      const plainTranslation = !isWord && p.task !== "explain" && !p.doc?.audio;   // a card, an explanation or a transcript quotes the original on purpose
+      if (plainTranslation && !res.truncated && !runLangs.bilingual && targetShare(p.md, langOf(p.to)) < 0.8) await finishLanguage(p);
       p.words = countWords(p.md, langOf(p.to));
-      if (limit && !res.truncated && p.words > limit * 1.15) await shorten(p, limit);
+      if (plainTranslation && limit && !res.truncated && p.words > limit * 1.15) await shorten(p, limit);
       p.took = (Date.now() - p.tSend) / 1000;
       p.status = res.truncated ? "failed" : "done";
       if (res.truncated) p.error = isWord ? "The answer was cut short. Look the word up again."
@@ -1887,8 +2182,8 @@ async function translateOne(p, limit = null) {
         continue;
       }
       p.status = "failed";
-      p.error = e.rate ? "Google's free limit is used up for now. Wait a while (or until tomorrow), then translate the remaining pages." : (e.message || "Translation failed.");
-      if (e instanceof TypeError) p.error = "Couldn't reach Google. Check your internet connection and translate this page again.";
+      p.error = e.rate ? `${aiName()}'s limit is used up for now. Wait a while (or until tomorrow), then translate the remaining pages.` : (e.message || "Translation failed.");
+      if (e instanceof TypeError) p.error = `Couldn't reach ${aiName()}. Check your internet connection and translate this page again.`;
       renderPage(p);
       return e.stopAll || e.rate ? "stop" : "failed";
     }
@@ -1922,7 +2217,7 @@ async function finishLanguage(p) {
   ].join("\n");
   try {
     let last = 0;
-    const res = await gemini(prompt, [], ctl.signal, (text) => {
+    const res = await ai(prompt, [], ctl.signal, (text) => {
       const now = Date.now();
       if (now - last > 250) { last = now; p.md = text; renderPage(p); }
     });
@@ -1940,7 +2235,7 @@ async function shorten(p, limit) {
   p.phase = "shorten"; p.shortFrom = fullWords; renderPage(p);
   try {
     let last = 0;
-    const res = await gemini(shortenPrompt(full, limit, fullWords, T), [], ctl.signal, (text) => {
+    const res = await ai(shortenPrompt(full, limit, fullWords, T), [], ctl.signal, (text) => {
       const now = Date.now();
       if (now - last > 250) { last = now; p.md = text; renderPage(p); }
     });
@@ -2046,7 +2341,7 @@ function saveText() {
   for (const [p, key] of [[textItem, TEXT_STORE], [wordItem, WORD_STORE]]) {
     const settled = p.status === "done" || p.status === "failed";
     store.set(key, JSON.stringify({ source: p.source, status: settled ? p.status : "idle", md: settled ? p.md : "", error: p.error || "",
-      from: p.from, to: p.to, words: p.words, took: p.took, limit: p.limit, lang: p.lang }));
+      from: p.from, to: p.to, words: p.words, took: p.took, limit: p.limit, task: p.task, lang: p.lang }));
   }
 }
 function restoreText() {
@@ -2054,7 +2349,7 @@ function restoreText() {
     let t = {};
     try { t = JSON.parse(store.get(key) || "{}"); } catch {}
     Object.assign(p, { source: t.source || "", status: t.status || "idle", md: t.md || "", error: t.error || "",
-      from: t.from, to: t.to, words: t.words, took: t.took, limit: t.limit, lang: t.lang });
+      from: t.from, to: t.to, words: t.words, took: t.took, limit: t.limit, task: t.task, lang: t.lang });
     $(INPUTS[p.kind]).value = p.source;
   }
   updateSrcCount();
@@ -2062,6 +2357,52 @@ function restoreText() {
   setMode(MODES[m] ? m : "pdf");
 }
 
+// Free translation on this computer with Chrome's built-in Translator, line by line so the layout stays.
+async function chromeTranslate(p) {
+  Object.assign(p, { status: "working", md: "", error: "", phase: "chrome", tSend: Date.now(), took: 0, limit: null, prevMd: null, refineOpen: false, task: "translate",
+    from: runLangs.from, to: runLangs.to, settings: runLangs.key });
+  renderPage(p);
+  try {
+    let from = p.from;
+    if (from === "auto") {
+      if (!("LanguageDetector" in self)) throw new RunError("This browser can't detect the language by itself. Choose it under Translate from.");
+      const detector = await Promise.race([LanguageDetector.create({ signal: ctl.signal }),
+        new Promise((_, bad) => setTimeout(() => bad(new RunError("Chrome couldn't detect the language in time. Choose it under Translate from.")), 15000))]);
+      from = (await detector.detect(p.source))[0]?.detectedLanguage;
+      detector.destroy?.();
+      if (!from || from === "und") throw new RunError("Chrome couldn't tell which language this is. Choose it under Translate from.");
+      p.from = from;
+    }
+    if (from === p.to) throw new RunError(`This text already looks like ${langOf(p.to).name}.`);
+    const pair = { sourceLanguage: from, targetLanguage: p.to };
+    // Some browsers list the translator but never answer, so don't wait for ever (and let Stop work meanwhile).
+    const stopped = new Promise((_, bad) => ctl.signal.addEventListener("abort", () => bad(new DOMException("Stopped", "AbortError"))));
+    const notReady = new Promise((_, bad) => setTimeout(() => bad(new RunError("Chrome's translator isn't responding in this browser. Choose Google Gemini or Claude under AI engine.")), 15000));
+    const available = await Promise.race([Translator.availability(pair), stopped, notReady]);
+    if (available === "unavailable")
+      throw new RunError(`Chrome's translator can't do ${langOf(from).name} to ${langOf(p.to).name}. Choose Google Gemini or Claude under AI engine.`);
+    const translator = await Translator.create({ ...pair, signal: ctl.signal, monitor(m) {
+      m.addEventListener("downloadprogress", (e) => { p.phase = "chromedl"; p.dl = Math.round(e.loaded * 100); updateLive(); });
+    } });
+    p.phase = "chrome"; updateLive();
+    const out = [];
+    for (const line of p.source.split("\n")) {
+      if (ctl.signal.aborted) throw new DOMException("Stopped", "AbortError");
+      out.push(line.trim() ? await translator.translate(line, { signal: ctl.signal }) : "");
+      p.md = out.join("\n"); renderPage(p);
+    }
+    translator.destroy?.();
+    p.words = countWords(p.md, langOf(p.to)); p.took = (Date.now() - p.tSend) / 1000; p.status = "done";
+    renderPage(p);
+    return null;
+  } catch (e) {
+    if (e.name === "AbortError" || ctl.signal.aborted) { p.status = p.md ? "failed" : "idle"; p.error = "Stopped."; renderPage(p); return "cancelled"; }
+    p.status = "failed";
+    p.error = e instanceof RunError ? e.message : `Chrome's translator couldn't do this (${e.message}). Try Google Gemini or Claude under AI engine.`;
+    renderPage(p);
+    return "failed";
+  }
+}
 // Translates the text box (the word limit applies to the whole text) or looks up the word.
 async function runSingle(p) {
   if (!apiKey || running) return;
@@ -2076,7 +2417,7 @@ async function runSingle(p) {
   $("#stop").hidden = false; $("#runMsg").hidden = true; $("#prog").hidden = true;
   p.editing = false;
   const n = parseInt($("#limit").value.replace(/[^0-9]/g, ""), 10);
-  const code = await translateOne(p, !isWord && n > 0 ? n : null);
+  const code = engine === "chrome" ? await chromeTranslate(p) : await translateOne(p, !isWord && n > 0 ? n : null);
   if (code === "stop" && p.error) {
     $("#runMsg").textContent = p.error;
     $("#runMsg").className = "notice bad"; $("#runMsg").hidden = false;
@@ -2088,7 +2429,7 @@ async function runSingle(p) {
 // Everything in the Options panel that changes a translation, as one comparable string.
 function settingsKey() {
   return JSON.stringify([$("#src").value, $("#dst").value, $("#subject").value.trim().toLowerCase(), $("#terms").value,
-    $("#layout").value, $("#limit").value.replace(/[^0-9]/g, ""), $("#limitScope").value, $("#tone").value, glossaryPairs()]);
+    $("#layout").value, $("#limit").value.replace(/[^0-9]/g, ""), $("#limitScope").value, $("#tone").value, glossaryPairs(), $("#task").value]);
 }
 
 $("#go").onclick = () => {
@@ -2127,7 +2468,7 @@ $("#refineAllIn").addEventListener("keydown", (e) => { if (e.key === "Enter") { 
 /* ---------- Export ---------- */
 // Name used for downloads: the PDF's own name, or "<first> and N more" when several are combined.
 function exportName() {
-  if (mode === "text") return "Translated text";
+  if (mode === "text") return textItem.task === "explain" ? "Explained text" : "Translated text";
   if (mode === "word") return `Dictionary - ${wordItem.source.trim().replace(/[\\/:*?"<>|]/g, "") || "word"}`;
   const named = docs.filter((d) => pages.some((p) => p.doc === d && p.status === "done"));
   const list = named.length ? named : docs;
@@ -2143,10 +2484,15 @@ function exportGroups() {
     .filter((g) => g.pages.length);
 }
 // "Page 3" label before each page in downloads (none for Text and Word mode).
-const pageLabel = (p) => (p.kind || p.doc.img || (p.doc.parts && pageCount(p.doc) === 1) ? ""
+const pageLabel = (p) => (p.kind || p.doc.img || p.doc.audio || (p.doc.parts && pageCount(p.doc) === 1) ? ""
   : `<p class="pg">${unitName(p.doc)[0].toUpperCase() + unitName(p.doc).slice(1)} ${p.local}</p>`);
 // Title at the top of downloads. A dictionary card already starts with the word as its heading.
-const exportTitle = () => (mode === "word" ? "" : `${exportName()} — ${exportLang().name} translation`);
+const exportTitle = () => {
+  if (mode === "word") return "";
+  const done = exportGroups().flatMap((g) => g.pages);
+  const kind = done.length && done.every((p) => p.task === "explain") ? "explanation" : "translation";
+  return `${exportName()} — ${exportLang().name} ${kind}`;
+};
 
 // "Include the originals" in the download bar: each page's original (its text, or a picture of it) goes before its translation.
 const withOriginals = () => $("#exOrig").checked && mode !== "word";
@@ -2155,6 +2501,7 @@ async function exportOriginals() {
   const m = new Map();
   if (!withOriginals()) return m;
   for (const g of exportGroups()) for (const p of g.pages) {
+    if (p.doc?.audio) continue;   // its transcript is already part of the result
     if (hasSourceText(p)) { m.set(p, { text: p.source }); continue; }
     try {
       const c = await renderCanvas(p, 1400);
@@ -2168,7 +2515,7 @@ function origHtml(o) {
   return `<div class="original"><p class="pg">Original</p>${o.img ? `<img src="${o.img}" alt="Original page">` : `<div class="otext" dir="auto">${esc(o.text)}</div>`}</div><p class="pg">Translation</p>`;
 }
 function combinedMd() {
-  const orig = (p) => !withOriginals() ? ""
+  const orig = (p) => !withOriginals() || p.doc?.audio ? ""
     : hasSourceText(p) ? `**Original:**\n\n${p.source.split("\n").map((l) => "> " + l).join("\n")}\n\n**Translation:**\n\n`
     : "*(The original page is a picture: use Download PDF, Word or .html to include it.)*\n\n";
   return (exportTitle() ? `# ${exportTitle()}\n\n` : "") + exportGroups().map((g) =>
@@ -2593,14 +2940,10 @@ restoreWork();
 renderHistory();
 (async () => {
   avgSec = parseFloat(store.get(AVG_STORE)) || 20;
-  apiKey = store.get(KEY_STORE);
-  showKeyState();
-  if (!apiKey) return;
-  try { fillModels(await loadModels()); }
-  catch (e) {
-    if (keyProblem(e)) { apiKey = ""; store.del(KEY_STORE); showKeyState(); toast("Your saved code no longer works. Please add it again."); }
-    else fillModels([]);
-  }
+  // Chrome's translator appears in the list only in browsers that have it.
+  $("#engineChrome").hidden = !hasChromeTranslator();
+  const saved = store.get(ENGINE_STORE);
+  await setEngine(saved === "claude" || (saved === "chrome" && hasChromeTranslator()) ? saved : "gemini");
 })();
 </script>
 </body>

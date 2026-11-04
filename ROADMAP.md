@@ -76,10 +76,10 @@ Day-to-day progress is tracked in [TASKS.md](TASKS.md).
 
 ## Later ideas
 
-- Free on-device translation for plain text with no access code (Chrome's built-in translator)
-- "Explain" mode alongside "Translate", for students
-- Voice input: record or upload audio, get a transcript and translation
-- Option to plug in other AI engines (e.g. Claude) besides Gemini
+- ✅ Free on-device translation for plain text with no access code (Chrome's built-in translator) (v1.9)
+- ✅ "Explain" mode alongside "Translate", for students (v1.9)
+- ✅ Voice input: record or upload audio, get a transcript and translation (v1.9)
+- ✅ Option to plug in other AI engines (Claude) besides Gemini (v1.9)
 
 ## Not planned
 
