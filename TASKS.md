@@ -17,6 +17,12 @@ Last updated: 4 November 2026
 
 ## ✅ Done
 
+### v1.10: guide and required language
+- [x] **First-visit guide**: a 9-step tour that dims the page and points at each part, with Back, Next and Skip; it opens once, and **How it works** at the top replays it. Works on phones and with the keyboard
+- [x] Hints on the empty page: add a file, choose a language, click Translate
+- [x] **Translate to is required**: it starts empty and is never filled in for you. If it's empty when you translate, look up a word or use Translate again, a pop-up asks for it, then the work carries on. The choice is remembered. **Translate from** stays on Detect automatically
+- [x] **Subject** is marked optional, and explains that most translations will use the field's own keywords and terminology
+
 ### v1.9: the "Later ideas"
 - [x] **AI engine** choice at the top of the left column: Google Gemini, Anthropic Claude or Chrome's translator; each keeps its own key
 - [x] **Claude**: Opus 5.5, Sonnet 5.5 or Haiku 5.5 with the person's own Anthropic key, for pages, photos, text, words and Refine (no audio)

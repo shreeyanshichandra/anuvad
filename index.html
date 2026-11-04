@@ -224,13 +224,35 @@ footer p { margin: 0; }
 dialog { border: 0; padding: 0; background: transparent; max-width: min(96vw, 900px); }
 dialog::backdrop { background: rgba(10, 10, 20, 0.7); }
 dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; border-radius: 6px; background: #fff; }
-.toast { position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 6px; font-size: 0.88rem; max-width: calc(100vw - 32px); }
+/* Required language: marked until it's chosen, and the pop-up that asks for it. */
+.req { color: var(--marigold); font-weight: 400; }
+select.needed { border-color: var(--marigold); }
+#langAsk { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 20px; width: min(92vw, 420px); }
+#langAsk[open] { display: grid; gap: 12px; }
+#langAsk h2 { margin: 0; font-family: var(--font-read); font-weight: 600; font-size: 1.3rem; }
+#langAsk p { margin: 0; }
+/* First-visit guide: everything dims except the part being explained. */
+#tour { position: fixed; inset: 0; z-index: 50; }
+#tour[hidden] { display: none; }
+.thole { position: fixed; border-radius: 10px; box-shadow: 0 0 0 9999px rgba(10, 10, 20, 0.75); outline: 2px solid var(--marigold); pointer-events: none; }
+.tcardpop { position: fixed; width: min(calc(100vw - 24px), 340px); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+.tcardpop h2 { margin: 0; font-family: var(--font-read); font-weight: 600; font-size: 1.2rem; }
+.tcardpop p { margin: 0; font-size: 0.92rem; line-height: 1.5; }
+.tcount { font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tbtns { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 4px; }
+.tskip { border: 0; background: transparent; color: var(--muted); padding: 7px 0; }
+.tskip:hover { color: var(--ink); }
+.startsteps { display: inline-block; margin: 12px 0 0; padding-inline-start: 1.4em; text-align: start; }
+.empty p { margin: 0; }
+#guideBtn { order: 3; margin-left: auto; align-self: center; }
+.toast { z-index: 60; position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 6px; font-size: 0.88rem; max-width: calc(100vw - 32px); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } .dots i { animation: none; opacity: .8; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
+    <button type="button" class="small" id="guideBtn">❔ How it works</button>
     <h1><span class="hi">अनुवाद</span>Anuvad</h1>
     <p>Upload PDFs, photos, documents or audio, paste text or look up a word in any language, and translate or explain it in the language you choose, with headings, lists and tables kept. Each page is read as an image, so scanned pages and old fonts (like Kruti Dev for Hindi) work too.</p>
   </header>
@@ -317,12 +339,12 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
         <div class="langs">
           <label class="field"><span>Translate from</span><select id="src" aria-label="Original language"></select></label>
           <button type="button" class="small swap" id="swap" title="Swap the two languages" aria-label="Swap languages">⇅ Swap</button>
-          <label class="field"><span>Translate to</span><select id="dst" aria-label="Language to translate into"></select></label>
+          <label class="field" id="dstField"><span>Translate to <span class="req">(required)</span></span><select id="dst" required aria-label="Language to translate into (required)"></select></label>
           <small class="help">Type a letter to jump through the list.</small>
         </div>
-        <label class="field"><span>Subject</span>
+        <label class="field" id="subjectField"><span>Subject <span class="opt">(optional)</span></span>
           <input type="text" id="subject" placeholder="e.g. Music, History, Law">
-          <small class="help">Translates with that field's own terms. Leave empty to detect it from the page.</small>
+          <small class="help">Name the subject and most translations will use its own keywords and terminology, the way an expert in that field would write them. Leave it empty and Anuvad works out the subject from your content.</small>
         </label>
         <label class="field notword"><span>Technical terms</span>
           <select id="terms">
@@ -386,7 +408,7 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="goPanel">
         <span class="label"><span class="pdfonly">3 · </span>Translate</span>
         <div class="btns">
           <button class="primary" id="go" disabled>Translate pages</button>
@@ -421,7 +443,7 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
       <!-- Download options sit at the top right of the pages, always shown; the buttons switch on once a PDF is chosen. -->
       <section class="exportbar" id="exportBar" aria-label="Download">
         <div class="exinfo">
-          <span class="status" id="wordTotal">Choose a PDF or image to download its translation</span>
+          <span class="status" id="wordTotal">Choose a file to download its translation</span>
           <span class="help">Choose where to save on your computer</span>
           <label class="check notword"><input type="checkbox" id="exOrig"> Include the originals (bilingual)</label>
         </div>
@@ -473,6 +495,25 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
   </footer>
 </div>
 
+<dialog id="langAsk" aria-labelledby="langAskTitle">
+  <h2 id="langAskTitle">Which language would you like?</h2>
+  <p class="help">Anuvad needs to know the language you want the result in, and it won't guess for you. You only have to choose it once; it's remembered for next time.</p>
+  <label class="field"><span>Translate to <span class="req">(required)</span></span><select id="langAskPick"></select></label>
+  <p class="err" id="langAskErr" role="alert" hidden>Please choose a language to continue.</p>
+  <div class="btns"><button type="button" class="primary" id="langAskOk">Continue</button><button type="button" id="langAskCancel">Not now</button></div>
+</dialog>
+<div id="tour" hidden>
+  <div class="thole" id="tourHole"></div>
+  <div class="tcardpop" id="tourCard" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+    <span class="tcount" id="tourCount"></span>
+    <h2 id="tourTitle"></h2>
+    <p id="tourText"></p>
+    <div class="tbtns">
+      <button type="button" class="tskip" id="tourSkip">Skip guide</button>
+      <span class="btns"><button type="button" id="tourBack">Back</button><button type="button" class="primary" id="tourNext">Next</button></span>
+    </div>
+  </div>
+</div>
 <dialog id="zoom"><img id="zoomImg" alt="Original page, enlarged"></dialog>
 <div class="toast" id="toast" hidden></div>
 
@@ -537,7 +578,8 @@ function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function renderEmpty() {
-  $("#pages").innerHTML = `<p class="empty">Your PDFs' pages and images, and their translation, will appear here.</p>`;
+  $("#pages").innerHTML = `<div class="empty"><p>Your files and their translation will appear here.</p>
+    <ol class="startsteps"><li>Add a file, or paste a screenshot</li><li>Choose the language you want</li><li>Click <b>Translate</b></li></ol></div>`;
 }
 
 function renderPage(p) {
@@ -730,18 +772,22 @@ function updateButtons() {
     const words = done.reduce((x, p) => x + countWords(p.md, langOf(p.to)), 0);
     $("#wordTotal").textContent = done.length
       ? `${done.length} page${done.length === 1 ? "" : "s"} translated · ${words.toLocaleString()} ${unitOf(exportLang())}`
-      : has ? "Nothing translated yet" : "Choose a PDF or image to download its translation";
+      : has ? "Nothing translated yet" : "Choose a file to download its translation";
   }
   const ready = item ? item.source.trim().length > 0 : pages.length > 0;
   const chromeOff = engine === "chrome" && mode !== "text";   // Chrome's translator only takes plain text
   $("#go").disabled = !ready || !apiKey || running || chromeOff;
-  $("#go").textContent = isWord ? `Look up in ${target().name}` : `${explaining() ? "Explain in" : "Translate into"} ${target().name}`;
+  const hasLang = !!$("#dst").value;
+  $("#dst").classList.toggle("needed", !hasLang);
+  const action = isWord ? "Look up" : explaining() ? "Explain" : "Translate";
+  $("#go").textContent = hasLang ? `${action} ${isWord || explaining() ? "in" : "into"} ${target().name}` : action;
   scheduleSave();
   const what = isWord ? "type a word" : item ? "type or paste some text" : "choose a file";
-  $("#goHint").hidden = ready && !!apiKey && !chromeOff;
+  $("#goHint").hidden = ready && !!apiKey && !chromeOff && hasLang;
   $("#goHint").textContent = chromeOff ? "Chrome's translator only works in Text mode. Switch to Text, or choose another AI engine."
     : !apiKey && !ready ? `Save your access code and ${what} to start.`
-    : !apiKey ? "Save your access code (at the top) to start." : `${what[0].toUpperCase() + what.slice(1)} to start.`;
+    : !apiKey ? "Save your access code (at the top) to start."
+    : !ready ? `${what[0].toUpperCase() + what.slice(1)} to start.` : "Next, choose the language you want under Translate to.";
 }
 
 async function copyText(text) {
@@ -1664,6 +1710,28 @@ function exportLang() {
   return langOf(top ? top[0] : $("#dst").value);
 }
 
+// The language to translate into is required and never assumed. If it's empty, this pop-up asks for it;
+// resolves true once there is one, false if the person closes the pop-up without choosing.
+function askLanguage() {
+  if ($("#dst").value) return Promise.resolve(true);
+  const box = $("#langAsk"), pick = $("#langAskPick");
+  pick.innerHTML = $("#dst").innerHTML;
+  pick.value = ""; $("#langAskErr").hidden = true;
+  return new Promise((done) => {
+    // The buttons answer straight away; the close event (which can arrive late) only covers the Esc key.
+    box.onclose = () => done(false);
+    $("#langAskCancel").onclick = () => { box.close(); done(false); };
+    $("#langAskOk").onclick = () => {
+      if (!pick.value) { $("#langAskErr").hidden = false; pick.focus(); return; }
+      $("#dst").value = pick.value; store.set(DST_STORE, pick.value);
+      updateButtons();
+      box.close(); done(true);
+    };
+    box.showModal();
+    pick.focus();
+  });
+}
+
 function recentLangs() {
   try { return JSON.parse(store.get(RECENT_STORE) || "[]").filter((c) => LANGS.some((l) => l.code === c)); } catch { return []; }
 }
@@ -1674,15 +1742,15 @@ function fillLangs() {
     `<optgroup label="Popular">${POPULAR.map((c) => opt(langOf(c))).join("")}</optgroup>` +
     `<optgroup label="All languages">${LANGS.map(opt).join("")}</optgroup>`;
   const keep = (sel, fallback) => sel.value || fallback;
-  const src = keep($("#src"), store.get(SRC_STORE) || "auto"), dst = keep($("#dst"), store.get(DST_STORE) || "en");
+  const src = keep($("#src"), store.get(SRC_STORE) || "auto"), dst = keep($("#dst"), store.get(DST_STORE) || "");
   $("#src").innerHTML = `<option value="auto">Detect automatically</option>` + groups;
-  $("#dst").innerHTML = groups;
+  $("#dst").innerHTML = `<option value="" disabled>Choose a language…</option>` + groups;
   $("#src").value = src; if (!$("#src").value) $("#src").value = "auto";
-  $("#dst").value = dst; if (!$("#dst").value) $("#dst").value = "en";
+  $("#dst").value = dst; if (!$("#dst").value) $("#dst").value = "";   // never assumed: the person chooses it
 }
 // The languages used in a run are pinned at the top of both lists next time.
 function rememberLangs() {
-  const used = [$("#dst").value, $("#src").value].filter((c) => c !== "auto");
+  const used = [$("#dst").value, $("#src").value].filter((c) => c && c !== "auto");
   store.set(RECENT_STORE, JSON.stringify([...new Set([...used, ...recentLangs()])].slice(0, 5)));
   fillLangs();
 }
@@ -1691,6 +1759,7 @@ $("#dst").addEventListener("change", (e) => { store.set(DST_STORE, e.target.valu
 $("#swap").onclick = () => {
   const s = $("#src").value, d = $("#dst").value;
   if (s === "auto") { toast("Choose the original language first, then you can swap."); return; }
+  if (!d) { toast("Choose the language to translate into first, then you can swap."); return; }
   $("#src").value = d; $("#dst").value = s;
   store.set(SRC_STORE, d); store.set(DST_STORE, s);
   updateButtons();
@@ -2251,6 +2320,7 @@ async function shorten(p, limit) {
 
 async function runPages(nums) {
   if (!apiKey || !pages.length || running) return;
+  if (!(await askLanguage())) return;
   if ($("#src").value === $("#dst").value) { toast("Choose two different languages."); return; }
   runLangs = { from: $("#src").value, to: $("#dst").value, bilingual: $("#layout").value === "bi", key: settingsKey() };
   rememberLangs();
@@ -2406,6 +2476,7 @@ async function chromeTranslate(p) {
 // Translates the text box (the word limit applies to the whole text) or looks up the word.
 async function runSingle(p) {
   if (!apiKey || running) return;
+  if (!(await askLanguage())) return;
   const isWord = p.kind === "word";
   p.source = $(INPUTS[p.kind]).value;
   if (!p.source.trim()) { toast(isWord ? "Type a word first." : "Type or paste some text first."); return; }
@@ -2432,7 +2503,8 @@ function settingsKey() {
     $("#layout").value, $("#limit").value.replace(/[^0-9]/g, ""), $("#limitScope").value, $("#tone").value, glossaryPairs(), $("#task").value]);
 }
 
-$("#go").onclick = () => {
+$("#go").onclick = async () => {
+  if (!(await askLanguage())) return;
   if (single()) { runSingle(single()); return; }
   const n = pages.length;
   let a = parseInt($("#from").value, 10), b = parseInt($("#to").value, 10);
@@ -2930,6 +3002,86 @@ async function openZoom(p) {
 }
 $("#zoom").addEventListener("click", () => $("#zoom").close());
 
+/* ---------- First-visit guide ---------- */
+// A short tour that points at each part of the page. It opens once by itself; "How it works" replays it.
+const TOUR_STORE = "anuvad.tour";
+const TOUR = [
+  { title: "Welcome to Anuvad", text: "Translate files, text and single words between 117 languages, right in your browser, with no sign-up. This quick tour shows you where everything is." },
+  { at: ".modes", title: "Choose what to translate", text: "Files is for PDFs, photos, Word, PowerPoint, text files and audio. Text is for typing or pasting. Word gives you a dictionary card for one word." },
+  { at: "#keyPanel", title: "Connect an AI engine", text: "Anuvad uses an AI service to do the translating. Google Gemini is free: get your own access code in about 2 minutes and paste it here. You only do this once." },
+  { at: "#uploadPanel", title: "Add your files", text: "Choose or drop files here, press Ctrl + V to paste a screenshot, or record your voice. Add several and they're translated as one document." },
+  { at: "#dstField", title: "Choose your language (required)", text: "Pick the language you want the result in. Anuvad won't choose one for you. The original language is detected automatically, unless you'd rather set it." },
+  { at: "#subjectField", title: "Add a subject (optional)", text: "Type a subject such as Music, History or Law, and most translations will use that field's own keywords and terminology. The other options below it let you set the tone, your own glossary and a word limit, or get an explanation instead." },
+  { at: "#goPanel", title: "Translate", text: "Click Translate and watch each page appear. Then you can edit it, or select a part and click Refine… to ask for a change such as \"more formal\"." },
+  { at: "#exportBar", title: "Save your work", text: "Download the result as a PDF, Word file, .html or .md. Tick Include the originals to get a bilingual copy." },
+  { at: "#historyPanel", title: "Come back any time", text: "Your work stays in this browser, even after a refresh, and past translations are kept in History. That's all! You can replay this guide with How it works at the top of the page." },
+];
+let tourAt = -1;
+function placeTour() {
+  if (tourAt < 0) return;
+  const step = TOUR[tourAt], el = step.at && $(step.at), hole = $("#tourHole"), card = $("#tourCard");
+  const vw = document.documentElement.clientWidth, vh = window.innerHeight, gap = 12;
+  const cw = card.offsetWidth, ch = card.offsetHeight;
+  if (!el) {
+    Object.assign(hole.style, { top: vh / 2 + "px", left: vw / 2 + "px", width: 0, height: 0 });
+    Object.assign(card.style, { top: Math.max(gap, (vh - ch) / 2) + "px", left: Math.max(gap, (vw - cw) / 2) + "px" });
+    return;
+  }
+  const r = el.getBoundingClientRect(), pad = 6;
+  Object.assign(hole.style, { top: r.top - pad + "px", left: r.left - pad + "px", width: r.width + pad * 2 + "px", height: r.height + pad * 2 + "px" });
+  // Beside the part on wide screens, otherwise below or above it, otherwise along the bottom of the screen.
+  let top, left;
+  if (r.right + pad + gap + cw <= vw - gap) { left = r.right + pad + gap; top = Math.min(Math.max(gap, r.top), vh - ch - gap); }
+  else {
+    left = Math.min(Math.max(gap, r.left), vw - cw - gap);
+    if (r.bottom + pad + gap + ch <= vh - gap) top = r.bottom + pad + gap;
+    else if (r.top - pad - gap - ch >= gap) top = r.top - pad - gap - ch;
+    else top = vh - ch - gap;
+  }
+  Object.assign(card.style, { top: top + "px", left: left + "px" });
+}
+function showTourStep(i) {
+  tourAt = i;
+  const step = TOUR[i], el = step.at && $(step.at);
+  $("#tourCount").textContent = `Step ${i + 1} of ${TOUR.length}`;
+  $("#tourTitle").textContent = step.title;
+  $("#tourText").textContent = step.text;
+  $("#tourBack").hidden = i === 0;
+  $("#tourNext").textContent = i === TOUR.length - 1 ? "Finish" : i === 0 ? "Show me" : "Next";
+  // On a phone the card covers the lower part of the screen, so the part goes near the top.
+  if (el) { el.scrollIntoView({ block: window.innerWidth < 600 ? "start" : "center" }); if (window.innerWidth < 600) window.scrollBy(0, -16); }
+  placeTour();
+  $("#tourNext").focus();
+}
+function startTour() {
+  if (running) { toast("Stop the current translation first."); return; }
+  if (mode !== "pdf") setMode("pdf");   // the guide points at the Files view
+  $("#tour").hidden = false;
+  showTourStep(0);
+}
+function endTour() {
+  tourAt = -1;
+  $("#tour").hidden = true;
+  store.set(TOUR_STORE, "seen");
+  window.scrollTo(0, 0);
+  $("#guideBtn").focus();
+}
+$("#guideBtn").onclick = startTour;
+$("#tourSkip").onclick = endTour;
+$("#tourBack").onclick = () => showTourStep(tourAt - 1);
+$("#tourNext").onclick = () => (tourAt === TOUR.length - 1 ? endTour() : showTourStep(tourAt + 1));
+$("#tour").addEventListener("keydown", (e) => {
+  if (e.key === "Escape") endTour();
+  if (e.key === "Tab") {   // keep the keyboard inside the guide
+    const items = [...$("#tourCard").querySelectorAll("button:not([hidden])")];
+    const at = items.indexOf(document.activeElement);
+    e.preventDefault();
+    items[(at + (e.shiftKey ? -1 : 1) + items.length) % items.length].focus();
+  }
+});
+window.addEventListener("resize", placeTour);
+window.addEventListener("scroll", placeTour, { passive: true });
+
 /* ---------- Boot ---------- */
 renderEmpty();
 fillLangs();
@@ -2944,6 +3096,7 @@ renderHistory();
   $("#engineChrome").hidden = !hasChromeTranslator();
   const saved = store.get(ENGINE_STORE);
   await setEngine(saved === "claude" || (saved === "chrome" && hasChromeTranslator()) ? saved : "gemini");
+  if (!store.get(TOUR_STORE)) startTour();
 })();
 </script>
 </body>

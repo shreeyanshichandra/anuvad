@@ -43,7 +43,9 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
 - **Live progress**: each page shows what is happening (preparing, reading, writing) with a countdown, plus an overall time-left estimate that learns from real page times
 - **Keeps the structure**: headings, numbered lists, line breaks and tables; skips the book's printed page numbers and running headers
 - **Subject-aware terms**: keep terms like *Panchayat* or *Raag* with a meaning in brackets, keep them as they are, or fully translate them
-- **Subject field**: type the subject (music, history, law…) and it translates with that field's own terminology in the target language; left empty, it works out the field from the page
+- **Optional subject**: name the subject (music, history, law…) and most translations will use that field's own keywords and terminology; left empty, it works out the field from your content
+- **Guided first visit**: a short tour points at each part of the page the first time you open Anuvad, and **How it works** replays it
+- **You choose the language**: the language to translate into is required and never assumed; if it's empty, a pop-up asks for it, and your choice is remembered
 - **Optional word limit**: condense the translation to about N words, per page or in total, while keeping every main point, key fact, name, number and subject term. If a page comes out over the limit, Anuvad condenses it in a quick second step. Word counts are shown per page and in total
 - **Bilingual mode**: each original line followed by its translation, handy for checking
 - **Tone**: like the original, formal, simple, academic or literal
