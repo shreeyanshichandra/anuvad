@@ -2,10 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; worker-src blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src blob:; connect-src 'self' https://generativelanguage.googleapis.com https://api.anthropic.com https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Anuvad</title>
+<title>Anuvad: translate PDFs, photos, documents and audio between 117 languages</title>
 <meta name="description" content="Translate or explain PDFs, photos, documents, audio and text between 100+ languages, with headings, lists and tables kept. Free, runs in your browser.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f0a43a'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%23161412' font-family='serif'%3E%E0%A4%85%3C/text%3E%3C/svg%3E">
+<meta property="og:title" content="Anuvad: translate PDFs, photos, documents and audio">
+<meta property="og:description" content="Translate or explain files, text and single words between 117 languages. Reads scanned pages and old Hindi fonts. Free, with no sign-up, right in your browser.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://shreeyanshichandra.github.io/anuvad/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Tiro+Devanagari+Hindi&display=swap">
 <style>
@@ -92,7 +97,7 @@ details[open] summary { margin-bottom: 8px; }
 .modes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
 .modes button { border: 0; background: transparent; color: var(--muted); padding: 8px; border-radius: 7px; font-weight: 600; }
 .modes button:hover { color: var(--ink); }
-.modes button[aria-selected="true"] { background: var(--marigold-soft); color: var(--accent); }
+.modes button[aria-pressed="true"] { background: var(--marigold-soft); color: var(--accent); }
 body.mode-text .pdfonly, body.mode-word .pdfonly, body:not(.mode-text) .textonly, body:not(.mode-word) .wordonly, body.mode-word .notword { display: none !important; }
 .textview { display: grid; gap: 16px; min-width: 0; }
 /* Text mode on wide screens: your text on the left, the translation on the right, both editable. */
@@ -259,10 +264,10 @@ select.needed { border-color: var(--marigold); }
 
   <div class="grid">
     <aside class="rail">
-      <div class="modes" role="tablist" aria-label="What to translate">
-        <button type="button" role="tab" id="modePdf" aria-selected="true">Files</button>
-        <button type="button" role="tab" id="modeText" aria-selected="false">Text</button>
-        <button type="button" role="tab" id="modeWord" aria-selected="false">Word</button>
+      <div class="modes" role="group" aria-label="What to translate">
+        <button type="button" id="modePdf" aria-pressed="true">Files</button>
+        <button type="button" id="modeText" aria-pressed="false">Text</button>
+        <button type="button" id="modeWord" aria-pressed="false">Word</button>
       </div>
       <section class="panel" id="keyPanel">
         <label class="field"><span>AI engine</span>
@@ -419,7 +424,7 @@ select.needed { border-color: var(--marigold); }
           <div class="bar"><i id="barFill"></i></div>
           <div class="status" id="status"></div>
         </div>
-        <div id="runMsg" class="notice" hidden></div>
+        <div id="runMsg" class="notice" role="alert" hidden></div>
         <details class="field" id="refineAllBox">
           <summary>Refine the translation</summary>
           <small class="help">Rewrites every translated page in the From–To range (or the whole text) following your instruction. To change one part only, select it in the translation and click <b>Refine…</b> there.</small>
@@ -515,10 +520,10 @@ select.needed { border-color: var(--marigold); }
   </div>
 </div>
 <dialog id="zoom"><img id="zoomImg" alt="Original page, enlarged"></dialog>
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js" integrity="sha384-QsSpx6a0USazT7nK7w8qXDgpSAPhFsb2XtpoLFQ5+X2yFN6hvCKnwEzN8M5FWaJb" crossorigin="anonymous"></script>
 <script>
 const $ = (s) => document.querySelector(s);
 const PDF_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -558,9 +563,16 @@ const store = {
 };
 
 /* ---------- Markdown ---------- */
+// Translations come from an AI reading outside documents, so they're treated as untrusted:
+// HTML shows as plain text, only web and mail links stay links, and pictures never load from other sites.
+function safeUrl(href) { return /^(https?:\/\/|mailto:)/i.test(String(href).trim()); }
+const mdRenderer = new marked.Renderer();
+mdRenderer.html = (html) => (/^\s*<!--/.test(html) ? "" : esc(html));
+mdRenderer.link = (href, title, text) => (safeUrl(href)
+  ? `<a href="${esc(href)}"${title ? ` title="${esc(title)}"` : ""} target="_blank" rel="noopener noreferrer">${text}</a>` : text);
+mdRenderer.image = (href, title, text) => text || "";
 function renderMd(md) {
-  const safe = md.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-  const html = marked.parse(safe, { mangle: false, headerIds: false, breaks: true });
+  const html = marked.parse(md, { renderer: mdRenderer, mangle: false, headerIds: false, breaks: true });
   return html.replace(/<table>/g, '<div class="tbl"><table>').replace(/<\/table>/g, "</table></div>");
 }
 
@@ -698,7 +710,7 @@ function refineRow(p) {
 function refinePrompt(p, instruction, excerpt) {
   const T = langOf(p.to), tn = T.name, subject = $("#subject").value.trim();
   return [
-    `Below is a ${tn} ${p.kind === "word" ? "dictionary entry" : "translation"} in Markdown${subject ? ` (subject: ${subject})` : ""}. The reader asks for this change:`,
+    `Below is ${p.kind === "word" ? "a dictionary entry" : "a translation"} in ${tn}, written in Markdown${subject ? ` (subject: ${subject})` : ""}. The reader asks for this change:`,
     `"""${instruction}"""`,
     excerpt
       ? `Apply it ONLY to the part that reads as follows on screen (Markdown symbols removed):\n"""\n${excerpt}\n"""\nLeave every other part exactly as it is, character for character.`
@@ -907,8 +919,11 @@ async function saveClaudeKey() {
   msg.textContent = "Checking the key with Anthropic…";
   $("#keySaveClaude").disabled = true;
   try {
-    const res = await fetch(`${CLAUDE_API}/models?limit=1`, { headers: claudeHeaders(k) });
-    if (!res.ok) throw new Error(res.status === 401 ? "This key doesn't work. Check that you copied the whole key, starting with sk-ant-." : `Anthropic said: ${(await res.json().catch(() => null))?.error?.message || res.statusText}`);
+    // Counting tokens is free and, unlike the models list, its error replies can be read from a browser.
+    const res = await fetch(`${CLAUDE_API}/messages/count_tokens`, { method: "POST", headers: claudeHeaders(k),
+      body: JSON.stringify({ model: CLAUDE_MODELS[0][0], messages: [{ role: "user", content: "Hi" }] }) });
+    // A busy reply (429) or a model this key can't use (404) still means the key itself is fine.
+    if (!res.ok && res.status !== 429 && res.status !== 404) throw new Error(res.status === 401 ? "This key doesn't work. Check that you copied the whole key, starting with sk-ant-." : `Anthropic said: ${(await res.json().catch(() => null))?.error?.message || res.statusText}`);
     apiKey = k; sessionKeys.claude = k;
     if ($("#keyRememberClaude").checked) store.set(CLAUDE_KEY_STORE, k); else store.del(CLAUDE_KEY_STORE);
     $("#keyInClaude").value = ""; msg.hidden = true;
@@ -1101,7 +1116,7 @@ function splitText(text, size = 3500) {
     // A single huge paragraph is cut at line or sentence ends.
     let rest = para;
     while (rest.length > size) {
-      let cut = Math.max(rest.lastIndexOf("\n", size), rest.lastIndexOf(". ", size) + 1, rest.lastIndexOf("। ", size) + 1);
+      let cut = Math.max(rest.lastIndexOf("\n", size), rest.lastIndexOf(". ", size - 1) + 1, rest.lastIndexOf("। ", size - 1) + 1);
       if (cut < size / 2) cut = size;
       parts.push((cur ? cur + "\n\n" : "") + rest.slice(0, cut).trim()); cur = "";
       rest = rest.slice(cut).trim();
@@ -1782,6 +1797,14 @@ function lengthRules(limit, T, what = "page") {
   ].join("\n");
 }
 
+// Shares a total word limit across pages by how much text each has, adding up to the limit.
+// Every page gets a small base first (at most 20 words), so a page with little text still gets a sentence.
+function shareLimit(total, weights) {
+  const base = Math.min(20, Math.floor(total / weights.size));
+  const rest = total - base * weights.size;
+  const sum = [...weights.values()].reduce((x, y) => x + y, 0);
+  return new Map([...weights].map(([k, w]) => [k, Math.max(1, base + Math.round(rest * w / sum))]));
+}
 // Word limit for each page in this run, or null for a full translation.
 async function wordBudgets(nums) {
   const n = parseInt($("#limit").value.replace(/[^0-9]/g, ""), 10);
@@ -1800,7 +1823,8 @@ async function wordBudgets(nums) {
   const fallback = known.length ? known.reduce((x, y) => x + y, 0) / known.length : 1;
   for (const [k, w] of weights) if (!w) weights.set(k, fallback);
   const sum = [...weights.values()].reduce((x, y) => x + y, 0);
-  nums.forEach((k) => budgets.set(k, Math.max(30, Math.round(n * weights.get(k) / sum))));
+  const shares = shareLimit(n, weights);
+  nums.forEach((k) => budgets.set(k, shares.get(k)));
   return budgets;
 }
 
@@ -1863,7 +1887,7 @@ function wordPrompt(p) {
     "- One ## section for each part of speech the word really has, most common first; 1 to 5 senses each, most common first; one or two short, natural examples per sense.",
     "- Leave out any of the last four lines that has nothing useful.",
     "- For a phrase or idiom, explain what it means as a whole and give its closest idiom or expression in " + tn + ".",
-    `- If the word is in ${tn} itself, write a ${tn} dictionary entry (meanings explained in ${tn}).`,
+    `- If the word is in ${tn} itself, write a dictionary entry in ${tn}.`,
     "- If it is not a real word, write the heading, then one line saying it was not found and up to three words that were probably meant.",
     "- No preface, no notes, no code fences.",
     "",
@@ -1978,12 +2002,12 @@ function buildPrompt(p, hint, tall, limit) {
     fileDoc ? `Translate ${unit} ${p.local} of ${pageCount(p.doc)} of the ${S ? S.name + " " : ""}${p.doc.ext === ".pptx" ? "PowerPoint presentation" : "document"} “${p.doc.name}” (given below) into ${tn}.${detect}`
       : isText ? `Translate the ${S ? S.name + " " : ""}text below into ${tn}.${detect}`
       : isImage ? `Translate all the ${S ? S.name + " " : ""}text in this image (a photo, scan or screenshot of a page, notice, sign, message or similar) into ${tn}.${detect} Ignore the background and anything that isn't text, and read it in its natural order even if the photo is tilted.`
-      : `Translate page ${p.local} of ${pageCount(p.doc)} of a ${S ? S.name + " " : ""}document into ${tn}.${detect}`,
+      : `Translate page ${p.local} of ${pageCount(p.doc)} of a document${S ? ` in ${S.name}` : ""} into ${tn}.${detect}`,
     isText || tall === null ? "" : `The ${isImage ? "image" : "page"} is attached as two overlapping parts (${tall ? "top part first, then bottom part" : "left part first, then right part"}). Text in the overlapping strip appears in both: include it only once.`,
     "",
     subject
       ? [
-          `FIELD: this is a ${subject} document. Translate it the way a subject expert in ${subject} would:`,
+          `FIELD: the subject of this document is ${subject}. Translate it the way a subject expert in ${subject} would:`,
           `- Use the standard ${tn} terminology that ${subject} textbooks, scholars and professionals actually use, not general everyday words.`,
           `- When a word or phrase has several possible meanings, always choose the meaning it has in ${subject}.`,
           `- Recognise the field's technical terms, concepts, names and works, and render them the way the ${subject} field conventionally does in ${tn} (including established transliterations).`,
@@ -2056,7 +2080,7 @@ async function gemini(prompt, images, signal, onText, onReading) {
     if (kp) throw new RunError(kp, { stopAll: true });
     if (e.status === 429) throw new RunError("Google's free limit was reached.", { rate: e.retrySec ?? 60 });
     if (e.status === 404) throw new RunError("This AI model isn't available. Pick another one under AI model.", { stopAll: true });
-    if (e.status >= 500) throw new RunError("Google's service had a hiccup. Translate this page again.");
+    if (e.status >= 500) throw new RunError("Google's service had a hiccup. Please try again.");
     throw new RunError(`Google said: ${e.message}`);
   }
   onReading?.();
@@ -2079,10 +2103,10 @@ async function gemini(prompt, images, signal, onText, onReading) {
       if (add) { text += add; onText(text); }
     }
   }
-  if (blocked) throw new RunError("Google blocked this page and didn't translate it.");
+  if (blocked) throw new RunError("Google blocked this content and didn't translate it.");
   if (finish === "SAFETY" || finish === "RECITATION" || finish === "PROHIBITED_CONTENT")
-    throw new RunError("Google stopped the translation of this page partway (its content filter). Try again or use another AI model.");
-  if (!text.trim()) throw new RunError("No text came back for this page. Translate it again.");
+    throw new RunError("Google stopped partway (its content filter). Try again or use another AI model.");
+  if (!text.trim()) throw new RunError("No text came back. Please try again.");
   return { text, truncated: finish === "MAX_TOKENS" };
 }
 
@@ -2108,7 +2132,7 @@ async function claude(prompt, images, signal, onText, onReading) {
     if (res.status === 401 || res.status === 403) throw new RunError("Anthropic refused this key. Check it under AI engine.", { stopAll: true });
     if (res.status === 429) throw new RunError("Anthropic's limit was reached.", { rate: parseFloat(res.headers.get("retry-after")) || 60 });
     if (res.status === 404) throw new RunError("This Claude model isn't available to your key. Pick another one under AI model.", { stopAll: true });
-    if (res.status >= 500) throw new RunError("Anthropic's service had a hiccup. Translate this page again.");
+    if (res.status >= 500) throw new RunError("Anthropic's service had a hiccup. Please try again.");
     if (/credit balance/i.test(message)) throw new RunError("Your Anthropic account has no credit left. Add some at console.anthropic.com, or switch to Google Gemini.", { stopAll: true });
     throw new RunError(`Anthropic said: ${message}`);
   }
@@ -2134,7 +2158,7 @@ async function claude(prompt, images, signal, onText, onReading) {
     }
   }
   if (stop === "refusal") throw new RunError("Claude declined to work on this page. Try again, or use Google Gemini for it.");
-  if (!text.trim()) throw new RunError("No text came back for this page. Translate it again.");
+  if (!text.trim()) throw new RunError("No text came back. Please try again.");
   return { text, truncated: stop === "max_tokens" };
 }
 const ai = (...args) => (engine === "claude" ? claude(...args) : gemini(...args));
@@ -2252,7 +2276,7 @@ async function translateOne(p, limit = null) {
       }
       p.status = "failed";
       p.error = e.rate ? `${aiName()}'s limit is used up for now. Wait a while (or until tomorrow), then translate the remaining pages.` : (e.message || "Translation failed.");
-      if (e instanceof TypeError) p.error = `Couldn't reach ${aiName()}. Check your internet connection and translate this page again.`;
+      if (e instanceof TypeError) p.error = `Couldn't reach ${aiName()}. Check your internet connection and try again.`;
       renderPage(p);
       return e.stopAll || e.rate ? "stop" : "failed";
     }
@@ -2272,7 +2296,7 @@ async function finishLanguage(p) {
   const first = p.md;
   p.phase = "relang"; renderPage(p);
   const prompt = [
-    `The text below should be a ${T.name} translation of one page of a document, but parts of it are still in the original language.`,
+    `The text below should be a translation into ${T.name} of one page of a document, but parts of it are still in the original language.`,
     `Rewrite it so that all of it is in ${T.name}: translate every heading, sentence, list item and table cell that is not in ${T.name} yet.${subject ? ` It is a ${subject} document: use the standard ${T.name} terminology of ${subject}.` : ""}`,
     "- Keep the parts that are already translated, the Markdown structure (headings, lists, tables with the same rows and columns), and all numbers, symbols and marks exactly.",
     T.latin
@@ -2373,7 +2397,7 @@ function setMode(m) {
   mode = m;
   for (const [k, sel] of Object.entries(MODES)) {
     document.body.classList.toggle("mode-" + k, k === m);
-    $(sel).setAttribute("aria-selected", String(k === m));
+    $(sel).setAttribute("aria-pressed", String(k === m));
   }
   store.set(MODE_STORE, m);
   $("#runMsg").hidden = true; $("#prog").hidden = true;
@@ -2644,11 +2668,19 @@ const PDF_LIBS = [
   "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js",
   "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
 ];
+// Checksums, so a tampered copy of a library on the CDN is refused rather than run.
+const SCRIPT_HASHES = {
+  [DOC_LIBS.jszip]: "sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG",
+  [DOC_LIBS.mammoth]: "sha384-nFoSjZIoH3CCp8W639jJyQkuPHinJ2NHe7on1xvlUA7SuGfJAfvMldrsoAVm6ECz",
+  [PDF_LIBS[0]]: "sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk",
+  [PDF_LIBS[1]]: "sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H",
+};
 const loaded = new Map();
 function loadScript(src, failMsg = "Couldn't load the PDF maker. Check your internet connection.") {
   if (!loaded.has(src)) loaded.set(src, new Promise((ok, bad) => {
     const s = document.createElement("script");
     s.src = src; s.onload = ok;
+    if (SCRIPT_HASHES[src]) { s.integrity = SCRIPT_HASHES[src]; s.crossOrigin = "anonymous"; }
     s.onerror = () => { loaded.delete(src); s.remove(); bad(new Error(failMsg)); };
     document.head.append(s);
   }));
@@ -2849,7 +2881,7 @@ function wRuns(tokens = [], f, ctx) {
     if (t.type === "link") return wRuns(t.tokens, { ...f, u: 1 }, ctx);
     if (t.type === "codespan") return wRun(unEnt(t.text), { ...f, code: 1 }, ctx);
     if (t.type === "br") return "<w:r><w:br/></w:r>";
-    if (t.type === "html") return "";
+    if (t.type === "html") return /^\s*<!--/.test(t.text) ? "" : wRun(t.text, f, ctx);
     if (t.tokens) return wRuns(t.tokens, f, ctx);
     return t.text ? wRun(unEnt(t.text), f, ctx) : "";
   }).join("");
@@ -2885,7 +2917,7 @@ function wBlocks(tokens, ctx, depth = 0) {
           + `<w:tr>${t.header.map((c) => cell(c, true)).join("")}</w:tr>`
           + t.rows.map((r) => `<w:tr>${r.map((c) => cell(c, false)).join("")}</w:tr>`).join("") + "</w:tbl>" + wPara("", ctx);
       }
-      case "html": return /^\s*<!--/.test(t.text) ? "" : wPara(wRun(t.text.replace(/<[^>]+>/g, ""), {}, ctx), ctx);
+      case "html": return /^\s*<!--/.test(t.text) ? "" : wPara(wRun(t.text, {}, ctx), ctx);
       default: return "";
     }
   }).join("");

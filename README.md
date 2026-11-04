@@ -1,14 +1,12 @@
 # अनुवाद Anuvad
 
-**Translate PDFs, photos and text between 117 languages into clean, structured text — free, right in your browser.**
+[![Tests](https://github.com/shreeyanshichandra/anuvad/actions/workflows/test.yml/badge.svg)](https://github.com/shreeyanshichandra/anuvad/actions/workflows/test.yml)
 
-Upload one or more PDFs (a book, syllabus, notice, letter or form), pick the languages and pages, and Anuvad gives you a translation that keeps the headings, lists and tables of the original. It started as a Hindi → English tool and still shines there, but any pair works: Hindi → Urdu, Bengali → English, French → Hindi and so on. Edit anything you want, then download it as a PDF, a Word-ready `.html` file or Markdown.
+**Translate or explain PDFs, photos, documents, audio and text between 117 languages, free, right in your browser.**
+
+Add a PDF, photo, Word or PowerPoint file, a recording or some typed text, choose your language, and Anuvad gives you a translation that keeps the headings, lists and tables of the original, or a simple explanation of it. It started as a Hindi → English tool and still shines there, but any pair works: Hindi → Urdu, Bengali → English, French → Hindi and so on. Edit anything you want, then download it as a PDF, Word file, `.html` or Markdown.
 
 **▶ Try it:** https://shreeyanshichandra.github.io/anuvad/
-
-![A Hindi music page translated into structured English, with the original page beside it](screenshots/translated-page.png)
-
-![Pages translating in parallel, each with a live countdown](screenshots/live-progress.png)
 
 ---
 
@@ -39,7 +37,7 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
 - **Right-to-left output** for Urdu, Arabic, Persian, Hebrew and others, on screen and in downloads
 - **Page-by-page translation** with the original page shown beside the translation
 - **Several PDFs at once**: add as many as you like; each shows as a bubble with a ✕ to remove it, and they're translated and downloaded as one combined document with each PDF's name as a heading
-- **Fast**: several pages are translated at once, usually about 15 seconds per page
+- **Fast**: several pages are translated at once
 - **Live progress**: each page shows what is happening (preparing, reading, writing) with a countdown, plus an overall time-left estimate that learns from real page times
 - **Keeps the structure**: headings, numbered lists, line breaks and tables; skips the book's printed page numbers and running headers
 - **Subject-aware terms**: keep terms like *Panchayat* or *Raag* with a meaning in brackets, keep them as they are, or fully translate them
@@ -59,13 +57,13 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
 
 ## How to use it
 
-1. **Open Anuvad.** Use the link above, or download `index.html` from this repository and double-click it.
+1. **Open Anuvad** using the link above. A short guide shows you around on your first visit.
 2. **Add your free Google access code** (first time only, about 2 minutes):
    1. Click **Get my free code from Google** in the app. It opens [Google AI Studio](https://aistudio.google.com/apikey).
    2. Sign in with your Google (Gmail) account.
    3. Accept the terms if asked, then click **Create API key**.
    4. Copy the code (it starts with `AIza`), paste it into Anuvad and click **Save**.
-3. **Upload one or more PDFs, images, Word, PowerPoint or .txt files** (or paste a screenshot), optionally type the subject (for example *History* or *Law*), and click **Translate pages**.
+3. **Upload one or more PDFs, images, Word, PowerPoint or .txt files** (or paste a screenshot), optionally type the subject (for example *History* or *Law*), and choose the language under **Translate to**, and click **Translate**.
 4. **Review and download** the translation.
 
 No card or payment is needed. The code is remembered on your device, so you only do step 2 once.
@@ -91,7 +89,7 @@ Word files are read with [mammoth](https://github.com/mwilson/mammoth.js) and Po
 The PDF's own text layer is sent along as a hint for numbers and spellings, but the images are treated as the source of truth.
 
 - Everything is one file, `index.html`: plain HTML, CSS and JavaScript, with no build step and no backend.
-- Libraries load from cdnjs: [PDF.js](https://mozilla.github.io/pdf.js/) and [marked](https://marked.js.org/).
+- Libraries load from cdnjs, each with an integrity check: [PDF.js](https://mozilla.github.io/pdf.js/), [marked](https://marked.js.org/) and, only when needed, [mammoth](https://github.com/mwilson/mammoth.js), [JSZip](https://stuk.github.io/jszip/), [jsPDF](https://github.com/parallax/jsPDF) and [html2canvas](https://html2canvas.hertzen.com/).
 - Claude (optional) is called directly from the browser with the user's own Anthropic key; Chrome's [Translator API](https://developer.chrome.com/docs/ai/translator-api) (optional) runs on the user's computer.
 - Translation uses the [Gemini API](https://ai.google.dev/) by default, with each user's own key. By default it picks the newest stable **Gemini Flash-Lite** model with minimal thinking, which is the fastest; slower, more careful models can be chosen under **AI model**.
 - Up to 3 pages are translated in parallel. If Google's free per-minute limit is hit, Anuvad lowers the number of parallel pages, waits as long as Google asks, and continues.
@@ -99,7 +97,18 @@ The PDF's own text layer is sent along as a hint for numbers and spellings, but 
 
 ## Run it locally
 
-No install needed. Download `index.html` and open it in Chrome, Edge or Firefox.
+No install needed. Serve the folder with any local web server (for example `npx serve`) and open it in Chrome or Edge. Opening `index.html` directly also works, but browsers may not keep your work after a refresh that way.
+
+## Tests
+
+`node --test` runs the tests with no install. They also run on every push through GitHub Actions.
+
+## Security and privacy
+
+- There is no server: nothing is stored anywhere except your own browser, and files go only to the AI engine you choose.
+- Access codes are stored unencrypted in your browser's local storage, which is normal for an app with no server. Don't save yours on a shared computer: untick **Remember on this device**.
+- Translations are treated as untrusted, since they come from an AI reading outside documents: HTML shows as plain text, only web and mail links stay clickable, and pictures never load from other sites.
+- A Content Security Policy limits what the page can load and contact, and libraries are checked against known checksums. The policy has to allow inline scripts, because the whole app is one file.
 
 ## License
 

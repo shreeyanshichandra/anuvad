@@ -13,9 +13,19 @@ Last updated: 4 November 2026
 
 ## ⏭️ Next up
 
+- [ ] Add new screenshots to the README, taken from real translations (the old ones showed the first design and were removed)
 - [ ] Decide on moving to Vite + TypeScript: `index.html` is now about 2,560 lines, close to the 3,000-line point set on 2 November 2026
 
 ## ✅ Done
+
+### v1.11: fixes from the full test
+- [x] Security: links in translations can only be web or mail links, pictures from other sites never load, and HTML shows as plain text
+- [x] Security: a Content Security Policy, and integrity checks on the libraries
+- [x] Claude key check now reads Anthropic's reply properly, so a wrong key says so (a correct key still needs a real test)
+- [x] Word limit in total now adds up to the limit
+- [x] Symbols in code text show correctly, and the Word download keeps text that looks like an HTML tag
+- [x] Mode buttons and messages work better with screen readers; clearer page title and link previews; wording fixes
+- [x] Automated tests with `node --test`, run by GitHub Actions; README updated, with a security section
 
 ### v1.10: guide and required language
 - [x] **First-visit guide**: a 9-step tour that dims the page and points at each part, with Back, Next and Skip; it opens once, and **How it works** at the top replays it. Works on phones and with the keyboard
