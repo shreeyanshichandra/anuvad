@@ -13,10 +13,22 @@ Last updated: 4 November 2026
 
 ## ⏭️ Next up
 
+- [ ] Optional: finish Try a sample (see below)
 - [ ] Add new screenshots to the README, taken from real translations (the old ones showed the first design and were removed)
 - [ ] Decide on moving to Vite + TypeScript: `index.html` is now about 2,560 lines, close to the 3,000-line point set on 2 November 2026
 
 ## ✅ Done
+
+### v1.12: small fixes after the first real tests
+- [x] Word cards no longer start their second line with a stray dot
+- [x] Hover over "translated in" to see when the AI sent its first words and when it finished; a note appears if a reply takes over 10 seconds
+- [x] Real checks passed by hand: Text mode (English to Hindi) and Word mode ("bonjour") with a real access code
+
+### Try a sample: built but switched off
+To switch it on: add a real translation as samples/sample.md, commit samples/, and set SAMPLE_READY to true.
+- [x] **Try a sample** button at the top shows a saved example with no access code and no AI request, clearly labelled as saved; downloads work on it
+- [x] It stays hidden until then, so a made-up result can never be shown
+- [x] samples/sample.png: a free-to-share Hindi notice written for this purpose (heading, paragraph, numbered list, table)
 
 ### v1.11: fixes from the full test
 - [x] Security: links in translations can only be web or mail links, pictures from other sites never load, and HTML shows as plain text

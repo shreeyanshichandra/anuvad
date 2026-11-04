@@ -249,7 +249,8 @@ select.needed { border-color: var(--marigold); }
 .tskip:hover { color: var(--ink); }
 .startsteps { display: inline-block; margin: 12px 0 0; padding-inline-start: 1.4em; text-align: start; }
 .empty p { margin: 0; }
-#guideBtn { order: 3; margin-left: auto; align-self: center; }
+.headbtns { order: 3; margin-left: auto; align-self: center; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sampletag { color: var(--accent); font-weight: 600; }
 .toast { z-index: 60; position: fixed; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 6px; font-size: 0.88rem; max-width: calc(100vw - 32px); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } .dots i { animation: none; opacity: .8; } }
 </style>
@@ -257,7 +258,7 @@ select.needed { border-color: var(--marigold); }
 <body>
 <div class="wrap">
   <header>
-    <button type="button" class="small" id="guideBtn">❔ How it works</button>
+    <span class="headbtns"><button type="button" class="primary" id="sampleBtn" hidden>▶ Try a sample</button><button type="button" class="small" id="guideBtn">❔ How it works</button></span>
     <h1><span class="hi">अनुवाद</span>Anuvad</h1>
     <p>Upload PDFs, photos, documents or audio, paste text or look up a word in any language, and translate or explain it in the language you choose, with headings, lists and tables kept. Each page is read as an image, so scanned pages and old fonts (like Kruti Dev for Hindi) work too.</p>
   </header>
@@ -646,6 +647,13 @@ function fillResult(p, tools, body) {
       const t = document.createElement("span"); t.className = "took";
       t.textContent = isWord ? `${langOf(p.to).name} · looked up in ${fmtTime(p.took)}`
         : `${langOf(p.to).name} · ${p.task === "explain" ? "explained" : "translated"} in ${fmtTime(p.took)}` + (p.words ? ` · ${p.words.toLocaleString()} ${unitOf(langOf(p.to))}${p.limit ? ` (limit ${p.limit})` : ""}` : "");
+      // Hover to see where the time went: waiting for the first words, or the AI writing them.
+      if (p.tText) t.title = `${aiName()} sent its first words after ${p.tText.toFixed(1)}s and finished after ${p.took.toFixed(1)}s.${engine === "gemini" && thinkingUnsupported.has($("#model").value) ? " This model refused the fast setting, so it thought for longer. Try another under AI model." : ""}`;
+      tools.append(t);
+    }
+    if (p.sample) {
+      const t = document.createElement("span"); t.className = "took sampletag";
+      t.textContent = "Saved example, made earlier with Anuvad · no AI request was sent";
       tools.append(t);
     }
     if (isWord && window.speechSynthesis) tools.append(btn("🔊 Listen", () => speak(p)));
@@ -1275,7 +1283,7 @@ function scheduleSave() {
     const keep = pages.map((p) => {
       const settled = p.status === "done" || p.status === "failed";
       return { doc: p.doc.id, local: p.local, status: settled ? p.status : "idle", md: settled ? p.md : "", error: p.error || "",
-        from: p.from, to: p.to, settings: p.settings, words: p.words, took: p.took, limit: p.limit, task: p.task, source: p.source };
+        from: p.from, to: p.to, settings: p.settings, words: p.words, took: p.took, limit: p.limit, task: p.task, source: p.source, sample: p.sample };
     });
     dbRun("state", "readwrite", (s) => s.put({ pages: keep, range: [$("#from").value, $("#to").value] }, "main"));
     saveHistory(keep);
@@ -1461,7 +1469,7 @@ async function openSaved(files, savedPages) {
     for (let i = 1; i <= pageCount(doc); i++) {
       const q = saved.get(`${f.id}:${i}`) || {};
       pages.push({ doc, local: i, thumb: "", status: q.status === "done" || q.status === "failed" ? q.status : "idle", md: q.md || "",
-        error: q.error || "", from: q.from, to: q.to, settings: q.settings, words: q.words, took: q.took, limit: q.limit, task: q.task,
+        error: q.error || "", from: q.from, to: q.to, settings: q.settings, words: q.words, took: q.took, limit: q.limit, task: q.task, sample: q.sample,
         source: doc.parts ? q.source ?? doc.parts[i - 1] : undefined });
     }
   }
@@ -1859,6 +1867,8 @@ function countWords(md, T) {
 
 /* ---------- Translation ---------- */
 // Word mode: a bilingual dictionary entry in a fixed Markdown layout, explained in the target language.
+// The line under a card's heading: if the AI skips the transliteration but keeps its separator, the line starts with a stray dot.
+function tidyCard(md) { return md.replace(/^(#[^\n]*\n)[ \t]*·[ \t]*/, "$1"); }
 function wordPrompt(p) {
   const subject = $("#subject").value.trim();
   const T = langOf(p.to), S = p.from === "auto" ? null : langOf(p.from), tn = T.name;
@@ -1871,7 +1881,7 @@ function wordPrompt(p) {
     "Reply in Markdown with exactly this layout:",
     "<!-- lang: <ISO 639-1 code of the word's language, e.g. hi> -->",
     "# <the word as given; fix the spelling if it is clearly misspelt>",
-    `<the word written in ${translit} (leave this out if it is already in ${translit})> · <pronunciation in IPA between slashes> · <the word's language, named in ${tn}>`,
+    `<the word written in ${translit} (leave this out, with the · after it, if it is already in ${translit})> · <pronunciation in IPA between slashes> · <the word's language, named in ${tn}>`,
     "",
     `## <part of speech, in ${tn}, e.g. Noun>`,
     `1. **<${tn} equivalent(s), comma-separated>** — <short ${tn} explanation of this sense, with its gender or register if it matters>`,
@@ -2183,7 +2193,7 @@ function liveText(p) {
   if (p.phase === "prep") return "Preparing the page image…";
   const elapsed = p.tSend ? (now - p.tSend) / 1000 : 0;
   if (p.kind && (p.phase === "send" || p.phase === "read" || p.phase === "prep"))
-    return p.kind === "word" ? `Looking up “${p.source.trim()}”… ${fmtTime(elapsed)}` : `Sending your text to ${aiName()}… ${fmtTime(elapsed)}`;
+    return (p.kind === "word" ? `Looking up “${p.source.trim()}”… ${fmtTime(elapsed)}` : `Sending your text to ${aiName()}… ${fmtTime(elapsed)}`) + (elapsed > 10 ? ` ${aiName()} is taking longer than usual.` : "");
   if (p.kind === "word" && p.phase === "write") return `Writing the dictionary card… ${fmtTime(elapsed)}`;
   if (p.phase === "refine") return `Applying your change… ${fmtTime(elapsed)}`;
   if (p.phase === "chromedl") return `Chrome is downloading this language pack… ${p.dl || 0}%`;
@@ -2219,6 +2229,7 @@ function learnSpeed(sec) {
 }
 
 async function translateOne(p, limit = null) {
+  p.sample = false;
   p.status = "working"; p.md = ""; p.error = ""; p.phase = "prep"; p.tSend = 0; p.took = 0; p.limit = limit; p.prevMd = null; p.refineOpen = false;
   p.task = p.kind !== "word" && $("#task").value === "explain" ? "explain" : "translate";
   p.from = runLangs.from; p.to = runLangs.to; p.settings = runLangs.key; renderPage(p);
@@ -2233,9 +2244,10 @@ async function translateOne(p, limit = null) {
   let last = 0;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      p.phase = "send"; p.tSend = Date.now(); renderPage(p);
+      p.phase = "send"; p.tSend = Date.now(); p.tText = 0; renderPage(p);
       const res = await ai(prompt, parts, ctl.signal, (text) => {
-        p.md = isWord ? text.replace(/^\s*<!--[\s\S]*?(?:-->\s*|$)/, "") : text;   // hide the card's language note while it streams
+        p.md = isWord ? tidyCard(text.replace(/^\s*<!--[\s\S]*?(?:-->\s*|$)/, "")) : text;   // hide the card's language note while it streams
+        if (!p.tText) p.tText = (Date.now() - p.tSend) / 1000;
         if (p.phase !== "write") { p.phase = "write"; last = 0; }
         const now = Date.now();
         if (now - last > 250) { last = now; renderPage(p); }
@@ -2247,7 +2259,7 @@ async function translateOne(p, limit = null) {
         // The card starts with a hidden note of the word's language, used by Listen.
         const m = p.md.match(/^<!--\s*lang:\s*([a-z]{2,3}(?:-[A-Za-z]+)?)\s*-->\s*/i);
         p.lang = m ? m[1].toLowerCase() : "";
-        p.md = p.md.replace(/^<!--[\s\S]*?-->\s*/, "");
+        p.md = tidyCard(p.md.replace(/^<!--[\s\S]*?-->\s*/, ""));
       }
       // The card quotes the word and its examples in the original language on purpose, so it skips this check.
       const plainTranslation = !isWord && p.task !== "explain" && !p.doc?.audio;   // a card, an explanation or a transcript quotes the original on purpose
@@ -3034,6 +3046,38 @@ async function openZoom(p) {
 }
 $("#zoom").addEventListener("click", () => $("#zoom").close());
 
+/* ---------- Try a sample ---------- */
+// Shows the app working with no access code: a real page and the translation Anuvad made of it earlier, saved in samples/.
+// The button only appears once the translation file exists, so nothing made-up can ever be shown as a result.
+const SAMPLE_IMAGE = "samples/sample.png", SAMPLE_TEXT = "samples/sample.md";
+// A file saved with Download .md starts with a title line and a page note; the page itself doesn't need them.
+function cleanSampleMd(md) {
+  return md.replace(/\r\n/g, "\n").replace(/^# .*translation\s*\n+/, "").replace(/^<!--.*?-->\s*\n*/, "").trim();
+}
+async function loadSample() {
+  if (running) { toast("Stop the current translation first."); return; }
+  try {
+    const [img, text] = await Promise.all([fetch(SAMPLE_IMAGE), fetch(SAMPLE_TEXT)]);
+    if (!img.ok || !text.ok) throw new Error("missing");
+    if (mode !== "pdf") setMode("pdf");
+    const name = "Sample notice";
+    for (const d of docs.filter((x) => x.name === name)) removeDoc(d.id);
+    await loadFiles([new File([await img.blob()], name + ".png", { type: "image/png" })]);
+    const p = pages.at(-1);
+    Object.assign(p, { status: "done", md: cleanSampleMd(await text.text()), from: "hi", to: "en", sample: true, took: 0, words: 0, error: "" });
+    renderPage(p);
+    updateButtons();
+    document.getElementById("pg" + p.num)?.scrollIntoView({ block: "start" });
+  } catch { toast("Couldn't load the sample. Check your internet connection."); }
+}
+$("#sampleBtn").onclick = loadSample;
+const SAMPLE_READY = false;   // switch on once samples/sample.md holds a real translation
+async function checkSample() {
+  if (!SAMPLE_READY) return false;
+  try { $("#sampleBtn").hidden = !(await fetch(SAMPLE_TEXT, { method: "HEAD" })).ok; } catch {}
+  return !$("#sampleBtn").hidden;
+}
+
 /* ---------- First-visit guide ---------- */
 // A short tour that points at each part of the page. It opens once by itself; "How it works" replays it.
 const TOUR_STORE = "anuvad.tour";
@@ -3128,6 +3172,8 @@ renderHistory();
   $("#engineChrome").hidden = !hasChromeTranslator();
   const saved = store.get(ENGINE_STORE);
   await setEngine(saved === "claude" || (saved === "chrome" && hasChromeTranslator()) ? saved : "gemini");
+  const hasSample = await checkSample();
+  if (hasSample) TOUR[0].text += " No access code yet? Click Try a sample at the top to see a finished example first.";
   if (!store.get(TOUR_STORE)) startTour();
 })();
 </script>

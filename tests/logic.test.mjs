@@ -47,6 +47,20 @@ test("splitText keeps all the text and stays near the size", () => {
   assert.ok(huge.every((p) => p.length <= 1000), "one huge paragraph is cut too");
 });
 
+test("cleanSampleMd removes only the download's title and page note", () => {
+  const clean = grab("cleanSampleMd");
+  assert.equal(clean("# Sample notice — English translation\n\n<!-- page 1 -->\n\n## Notice\n\nText."), "## Notice\n\nText.");
+  assert.equal(clean("# Notice\n\nText."), "# Notice\n\nText.");
+  assert.equal(clean("# A — English translation\r\n\r\n## B"), "## B");
+});
+
+test("tidyCard removes only a stray dot under the heading", () => {
+  const tidy = grab("tidyCard");
+  assert.equal(tidy("# bonjour\n· /bɔ̃.ʒuʁ/ · French\n\n## Noun"), "# bonjour\n/bɔ̃.ʒuʁ/ · French\n\n## Noun");
+  assert.equal(tidy("# राग\nraag · /rɑːɡ/ · Hindi"), "# राग\nraag · /rɑːɡ/ · Hindi");
+  assert.equal(tidy("# a\ntext\n· later dot"), "# a\ntext\n· later dot");
+});
+
 test("the page keeps its security policy and library checks", () => {
   assert.match(html, /http-equiv="Content-Security-Policy"/);
   assert.match(html, /default-src 'none'/);
