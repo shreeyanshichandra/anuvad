@@ -56,6 +56,7 @@ figure { margin: 30px 0 0; }
 figure img { display: block; width: 100%; height: auto; border-radius: 10px; }
 figcaption { font-size: .88rem; color: var(--soft); margin-top: 10px; max-width: 46em; }
 
+.subhead { font-size: clamp(1.4rem, 3vw, 1.75rem); margin: 38px 0 10px; }
 .can { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 36px; margin: 26px 0 0; padding: 0; list-style: none; }
 .can li { padding: 10px 0; border-top: 1px solid var(--line); }
 .can b { font-weight: 600; }
@@ -91,10 +92,10 @@ footer .links { margin-top: 0; }
   <div class="wrap">
     <p class="name">Shreeyanshi Chandra</p>
     <h1>I build software by saying what it should do.</h1>
-    <p class="lead">My main project is Anuvad, a translator for PDFs, photos, documents and audio. I built it by voice: I spoke every request through Wispr Flow, Claude Code wrote the code, and I tested each version and decided what came next.</p>
+    <p class="lead">My main project is Anuvad, a subject-aware translator for PDFs, photos, documents and audio. Name a subject, and it uses that field's own keywords. I built it by voice: I spoke every request through Wispr Flow, Claude Code wrote the code, and I tested each version and decided what came next.</p>
     <div class="links">
       <a class="btn" href="https://shreeyanshichandra.github.io/anuvad/">Open Anuvad</a>
-      <a href="https://github.com/shreeyanshichandra/anuvad">See the code on GitHub</a>
+      <a href="https://github.com/shreeyanshichandra/anuvad">Public code: github.com/shreeyanshichandra/anuvad</a>
     </div>
   </div>
 </header>
@@ -117,9 +118,17 @@ footer .links { margin-top: 0; }
         <img src="real-translation.png" width="815" height="360" alt="A Hindi page about Indian music systems beside its English translation, with a heading, a sub-heading and a numbered list kept.">
         <figcaption>A real result from an early version: a Hindi page on the left, and its English translation on the right with the heading and numbered list kept.</figcaption>
       </figure>
+      <h3 class="subhead">Made for your subject</h3>
+      <p class="intro">Most translators treat every document the same. In Anuvad, you can name the subject, such as Music, History, Law or Medicine, and it translates the way an expert in that field would write:</p>
+      <ul class="can">
+        <li><b>The field's own keywords:</b> it uses the terminology that textbooks and professionals in that subject actually use, not everyday words.</li>
+        <li><b>The right meaning:</b> when a word has several meanings, it chooses the one it has in your subject.</li>
+        <li><b>Terms explained:</b> technical terms can stay in place with their meaning beside them, like "shrutis (microtones)" in the result above.</li>
+        <li><b>Works on its own too:</b> leave the subject empty and it works out the field from your content. In Word mode, the subject's meaning comes first.</li>
+      </ul>
+      <h3 class="subhead">What else it does</h3>
       <ul class="can">
         <li><b>Reads almost anything:</b> PDFs, photos, screenshots, Word, PowerPoint, text files, recordings, typed text and single words.</li>
-        <li><b>Subject-aware:</b> name a subject, and most translations use that field's own keywords.</li>
         <li><b>Refine by instruction:</b> select a sentence and ask for "more formal" or "simpler English".</li>
         <li><b>Explain mode:</b> a plain summary, key terms and points to remember, for students.</li>
         <li><b>Real downloads:</b> PDF with searchable text, Word, HTML and Markdown, with or without the originals.</li>
@@ -192,7 +201,7 @@ footer .links { margin-top: 0; }
         <li>PDFs in Chinese, Japanese and Korean download as pictures, without searchable text.</li>
         <li>The app is one large file. That was the fastest way to build it, and it's now due for splitting up.</li>
       </ul>
-      <p class="intro" style="margin-top:22px"><b>Built with:</b> Wispr Flow, Claude Code, HTML, CSS and JavaScript, PDF.js, the Gemini API, and GitHub Pages.</p>
+      <p class="intro" style="margin-top:22px"><b>Built with:</b> Wispr Flow, Claude Code, HTML, CSS and JavaScript, PDF.js, the Gemini API, and GitHub Pages. All the code is public on <a href="https://github.com/shreeyanshichandra/anuvad">GitHub</a>.</p>
     </div>
   </section>
 </main>
@@ -201,7 +210,8 @@ footer .links { margin-top: 0; }
   <div class="wrap links">
     <span>© 2026 Shreeyanshi Chandra</span>
     <a href="https://shreeyanshichandra.github.io/anuvad/">Anuvad</a>
-    <a href="https://github.com/shreeyanshichandra">GitHub</a>
+    <a href="https://github.com/shreeyanshichandra/anuvad">Anuvad on GitHub</a>
+    <a href="https://github.com/shreeyanshichandra">My GitHub profile</a>
   </div>
 </footer>
 </body>
