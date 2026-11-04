@@ -51,28 +51,28 @@ Day-to-day progress is tracked in [TASKS.md](TASKS.md).
 - **New project structure** (Vite + TypeScript; React still to be decided) on a `v2` branch, merged into `main` through one pull request. Only if the single file gets too big to manage.
 - ✅ **Text mode** (v1.5): type or paste text, translate, edit, copy, download
 - ✅ **Word mode** (v1.6): a single word gives a dictionary card with meanings, part of speech, examples, transliteration and pronunciation
-- Subject field and word limit available in every mode
+- ✅ Subject field in every mode; word limit in PDF and Text modes (a single word has no use for one)
 
-## Phase 2: more inputs
+## ✅ Phase 2: more inputs (v1.7–v1.8)
 
-- **Images and photos:** upload, paste a screenshot (Ctrl+V), or take a photo with the phone camera
-- **Word (.docx), PowerPoint and .txt files**
+- ✅ **Images and photos** (v1.7): upload, paste a screenshot (Ctrl+V), or take a photo with the phone camera
+- ✅ **Word (.docx), PowerPoint (.pptx) and .txt files** (v1.8)
 
-## Phase 3: editing and refining
+## ✅ Phase 3: editing and refining (v1.8)
 
-- Side-by-side view: original and translation, both editable
-- **Refine with an instruction:** select a part (or the whole document) and say *"more formal"*, *"simpler English"*, *"keep terms in Hindi"* to retranslate just that part
-- **Glossary:** fix a term once and every page follows it
-- Tone presets: Formal, Simple, Academic, Literal
+- ✅ Side-by-side view: original and translation, both editable (Text mode on wide screens, and Word, PowerPoint and text files with **Edit original**; PDF and image originals are pictures)
+- ✅ **Refine with an instruction:** select a part (or the whole document) and say *"more formal"*, *"simpler English"*, *"keep terms in Hindi"* to retranslate just that part, with Undo
+- ✅ **Glossary:** fix a term once and every page follows it, plus **Fix a word everywhere** for translations already made
+- ✅ Tone presets: Like the original, Formal, Simple, Academic, Literal
 - ✅ Work is saved in the browser, so a refresh never loses it (done in v1.4)
-- History of past documents to reopen
+- ✅ History of past documents to reopen (last 30)
 
-## Phase 4: downloads
+## ✅ Phase 4: downloads (v1.8)
 
-- **Word (.docx)** download
-- **PDF** with selectable, searchable text (embedded fonts for every script); today's PDF is made of page images
-- Copy all
-- Bilingual export (original and translation together)
+- ✅ **Word (.docx)** download
+- ✅ **PDF** with selectable, searchable text: an invisible text layer in Noto fonts over the page pictures (every script except Chinese, Japanese and Korean, whose fonts are too large)
+- ✅ Copy all
+- ✅ Bilingual export (original and translation together): **Include the originals**
 
 ## Later ideas
 

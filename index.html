@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Anuvad</title>
-<meta name="description" content="Translate PDFs between 100+ languages, page by page, with headings, lists and tables kept. Free, runs in your browser.">
+<meta name="description" content="Translate PDFs and photos between 100+ languages, page by page, with headings, lists and tables kept. Free, runs in your browser.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f0a43a'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%23161412' font-family='serif'%3E%E0%A4%85%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Tiro+Devanagari+Hindi&display=swap">
@@ -59,6 +59,18 @@ header p { margin: 0; color: var(--muted); max-width: 62ch; }
 .steps { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; font-size: 0.88rem; }
 .steps b { font-weight: 600; }
 details summary { cursor: pointer; font-size: 0.88rem; font-weight: 500; color: var(--accent); }
+#glossaryBox[open], #refineAllBox[open] { gap: 10px; }
+.hlist { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; max-height: 420px; overflow: auto; }
+.hitem { display: flex; align-items: center; gap: 8px; padding: 6px 4px 6px 8px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.hicon { flex: none; }
+.hmain { display: grid; min-width: 0; flex: 1; }
+.htitle { font-size: 0.86rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hmeta { font-size: 0.75rem; color: var(--muted); }
+.hitem .fx { flex: none; width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 0; background: transparent; color: var(--muted); font-size: 0.8rem; }
+.hitem .fx:hover { background: var(--bad-soft); color: var(--bad); }
+.refine { flex-basis: 100%; display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.refine .keyrow button { flex: none; }
+#glossaryBox textarea { resize: vertical; font-size: 0.9rem; }
 details[open] summary { margin-bottom: 8px; }
 .keyrow { display: flex; gap: 8px; }
 .keyrow input { flex: 1; min-width: 0; }
@@ -70,7 +82,10 @@ details[open] summary { margin-bottom: 8px; }
 .drop:hover, .drop.over, .drop:focus-within { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
 .drop strong { font-weight: 600; }
 .drop small { color: var(--muted); }
-.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.drop input, .camera input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+/* The camera button only shows on phones and tablets. */
+.btnlink.camera { position: relative; display: none; }
+@media (pointer: coarse) { .btnlink.camera { display: block; } }
 /* PDF / Text / Word switch at the top of the left column. */
 .modes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
 .modes button { border: 0; background: transparent; color: var(--muted); padding: 8px; border-radius: 7px; font-weight: 600; }
@@ -78,6 +93,11 @@ details[open] summary { margin-bottom: 8px; }
 .modes button[aria-selected="true"] { background: var(--marigold-soft); color: var(--accent); }
 body.mode-text .pdfonly, body.mode-word .pdfonly, body:not(.mode-text) .textonly, body:not(.mode-word) .wordonly, body.mode-word .notword { display: none !important; }
 .textview { display: grid; gap: 16px; min-width: 0; }
+/* Text mode on wide screens: your text on the left, the translation on the right, both editable. */
+@media (min-width: 1200px) {
+  .textview.textonly { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+  .textview.textonly #srcText { min-height: 420px; }
+}
 .tcard { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; display: grid; gap: 10px; min-width: 0; }
 #srcText { min-height: 200px; resize: vertical; font-family: var(--font-read); font-size: 1.04rem; line-height: 1.6; }
 .tfoot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
@@ -147,13 +167,17 @@ button.dl:disabled { opacity: 1; background: transparent; border-color: var(--li
 .pdfdoc ul, .pdfdoc ol { margin: 0.4em 0; padding-inline-start: 1.5em; }
 .pdfdoc [dir=rtl] th, .pdfdoc [dir=rtl] td { text-align: right; }
 .pdfdoc .mk { unicode-bidi: isolate; }
+.pdfdoc .original img { max-width: 100%; border: 1px solid #ccc; display: block; }
+.pdfdoc .otext { white-space: pre-wrap; color: #444; background: #f4f4f4; padding: 8px 10px; border-radius: 4px; font-size: 13.5px; }
 .pdfdoc li { margin: 0.15em 0; }
 .pdfdoc table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 12.5px; margin: 0.6em 0; }
 .pdfdoc th, .pdfdoc td { border: 1px solid #999; padding: 4px 7px; text-align: left; vertical-align: top; }
 .pdfdoc th { background: #eee; }
 .pdfdoc .pg { font-family: Arial, sans-serif; font-size: 10.5px; color: #777; text-transform: uppercase; letter-spacing: .08em; border-top: 1px solid #ccc; padding-top: 8px; margin: 6px 0 10px; }
 .page { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; display: grid; grid-template-columns: 180px minmax(0, 1fr); overflow: hidden; }
-@media (max-width: 600px) { .page { grid-template-columns: minmax(0, 1fr); } }
+/* Word, PowerPoint and text files: original text and translation side by side, half and half. */
+.page.textdoc { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+@media (max-width: 600px) { .page, .page.textdoc { grid-template-columns: minmax(0, 1fr); } }
 .empty { margin: 0; padding: 48px 20px; border: 1.5px dashed var(--line); border-radius: 10px; text-align: center; color: var(--muted); }
 .orig { background: var(--bg); border-right: 1px solid var(--line); padding: 12px; display: grid; gap: 8px; align-content: start; }
 @media (max-width: 600px) { .orig { border-right: 0; border-bottom: 1px solid var(--line); } }
@@ -188,6 +212,9 @@ button.dl:disabled { opacity: 1; background: transparent; border-color: var(--li
 @keyframes blink { 0%, 80%, 100% { opacity: .25; transform: scale(.8); } 40% { opacity: 1; transform: scale(1); } }
 .took { font-size: 0.78rem; color: var(--muted); margin-right: auto; align-self: center; font-variant-numeric: tabular-nums; }
 .err { color: var(--bad); font-size: 0.9rem; margin: 0; }
+.srcbox { display: grid; gap: 8px; justify-items: start; }
+.srctext { font-family: var(--font-read); font-size: 0.86rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 340px; overflow: auto; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 8px; }
+.srcbox textarea { min-height: 260px; font-size: 0.86rem; resize: vertical; }
 .trans textarea { min-height: 260px; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.85rem; line-height: 1.5; resize: vertical; }
 
 footer { color: var(--muted); font-size: 0.85rem; text-align: center; display: grid; gap: 6px; }
@@ -203,13 +230,13 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
 <div class="wrap">
   <header>
     <h1><span class="hi">अनुवाद</span>Anuvad</h1>
-    <p>Upload PDFs, paste text or look up a word in any language and translate it into the language you choose, with headings, lists and tables kept. Each page is read as an image, so scanned pages and old fonts (like Kruti Dev for Hindi) work too.</p>
+    <p>Upload PDFs or photos, paste text or look up a word in any language and translate it into the language you choose, with headings, lists and tables kept. Each page is read as an image, so scanned pages and old fonts (like Kruti Dev for Hindi) work too.</p>
   </header>
 
   <div class="grid">
     <aside class="rail">
       <div class="modes" role="tablist" aria-label="What to translate">
-        <button type="button" role="tab" id="modePdf" aria-selected="true">PDF</button>
+        <button type="button" role="tab" id="modePdf" aria-selected="true">Files</button>
         <button type="button" role="tab" id="modeText" aria-selected="false">Text</button>
         <button type="button" role="tab" id="modeWord" aria-selected="false">Word</button>
       </div>
@@ -250,11 +277,14 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
       <section class="panel pdfonly" id="uploadPanel">
         <span class="label">1 · Upload</span>
         <label class="drop" id="drop">
-          <input type="file" id="fileIn" accept="application/pdf,.pdf" multiple>
-          <strong id="dropTitle">Choose PDFs</strong>
-          <small>or drop them here · several PDFs are translated as one</small>
+          <input type="file" id="fileIn" accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,image/gif,image/bmp,image/avif,.txt,.docx,.pptx,text/plain" multiple>
+          <strong id="dropTitle">Choose PDFs, images or documents</strong>
+          <small>PDF, JPG, PNG, Word (.docx), PowerPoint (.pptx) or .txt · drop them here · paste a screenshot with Ctrl + V · several files are translated as one</small>
         </label>
-        <ul class="files" id="fileList" hidden aria-label="Uploaded PDFs"></ul>
+        <label class="btnlink camera" id="cameraBtn">📷 Take a photo
+          <input type="file" id="cameraIn" accept="image/*" capture="environment">
+        </label>
+        <ul class="files" id="fileList" hidden aria-label="Uploaded files"></ul>
       </section>
 
       <section class="panel">
@@ -276,6 +306,31 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
             <option value="translate">Translate fully</option>
           </select>
         </label>
+        <label class="field notword"><span>Tone</span>
+          <select id="tone">
+            <option value="match">Like the original</option>
+            <option value="formal">Formal</option>
+            <option value="simple">Simple</option>
+            <option value="academic">Academic</option>
+            <option value="literal">Literal (close to the original wording)</option>
+          </select>
+        </label>
+        <details class="field notword" id="glossaryBox">
+          <summary>Glossary <span class="opt" id="glossaryCount">(optional)</span></summary>
+          <label class="field"><span class="help">One per line: original = translation (or a translated word = how you'd rather write it). Every new translation follows these.</span>
+            <textarea id="glossary" rows="4" dir="auto" spellcheck="false" placeholder="राग = Raga&#10;ताल = Tala"></textarea>
+          </label>
+          <div class="field">
+            <span>Fix a word everywhere</span>
+            <small class="help">Replaces it in every translation already made, straight away.</small>
+            <div class="row2">
+              <input type="text" id="fixFrom" placeholder="Replace…" aria-label="Word to replace">
+              <input type="text" id="fixTo" placeholder="with…" aria-label="Replace with">
+            </div>
+            <label class="check"><input type="checkbox" id="fixAdd" checked> Also add it to the glossary</label>
+            <button type="button" class="small" id="fixGo">Replace everywhere</button>
+          </div>
+        </details>
         <label class="field notword"><span>Output</span>
           <select id="layout">
             <option value="en">Translation only</option>
@@ -311,6 +366,21 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
           <div class="status" id="status"></div>
         </div>
         <div id="runMsg" class="notice" hidden></div>
+        <details class="field" id="refineAllBox">
+          <summary>Refine the translation</summary>
+          <small class="help">Rewrites every translated page in the From–To range (or the whole text) following your instruction. To change one part only, select it in the translation and click <b>Refine…</b> there.</small>
+          <div class="keyrow">
+            <input type="text" id="refineAllIn" placeholder="e.g. more formal, simpler English" aria-label="How should the translation change?">
+            <button type="button" class="small" id="refineAllGo">Apply</button>
+          </div>
+        </details>
+      </section>
+
+      <section class="panel" id="historyPanel">
+        <details id="historyBox">
+          <summary>History <span class="opt" id="historyCount"></span></summary>
+          <ul class="hlist" id="historyList"></ul>
+        </details>
       </section>
 
     </aside>
@@ -319,12 +389,14 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
       <!-- Download options sit at the top right of the pages, always shown; the buttons switch on once a PDF is chosen. -->
       <section class="exportbar" id="exportBar" aria-label="Download">
         <div class="exinfo">
-          <span class="status" id="wordTotal">Choose a PDF to download its translation</span>
+          <span class="status" id="wordTotal">Choose a PDF or image to download its translation</span>
           <span class="help">Choose where to save on your computer</span>
+          <label class="check notword"><input type="checkbox" id="exOrig"> Include the originals (bilingual)</label>
         </div>
         <div class="btns">
           <button id="exPdf" class="dl" disabled>Download PDF</button>
-          <button id="exHtml" class="dl" disabled title="Opens in Word">Download .html</button>
+          <button id="exDocx" class="dl" disabled>Download Word</button>
+          <button id="exHtml" class="dl" disabled>Download .html</button>
           <button id="exMd" class="dl" disabled>Download .md</button>
           <button id="copyAll" class="dl" disabled>Copy all</button>
         </div>
@@ -364,7 +436,7 @@ dialog img { max-height: 90vh; width: auto; max-width: 100%; display: block; bor
   </div>
 
   <footer>
-    <p>Your PDFs, translations and access code stay in this browser (so a refresh loses nothing; ✕ removes a PDF) and are sent only to Google for translation. On Google's free plan, Google may use what you send to improve its services, so don't upload private documents.</p>
+    <p>Your PDFs, images, translations and access code stay in this browser (so a refresh loses nothing; ✕ removes a file) and are sent only to Google for translation. On Google's free plan, Google may use what you send to improve its services, so don't upload private documents.</p>
     <p>© 2026 Shreeyanshi Chandra · <a href="https://github.com/shreeyanshichandra/anuvad" target="_blank" rel="noopener">View code on GitHub</a></p>
   </footer>
 </div>
@@ -431,7 +503,7 @@ function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function renderEmpty() {
-  $("#pages").innerHTML = `<p class="empty">Your PDFs' pages and their translation will appear here.</p>`;
+  $("#pages").innerHTML = `<p class="empty">Your PDFs' pages and images, and their translation, will appear here.</p>`;
 }
 
 function renderPage(p) {
@@ -439,22 +511,43 @@ function renderPage(p) {
   let el = document.getElementById("pg" + p.num);
   if (!el) {
     el = document.createElement("article");
-    el.className = "page"; el.id = "pg" + p.num;
+    el.className = p.doc.parts ? "page textdoc" : "page"; el.id = "pg" + p.num;
     el.innerHTML = `
       <div class="orig">
         <div class="pnum"><span>Page ${p.num}</span><span class="st"></span></div>
-        <img alt="Page ${p.num} of the original PDF" ${p.thumb ? `src="${p.thumb}"` : "hidden"}>
+        ${p.doc.parts ? `<div class="srcbox"></div>` : `<img alt="Page ${p.num}, the original" ${p.thumb ? `src="${p.thumb}"` : "hidden"}>`}
       </div>
       <div class="trans">
         <div class="tools"></div>
         <div class="body"></div>
       </div>`;
-    el.querySelector("img").addEventListener("click", () => openZoom(p));
+    el.querySelector("img")?.addEventListener("click", () => openZoom(p));
     $("#pages").appendChild(el);
   }
+  if (p.doc.parts) fillSource(p, el.querySelector(".srcbox"));
   el.querySelector(".st").innerHTML = chip(p.status === "working" && p.phase === "queued" ? "queued" : p.status);
   fillResult(p, el.querySelector(".tools"), el.querySelector(".body"));
   updateButtons();
+}
+// The original side of a Word, PowerPoint or text-file page: its text, which can be corrected and translated again.
+function fillSource(p, box) {
+  if (p.editingSource) {
+    if (box.querySelector("textarea")) return;   // keep what is being typed
+    box.innerHTML = `<textarea dir="auto" aria-label="Edit the original of page ${p.num}"></textarea><div class="btns"></div>`;
+    box.querySelector("textarea").value = p.source;
+    box.querySelector(".btns").append(
+      btn("Save", () => {
+        const v = box.querySelector("textarea").value;
+        if (v !== p.source) { p.source = v; p.settings = null; }   // changed: Translate redoes this page
+        p.editingSource = false; renderPage(p);
+      }),
+      btn("Cancel", () => { p.editingSource = false; renderPage(p); }));
+    return;
+  }
+  box.innerHTML = `<div class="srctext" dir="auto"></div>`;
+  box.firstChild.textContent = p.source;
+  const b = btn("Edit original", () => { p.editingSource = true; renderPage(p); });
+  box.append(b);
 }
 // The translation side of a page or of the text: its tools (Edit, Copy, Translate again) and its body.
 function fillResult(p, tools, body) {
@@ -470,6 +563,13 @@ function fillResult(p, tools, body) {
     if (isWord && window.speechSynthesis) tools.append(btn("🔊 Listen", () => speak(p)));
     tools.append(btn("Edit", () => { p.editing = true; renderPage(p); }));
     tools.append(btn("Copy", () => copyText(p.md)));
+    if (p.prevMd != null) tools.append(btn("Undo change", () => { p.md = p.prevMd; p.prevMd = null; p.words = countWords(p.md, langOf(p.to)); renderPage(p); }));
+    const r = btn("Refine…", () => openRefine(p, body));
+    r.title = "Select part of the translation first to change only that part";
+    // Remember the selected text before the click can clear it.
+    r.addEventListener("pointerdown", () => { p.refineSel = selectionIn(body); });
+    tools.append(r);
+    if (p.refineOpen) tools.append(refineRow(p));
   }
   if ((p.status === "done" || p.status === "failed") && !p.editing) {
     tools.append(btn(isWord ? "Look up again" : "Translate again", () => (isSingle ? runSingle(p) : runPages([p.num]))));
@@ -490,6 +590,89 @@ function fillResult(p, tools, body) {
     body.innerHTML = `<p class="placeholder">${isWord ? "The dictionary card will appear here." : isSingle ? "The translation will appear here." : "Not translated yet."}</p>`;
   }
 }
+/* ---------- Refine with an instruction ---------- */
+// Text selected inside one translation (as shown on screen), or "" if nothing there is selected.
+function selectionIn(el) {
+  const s = window.getSelection();
+  if (!s || s.isCollapsed || !s.rangeCount) return "";
+  const r = s.getRangeAt(0);
+  return el.contains(r.commonAncestorContainer) ? s.toString().trim() : "";
+}
+function openRefine(p, body) {
+  if (!p.refineSel) p.refineSel = selectionIn(body);
+  p.refineOpen = true; renderPage(p);
+  document.querySelector(`#${p.kind ? p.kind + "Out" : "pg" + p.num} .refine input`)?.focus();
+}
+function refineRow(p) {
+  const row = document.createElement("div"); row.className = "refine";
+  const what = p.refineSel ? `Changing only: “${p.refineSel.length > 90 ? p.refineSel.slice(0, 90) + "…" : p.refineSel}”` : `Changing the whole ${p.kind === "word" ? "card" : p.kind ? "translation" : "page"} (select part of it first to change only that part)`;
+  row.innerHTML = `<small class="help"></small><div class="keyrow"><input type="text" placeholder="e.g. more formal, simpler English, keep terms in Hindi" aria-label="How should it change?"></div>`;
+  row.querySelector("small").textContent = what;
+  const input = row.querySelector("input");
+  const go = () => {
+    const ins = input.value.trim();
+    if (!ins) { toast("Say how it should change, e.g. “more formal”."); return; }
+    const sel = p.refineSel; p.refineOpen = false; p.refineSel = "";
+    refineItems([p], ins, sel);
+  };
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); go(); } if (e.key === "Escape") { p.refineOpen = false; p.refineSel = ""; renderPage(p); } });
+  row.querySelector(".keyrow").append(btn("Apply", go), btn("Cancel", () => { p.refineOpen = false; p.refineSel = ""; renderPage(p); }));
+  return row;
+}
+function refinePrompt(p, instruction, excerpt) {
+  const T = langOf(p.to), tn = T.name, subject = $("#subject").value.trim();
+  return [
+    `Below is a ${tn} ${p.kind === "word" ? "dictionary entry" : "translation"} in Markdown${subject ? ` (subject: ${subject})` : ""}. The reader asks for this change:`,
+    `"""${instruction}"""`,
+    excerpt
+      ? `Apply it ONLY to the part that reads as follows on screen (Markdown symbols removed):\n"""\n${excerpt}\n"""\nLeave every other part exactly as it is, character for character.`
+      : "Apply it to the whole text.",
+    "Rules:",
+    "- Keep the meaning, facts, names, numbers and the Markdown structure (headings, lists, tables), unless the change asks otherwise.",
+    `- Keep it in ${tn} unless the change asks for another language or script.`,
+    glossaryRule(tn),
+    "Reply with the complete Markdown, unchanged parts included: no preface, no notes, no code fences.",
+    "",
+    '"""', p.md, '"""',
+  ].join("\n");
+}
+// Rewrites translations following an instruction, a few at a time. The previous version is kept for "Undo change".
+async function refineItems(items, instruction, excerpt = "") {
+  if (!apiKey || running || !items.length) return;
+  running = true; ctl = new AbortController();
+  $("#stop").hidden = false; $("#runMsg").hidden = true;
+  if (!items[0].kind) renderFiles();
+  const queue = [...items];
+  let failed = "";
+  for (const p of items) { p.status = "working"; p.phase = "queued"; p.editing = false; p.prevMd = p.md; renderPage(p); }
+  async function worker() {
+    while (queue.length && !ctl.signal.aborted) {
+      const p = queue.shift(), old = p.prevMd;
+      p.phase = "refine"; p.tSend = Date.now(); renderPage(p);
+      try {
+        let last = 0;
+        const res = await gemini(refinePrompt({ ...p, md: old }, instruction, excerpt), [], ctl.signal, (text) => {
+          const now = Date.now();
+          if (now - last > 250) { last = now; p.md = text; renderPage(p); }
+        });
+        const md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
+        if (res.truncated || !md) throw new RunError("The answer was cut short, so the page was left as it was.");
+        p.md = md; p.took = (Date.now() - p.tSend) / 1000;
+      } catch (e) {
+        p.md = old; p.prevMd = null;
+        if (!(e.name === "AbortError" || ctl.signal.aborted)) failed = e instanceof TypeError ? "Couldn't reach Google. Check your internet connection." : e.message;
+        if (e.stopAll || e.rate) queue.length = 0;
+      }
+      p.status = "done"; p.words = countWords(p.md, langOf(p.to)); renderPage(p);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(MAX_PARALLEL, items.length) }, worker));
+  for (const p of queue) { p.status = "done"; p.md = p.prevMd; p.prevMd = null; renderPage(p); }
+  running = false; $("#stop").hidden = true;
+  if (failed) { $("#runMsg").textContent = failed; $("#runMsg").className = "notice bad"; $("#runMsg").hidden = false; }
+  items.forEach(renderPage);
+  if (!items[0].kind) renderFiles();
+}
 function btn(label, fn) {
   const b = document.createElement("button"); b.className = "small"; b.textContent = label; b.onclick = fn;
   b.disabled = (running && label !== "Copy") || (/ again$/.test(label) && !apiKey);
@@ -499,7 +682,7 @@ function btn(label, fn) {
 function updateButtons() {
   const item = single(), isWord = mode === "word";
   const has = item ? item.source.trim().length > 0 || item.status === "done" : pages.length > 0;
-  for (const id of ["#exPdf", "#exHtml", "#exMd", "#copyAll"]) $(id).disabled = !has;
+  for (const id of ["#exPdf", "#exDocx", "#exHtml", "#exMd", "#copyAll"]) $(id).disabled = !has;
   if (isWord) {
     $("#wordTotal").textContent = item.status === "done" ? `Dictionary card for “${item.source.trim()}”`
       : has ? "Nothing looked up yet" : "Type a word to download its dictionary card";
@@ -512,13 +695,13 @@ function updateButtons() {
     const words = done.reduce((x, p) => x + countWords(p.md, langOf(p.to)), 0);
     $("#wordTotal").textContent = done.length
       ? `${done.length} page${done.length === 1 ? "" : "s"} translated · ${words.toLocaleString()} ${unitOf(exportLang())}`
-      : has ? "Nothing translated yet" : "Choose a PDF to download its translation";
+      : has ? "Nothing translated yet" : "Choose a PDF or image to download its translation";
   }
   const ready = item ? item.source.trim().length > 0 : pages.length > 0;
   $("#go").disabled = !ready || !apiKey || running;
   $("#go").textContent = isWord ? `Look up in ${target().name}` : `Translate into ${target().name}`;
   scheduleSave();
-  const what = isWord ? "type a word" : item ? "type or paste some text" : "choose a PDF";
+  const what = isWord ? "type a word" : item ? "type or paste some text" : "choose a PDF or image";
   $("#goHint").hidden = ready && !!apiKey;
   $("#goHint").textContent = !apiKey && !ready ? `Save your access code and ${what} to start.`
     : !apiKey ? "Save your access code (at the top) to start." : `${what[0].toUpperCase() + what.slice(1)} to start.`;
@@ -619,35 +802,180 @@ $("#keyRemove").onclick = () => {
 };
 $("#model").addEventListener("change", (e) => store.set(MODEL_STORE, e.target.value));
 
-/* ---------- PDF ---------- */
-// Several PDFs can be added; they are translated and downloaded as one combined document.
+/* ---------- PDFs and images ---------- */
+// Several PDFs and images can be added; they are translated and downloaded as one combined document.
+// An image (photo, scan or screenshot) counts as a one-page document.
+const isPdfFile = (f) => /\.pdf$/i.test(f.name) || f.type === "application/pdf";
+const isImageFile = (f) => /^image\/(jpeg|png|webp|gif|bmp|avif)$/.test(f.type) || /\.(jpe?g|png|webp|gif|bmp|avif)$/i.test(f.name);
+// Word, PowerPoint and plain-text files are read as text, split into parts (a slide each for PowerPoint).
+const TEXT_TYPES = { ".txt": "text/plain", ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation" };
+const isTextDocFile = (f) => /\.(txt|docx|pptx)$/i.test(f.name) || Object.values(TEXT_TYPES).includes(f.type);
+const pageCount = (d) => (d.img ? 1 : d.parts ? d.parts.length : d.pdf?.numPages || 0);
+const fileLabel = (d) => d.name + (d.pdf ? ".pdf" : d.ext);
+// What one page of a file is called: a slide in PowerPoint, a part in Word and text files.
+const unitName = (d) => (d.ext === ".pptx" ? "slide" : d.parts ? "part" : "page");
+// Ids are based on the time, so a document reopened from History never clashes with a newer one.
+let lastDocId = 0;
+const nextDocId = () => (lastDocId = Math.max(Date.now(), lastDocId + 1, docSeq + 1));
+let pasteSeq = 0;
 async function loadFiles(files) {
   files = [...files];
   if (!files.length) return;
   if (running) { toast("Stop the current translation first."); return; }
-  const bad = files.filter((f) => !/\.pdf$/i.test(f.name) && f.type !== "application/pdf");
-  if (bad.length) toast(bad.length === files.length ? "Choose PDF files." : `Skipped ${bad.map((f) => f.name).join(", ")}: not a PDF.`);
+  const bad = files.filter((f) => !isPdfFile(f) && !isImageFile(f) && !isTextDocFile(f));
+  const oldOffice = bad.some((f) => /\.(doc|ppt)$/i.test(f.name)) ? " Old .doc and .ppt files: open them in Word or PowerPoint and save as .docx or .pptx first." : "";
+  if (bad.length) toast((bad.length === files.length ? "Choose PDFs, images, Word (.docx), PowerPoint (.pptx) or .txt files."
+    : `Skipped ${bad.map((f) => f.name).join(", ")}: not a file Anuvad can read.`) + oldOffice);
+  if (docs.length && bad.length < files.length) grownFrom.add("files:" + docs.map((d) => d.id).join(","));
   for (const file of files) {
     if (bad.includes(file)) continue;
-    const doc = { id: ++docSeq, name: file.name.replace(/\.pdf$/i, ""), pdf: null };
+    const kind = isPdfFile(file) ? "pdf" : isTextDocFile(file) ? "text" : "image";
+    const ext = ((file.name.match(/\.[a-z0-9]+$/i) || [".png"])[0]).toLowerCase();
+    const doc = { id: nextDocId(), name: file.name.replace(/\.[a-z0-9]+$/i, "") || "Image", ext, pdf: null, img: null, parts: null };
     docs.push(doc); renderFiles();
-    let bytes;
+    let bytes, type = "application/pdf";
     try {
-      bytes = await file.arrayBuffer();
-      // PDF.js takes over the buffer it is given, so it gets a copy and the original is kept for saving.
-      doc.pdf = await pdfjsLib.getDocument({ data: new Uint8Array(bytes.slice(0)) }).promise;
-    } catch {
+      if (kind === "image") {
+        ({ bytes, type } = await shrinkImage(file));
+        doc.img = await openImage(bytes, type);
+      } else if (kind === "text") {
+        bytes = await file.arrayBuffer(); type = TEXT_TYPES[ext] || "text/plain";
+        doc.parts = await readTextDoc(bytes, ext);
+        if (!doc.parts.length) throw new Error("empty");
+      } else {
+        bytes = await file.arrayBuffer();
+        // PDF.js takes over the buffer it is given, so it gets a copy and the original is kept for saving.
+        doc.pdf = await pdfjsLib.getDocument({ data: new Uint8Array(bytes.slice(0)) }).promise;
+      }
+    } catch (e) {
       docs = docs.filter((d) => d !== doc);
-      toast(`“${file.name}” could not be opened. It may be damaged or password-protected.`);
+      toast(kind === "image" ? `“${file.name}” could not be opened. Try saving it as JPG or PNG.`
+        : kind === "text" ? (e.message === "empty" ? `“${file.name}” has no text to translate.` : e.message?.startsWith("Couldn't load") ? e.message : `“${file.name}” could not be read. It may be damaged.`)
+        : `“${file.name}” could not be opened. It may be damaged or password-protected.`);
       continue;
     }
     if (!docs.includes(doc)) continue;   // removed while it was opening
-    saveDocFile(doc, bytes);
-    for (let i = 1; i <= doc.pdf.numPages; i++) pages.push({ doc, local: i, thumb: "", status: "idle", md: "" });
+    saveDocFile(doc, bytes, type);
+    for (let i = 1; i <= pageCount(doc); i++) pages.push({ doc, local: i, thumb: "", status: "idle", md: "", source: doc.parts?.[i - 1] });
     pagesChanged();
     makeThumbs(doc);
   }
   renderFiles();
+}
+const DOC_LIBS = {
+  jszip: "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
+  mammoth: "https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js",
+};
+const EMPTY_SLIDE = "(this slide has no text)";
+// Reads a .txt, .docx or .pptx file into parts of text to translate one at a time.
+async function readTextDoc(bytes, ext) {
+  if (ext === ".pptx") {
+    await loadScript(DOC_LIBS.jszip, "Couldn't load the PowerPoint reader. Check your internet connection.");
+    const zip = await JSZip.loadAsync(bytes);
+    const slides = Object.keys(zip.files).map((n) => n.match(/^ppt\/slides\/slide(\d+)\.xml$/)).filter(Boolean)
+      .sort((a, b) => a[1] - b[1]);
+    const out = [];
+    for (const [name] of slides) {
+      const xml = new DOMParser().parseFromString(await zip.file(name).async("string"), "application/xml");
+      const lines = [...xml.getElementsByTagName("a:p")].map((p) => [...p.getElementsByTagName("a:t")].map((t) => t.textContent).join("").trim()).filter(Boolean);
+      out.push(lines.join("\n"));
+    }
+    // Empty slides are kept (as a note), so slide numbers stay the same as in the file.
+    return out.some((s) => s) ? out.map((s) => s || EMPTY_SLIDE) : [];
+  }
+  let text;
+  if (ext === ".docx") {
+    await loadScript(DOC_LIBS.mammoth, "Couldn't load the Word reader. Check your internet connection.");
+    // Read as HTML (mammoth's own Markdown drops tables), then turned into Markdown here; pictures are left out.
+    text = htmlToMd((await mammoth.convertToHtml({ arrayBuffer: bytes })).value);
+  } else {
+    const u8 = new Uint8Array(bytes);
+    const enc = u8[0] === 0xff && u8[1] === 0xfe ? "utf-16le" : u8[0] === 0xfe && u8[1] === 0xff ? "utf-16be" : "utf-8";
+    text = new TextDecoder(enc).decode(bytes);
+  }
+  return splitText(text.replace(/\r\n?/g, "\n").replace(/\n{3,}/g, "\n\n").trim());
+}
+// Word's HTML to Markdown: headings, bold and italic, lists (nested too) and tables.
+function htmlToMd(html) {
+  const inline = (n) => [...n.childNodes].map((c) => {
+    if (c.nodeType === 3) return c.data.replace(/\s+/g, " ");
+    const t = c.tagName, inner = inline(c);
+    if (t === "STRONG" || t === "B") return inner.trim() ? `**${inner.trim()}**` : inner;
+    if (t === "EM" || t === "I") return inner.trim() ? `*${inner.trim()}*` : inner;
+    if (t === "BR") return "\n";
+    if (t === "IMG" || t === "UL" || t === "OL" || t === "TABLE") return "";
+    return inner;
+  }).join("");
+  const cellText = (td) => [...td.children].length ? [...td.children].map((c) => inline(c).trim()).filter(Boolean).join(" ") : inline(td).trim();
+  const list = (el, depth) => [...el.children].map((li, i) => {
+    const mark = el.tagName === "OL" ? `${i + 1}.` : "-";
+    const sub = [...li.children].filter((c) => c.tagName === "UL" || c.tagName === "OL").map((c) => list(c, depth + 1)).join("\n");
+    return "  ".repeat(depth) + mark + " " + inline(li).trim() + (sub ? "\n" + sub : "");
+  }).join("\n");
+  const blocks = [];
+  for (const el of new DOMParser().parseFromString(`<body>${html}</body>`, "text/html").body.children) {
+    const t = el.tagName;
+    if (/^H[1-6]$/.test(t)) blocks.push("#".repeat(+t[1]) + " " + inline(el).trim());
+    else if (t === "UL" || t === "OL") blocks.push(list(el, 0));
+    else if (t === "TABLE") {
+      const rows = [...el.querySelectorAll("tr")].map((tr) => [...tr.children].map((td) => cellText(td).replace(/\|/g, "\\|").replace(/\n/g, " ")));
+      if (!rows.length) continue;
+      const cols = Math.max(...rows.map((r) => r.length));
+      const line = (r) => "| " + Array.from({ length: cols }, (_, i) => r[i] || "").join(" | ") + " |";
+      blocks.push([line(rows[0]), "|" + " --- |".repeat(cols), ...rows.slice(1).map(line)].join("\n"));
+    } else {
+      const s = inline(el).trim();
+      if (s) blocks.push(s);
+    }
+  }
+  return blocks.join("\n\n");
+}
+// Long text is split at paragraph breaks into parts of about 3,500 characters, so each answer stays quick and complete.
+function splitText(text, size = 3500) {
+  if (!text) return [];
+  const parts = [];
+  let cur = "";
+  for (const para of text.split(/\n\n/)) {
+    if (cur && cur.length + para.length > size) { parts.push(cur); cur = ""; }
+    // A single huge paragraph is cut at line or sentence ends.
+    let rest = para;
+    while (rest.length > size) {
+      let cut = Math.max(rest.lastIndexOf("\n", size), rest.lastIndexOf(". ", size) + 1, rest.lastIndexOf("। ", size) + 1);
+      if (cut < size / 2) cut = size;
+      parts.push((cur ? cur + "\n\n" : "") + rest.slice(0, cut).trim()); cur = "";
+      rest = rest.slice(cut).trim();
+    }
+    cur = cur ? cur + "\n\n" + rest : rest;
+  }
+  if (cur.trim()) parts.push(cur);
+  return parts;
+}
+// Decodes saved image bytes (phone photos come out the right way up).
+// (img.decode() sometimes never settles, so this waits for onload instead.)
+function openImage(bytes, type) {
+  const url = URL.createObjectURL(new Blob([bytes], { type }));
+  return new Promise((ok, bad) => {
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); ok(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); bad(new Error("Couldn't open the image")); };
+    img.src = url;
+  });
+}
+// Big phone photos are scaled down to 3000 px on the long side before they're kept, so they save and send quickly.
+async function shrinkImage(file) {
+  const bytes = await file.arrayBuffer(), type = file.type || "image/png";
+  const img = await openImage(bytes, type);
+  const long = Math.max(img.naturalWidth, img.naturalHeight), MAX = 3000;
+  if (long <= MAX && file.size <= 4e6) return { bytes, type };
+  const s = Math.min(1, MAX / long);
+  const c = document.createElement("canvas");
+  c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  const blob = await new Promise((ok) => c.toBlob(ok, "image/jpeg", 0.9));
+  return { bytes: await blob.arrayBuffer(), type: "image/jpeg" };
 }
 
 // ✕ on a file bubble: drops that PDF and its pages; the others stay as they are.
@@ -659,7 +987,7 @@ function removeDoc(id) {
   pages = pages.filter((p) => p.doc !== doc);
   dbRun("docs", "readwrite", (s) => s.delete(doc.id));
   pagesChanged();
-  toast(`Removed ${doc.name}.pdf`);
+  toast(`Removed ${fileLabel(doc)}`);
 }
 
 /* ---------- Keeping work after a refresh ---------- */
@@ -670,8 +998,13 @@ let dbOpen = null, restored = false, saveTimer = 0;
 function openDb() {
   if (!dbOpen) dbOpen = new Promise((ok) => {
     try {
-      const r = indexedDB.open("anuvad", 1);
-      r.onupgradeneeded = () => { r.result.createObjectStore("docs", { keyPath: "id" }); r.result.createObjectStore("state"); };
+      // v2 adds History: "history" holds past translations, "hfiles" the original files they came from.
+      const r = indexedDB.open("anuvad", 2);
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        for (const [name, opts] of [["docs", { keyPath: "id" }], ["state"], ["history", { keyPath: "id" }], ["hfiles", { keyPath: "id" }]])
+          if (!d.objectStoreNames.contains(name)) d.createObjectStore(name, opts);
+      };
       r.onsuccess = () => ok(r.result);
       r.onerror = r.onblocked = () => ok(null);
     } catch { ok(null); }
@@ -691,8 +1024,8 @@ async function dbRun(name, mode, fn) {
     } catch { ok(null); }
   });
 }
-function saveDocFile(doc, bytes) {
-  dbRun("docs", "readwrite", (s) => s.put({ id: doc.id, name: doc.name, bytes }));
+function saveDocFile(doc, bytes, type) {
+  dbRun("docs", "readwrite", (s) => s.put({ id: doc.id, name: doc.name, ext: doc.ext, type, bytes }));
 }
 // Saves page texts and the page range shortly after anything changes.
 function scheduleSave() {
@@ -703,12 +1036,13 @@ function scheduleSave() {
     const keep = pages.map((p) => {
       const settled = p.status === "done" || p.status === "failed";
       return { doc: p.doc.id, local: p.local, status: settled ? p.status : "idle", md: settled ? p.md : "", error: p.error || "",
-        from: p.from, to: p.to, settings: p.settings, words: p.words, took: p.took, limit: p.limit };
+        from: p.from, to: p.to, settings: p.settings, words: p.words, took: p.took, limit: p.limit, source: p.source };
     });
     dbRun("state", "readwrite", (s) => s.put({ pages: keep, range: [$("#from").value, $("#to").value] }, "main"));
+    saveHistory(keep);
   }, 600);
 }
-const OPTION_IDS = ["subject", "terms", "layout", "limit", "limitScope"];
+const OPTION_IDS = ["subject", "terms", "tone", "glossary", "layout", "limit", "limitScope"];
 function saveOptions() {
   store.set(OPTS_STORE, JSON.stringify(Object.fromEntries(OPTION_IDS.map((id) => [id, $("#" + id).value]))));
 }
@@ -716,8 +1050,34 @@ function restoreOptions() {
   let o = {};
   try { o = JSON.parse(store.get(OPTS_STORE) || "{}"); } catch {}
   for (const id of OPTION_IDS) if (typeof o[id] === "string") $("#" + id).value = o[id];
-  for (const id of ["terms", "layout", "limitScope"]) if (!$("#" + id).value) $("#" + id).selectedIndex = 0;
+  for (const id of ["terms", "tone", "layout", "limitScope"]) if (!$("#" + id).value) $("#" + id).selectedIndex = 0;
+  showGlossaryCount();
 }
+function showGlossaryCount() {
+  const n = glossaryPairs().length;
+  $("#glossaryCount").textContent = n ? `(${n} word${n > 1 ? "s" : ""})` : "(optional)";
+}
+$("#glossary").addEventListener("input", showGlossaryCount);
+// Find and replace across every translation that's already done (Text, Word and PDF pages alike).
+$("#fixGo").onclick = () => {
+  const from = $("#fixFrom").value.trim(), to = $("#fixTo").value.trim();
+  if (!from) { toast("Type the word to replace."); return; }
+  if (running) { toast("Stop the current translation first."); return; }
+  // Whole words only for words in alphabetic scripts, so "Raag" doesn't change inside "Raagini".
+  const re = new RegExp((/^[\p{L}\p{M}]/u.test(from) ? "(?<![\\p{L}\\p{M}])" : "") + from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + (/[\p{L}\p{M}]$/u.test(from) ? "(?![\\p{L}\\p{M}])" : ""), "gu");
+  let count = 0;
+  for (const p of [...pages, textItem, wordItem]) {
+    if (p.status !== "done" || p.editing) continue;
+    const md = p.md.replace(re, () => (count++, to));
+    if (md !== p.md) { p.md = md; p.words = countWords(md, langOf(p.to)); renderPage(p); }
+  }
+  if ($("#fixAdd").checked && to && !glossaryPairs().some(([, b]) => b === to)) {
+    $("#glossary").value = ($("#glossary").value.trim() ? $("#glossary").value.trim() + "\n" : "") + `${from} = ${to}`;
+    saveOptions(); showGlossaryCount();
+  }
+  scheduleSave(); updateButtons();
+  toast(count ? `Replaced ${count} time${count > 1 ? "s" : ""}` : `“${from}” wasn't found in the translations`);
+};
 for (const id of OPTION_IDS) {
   $("#" + id).addEventListener("change", saveOptions);
   $("#" + id).addEventListener("input", saveOptions);
@@ -731,27 +1091,141 @@ async function restoreWork() {
     if (!files.length) return;
     const state = (await dbRun("state", "readonly", (s) => s.get("main"))) || {};
     const saved = new Map((state.pages || []).map((q) => [`${q.doc}:${q.local}`, q]));
-    files.sort((a, b) => a.id - b.id);
-    for (const f of files) {
-      let pdf;
-      try { pdf = await pdfjsLib.getDocument({ data: new Uint8Array(f.bytes.slice(0)) }).promise; }
-      catch { dbRun("docs", "readwrite", (s) => s.delete(f.id)); continue; }
-      const doc = { id: f.id, name: f.name, pdf };
-      docs.push(doc); docSeq = Math.max(docSeq, f.id);
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const q = saved.get(`${f.id}:${i}`) || {};
-        pages.push({ doc, local: i, thumb: "", status: q.status === "done" || q.status === "failed" ? q.status : "idle", md: q.md || "",
-          error: q.error || "", from: q.from, to: q.to, settings: q.settings, words: q.words, took: q.took, limit: q.limit });
-      }
-    }
+    await openSaved(files, state.pages || []);
     if (!docs.length) return;
     pagesChanged();
     if (state.range) { $("#from").value = state.range[0]; $("#to").value = state.range[1]; }
-    docs.forEach(makeThumbs);
   } finally {
     restored = true;
     scheduleSave();
   }
+}
+/* ---------- History of past documents ---------- */
+// Every translated set of files, text and looked-up word is kept here (up to HISTORY_MAX), newest first, to reopen later.
+const HISTORY_MAX = 30;
+const historySig = new Map();   // what each entry last held, so unchanged work isn't written again
+const hfilesKept = new Set();
+const grownFrom = new Set();    // History entries of file sets that had more files added since
+const hash = (s) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+async function putHistory(entry) {
+  const sig = JSON.stringify([entry.title, entry.to, entry.pages, entry.item]);
+  if (historySig.get(entry.id) === sig) return false;
+  historySig.set(entry.id, sig);
+  await dbRun("history", "readwrite", (s) => s.put({ ...entry, date: Date.now() }));
+  return true;
+}
+async function saveHistory(keep) {
+  let changed = false;
+  if (pages.some((p) => p.status === "done")) {
+    const ids = docs.map((d) => d.id);
+    for (const id of ids) {
+      if (hfilesKept.has(id)) continue;
+      const f = await dbRun("docs", "readonly", (s) => s.get(id));
+      if (f) { await dbRun("hfiles", "readwrite", (s) => s.put(f)); hfilesKept.add(id); }
+    }
+    const done = pages.filter((p) => p.status === "done");
+    // Adding a file to work already in History updates that entry instead of leaving the smaller set behind.
+    const older = [...grownFrom].filter((id) => id !== "files:" + ids.join(","));
+    grownFrom.clear();
+    if (older.length) { await dbRun("history", "readwrite", (s) => { older.forEach((id) => s.delete(id)); }); changed = true; }
+    changed = await putHistory({ id: "files:" + ids.join(","), kind: "files", fileIds: ids, title: docs.map(fileLabel).join(", "),
+      to: exportLangOf(done), count: done.length, pages: keep }) || changed;
+  }
+  for (const p of [textItem, wordItem]) {
+    if (p.status !== "done") continue;
+    const src = p.source.trim();
+    changed = await putHistory({ id: p.kind === "word" ? `word:${p.to}:${src.toLowerCase()}` : `text:${hash(src)}`, kind: p.kind,
+      title: src.length > 70 ? src.slice(0, 70) + "…" : src, to: p.to,
+      item: { source: p.source, md: p.md, from: p.from, to: p.to, words: p.words, took: p.took, limit: p.limit, lang: p.lang } }) || changed;
+  }
+  if (changed) { await pruneHistory(); renderHistory(); }
+}
+const exportLangOf = (done) => {
+  const count = new Map();
+  for (const p of done) count.set(p.to, (count.get(p.to) || 0) + 1);
+  return [...count].sort((a, b) => b[1] - a[1])[0]?.[0] || $("#dst").value;
+};
+// Keeps the newest entries and deletes original files no entry needs any more.
+async function pruneHistory() {
+  const all = ((await dbRun("history", "readonly", (s) => s.getAll())) || []).sort((a, b) => b.date - a.date);
+  const drop = all.slice(HISTORY_MAX);
+  if (drop.length) await dbRun("history", "readwrite", (s) => { drop.forEach((e) => s.delete(e.id)); });
+  const needed = new Set(all.slice(0, HISTORY_MAX).flatMap((e) => e.fileIds || []));
+  const fileIds = (await dbRun("hfiles", "readonly", (s) => s.getAllKeys())) || [];
+  const unused = fileIds.filter((id) => !needed.has(id) && !docs.some((d) => d.id === id));
+  if (unused.length) { await dbRun("hfiles", "readwrite", (s) => { unused.forEach((id) => s.delete(id)); }); unused.forEach((id) => hfilesKept.delete(id)); }
+}
+async function renderHistory() {
+  const all = ((await dbRun("history", "readonly", (s) => s.getAll())) || []).sort((a, b) => b.date - a.date);
+  const list = $("#historyList");
+  $("#historyCount").textContent = all.length ? `(${all.length})` : "";
+  list.innerHTML = all.length ? "" : `<li class="help">Translations you make are kept here, so you can reopen them later.</li>`;
+  const icon = { files: "📄", text: "✍️", word: "📖" };
+  for (const e of all) {
+    const li = document.createElement("li"); li.className = "hitem";
+    const when = new Date(e.date).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    const extra = e.kind === "files" ? ` · ${e.count} page${e.count === 1 ? "" : "s"}` : e.kind === "word" ? " · word" : " · text";
+    li.innerHTML = `<span class="hicon" aria-hidden="true">${icon[e.kind]}</span><span class="hmain"><span class="htitle" dir="auto"></span><span class="hmeta">${esc(langOf(e.to).name)}${extra} · ${esc(when)}</span></span>`;
+    li.querySelector(".htitle").textContent = e.title; li.querySelector(".htitle").title = e.title;
+    const open = btn("Open", () => openHistory(e.id)); open.disabled = running;
+    const del = document.createElement("button"); del.className = "fx"; del.textContent = "✕";
+    del.title = "Delete from History"; del.setAttribute("aria-label", `Delete ${e.title} from History`);
+    del.onclick = async () => {
+      await dbRun("history", "readwrite", (s) => s.delete(e.id)); historySig.delete(e.id);
+      await pruneHistory(); renderHistory();
+    };
+    li.append(open, del); list.append(li);
+  }
+}
+async function openHistory(id) {
+  if (running) { toast("Stop the current translation first."); return; }
+  const e = await dbRun("history", "readonly", (s) => s.get(id));
+  if (!e) { renderHistory(); return; }
+  if (e.kind !== "files") {
+    const p = e.kind === "word" ? wordItem : textItem;
+    Object.assign(p, { ...e.item, status: "done", error: "", editing: false, prevMd: null, refineOpen: false });
+    $(INPUTS[p.kind]).value = p.source; updateSrcCount();
+    setMode(p.kind); scheduleSave();
+    toast("Opened from History");
+    return;
+  }
+  const files = ((await dbRun("hfiles", "readonly", (s) => s.getAll())) || []).filter((f) => e.fileIds.includes(f.id));
+  if (!files.length) { toast("The original files of this one are no longer saved."); return; }
+  if (docs.length && !confirm("Open this from History in place of the files open now? (Their translations stay in History.)")) return;
+  clearTimeout(saveTimer);
+  await dbRun("docs", "readwrite", (s) => { docs.forEach((d) => s.delete(d.id)); files.forEach((f) => s.put(f)); });
+  docs = []; pages = [];
+  files.forEach((f) => hfilesKept.add(f.id));
+  historySig.set(e.id, JSON.stringify([e.title, e.to, e.pages, e.item]));
+  await openSaved(files, e.pages || []);
+  setMode("pdf");
+  pagesChanged();
+  toast("Opened from History");
+}
+// Reopens saved files ({id, name, ext, type, bytes}) with their saved pages; used after a refresh and by History.
+// Returns false if none of the files could be opened.
+async function openSaved(files, savedPages) {
+  const saved = new Map(savedPages.map((q) => [`${q.doc}:${q.local}`, q]));
+  files = [...files].sort((a, b) => a.id - b.id);
+  for (const f of files) {
+    const doc = { id: f.id, name: f.name, ext: f.ext || ".pdf", pdf: null, img: null, parts: null };
+    try {
+      if (f.type?.startsWith("image/")) doc.img = await openImage(f.bytes, f.type);
+      else if (Object.values(TEXT_TYPES).includes(f.type)) doc.parts = await readTextDoc(f.bytes, f.ext);
+      else doc.pdf = await pdfjsLib.getDocument({ data: new Uint8Array(f.bytes.slice(0)) }).promise;
+    } catch { dbRun("docs", "readwrite", (s) => s.delete(f.id)); continue; }
+    docs.push(doc); docSeq = Math.max(docSeq, f.id);
+    const seq = doc.name.match(/^(?:Screenshot|Photo) (\d+)$/);
+    if (seq) pasteSeq = Math.max(pasteSeq, +seq[1]);
+    for (let i = 1; i <= pageCount(doc); i++) {
+      const q = saved.get(`${f.id}:${i}`) || {};
+      pages.push({ doc, local: i, thumb: "", status: q.status === "done" || q.status === "failed" ? q.status : "idle", md: q.md || "",
+        error: q.error || "", from: q.from, to: q.to, settings: q.settings, words: q.words, took: q.took, limit: q.limit,
+        source: doc.parts ? q.source ?? doc.parts[i - 1] : undefined });
+    }
+  }
+  docs.forEach(makeThumbs);
+  return docs.length > 0;
 }
 
 // After PDFs are added or removed: renumber the pages, reset the page range and redraw.
@@ -781,19 +1255,20 @@ function renderFiles() {
   list.hidden = !docs.length;
   for (const d of docs) {
     const li = document.createElement("li"); li.className = "fbubble";
-    const n = d.pdf?.numPages;
-    li.innerHTML = `<span class="fname" title="${esc(d.name)}.pdf">${esc(d.name)}.pdf</span><span class="fpages">${n ? `${n} page${n > 1 ? "s" : ""}` : "Opening…"}</span>`;
+    const n = pageCount(d);
+    li.innerHTML = `<span class="fname" title="${esc(fileLabel(d))}">${esc(fileLabel(d))}</span><span class="fpages">${d.img ? "image" : n ? `${n} ${unitName(d)}${n > 1 ? "s" : ""}` : "Opening…"}</span>`;
     const x = document.createElement("button");
     x.className = "fx"; x.textContent = "✕"; x.disabled = running;
-    x.setAttribute("aria-label", `Remove ${d.name}.pdf`); x.title = "Remove this PDF";
+    x.setAttribute("aria-label", `Remove ${fileLabel(d)}`); x.title = "Remove this file";
     x.onclick = () => removeDoc(d.id);
     li.append(x); list.append(li);
   }
-  $("#dropTitle").textContent = docs.length ? "Add another PDF" : "Choose PDFs";
+  $("#dropTitle").textContent = docs.length ? "Add more files" : "Choose PDFs, images or documents";
 }
 
 // Previews fill in the background, so translation can start straight away.
 async function makeThumbs(doc) {
+  if (doc.parts) return;   // text files show their text instead of a picture
   for (const p of pages.filter((q) => q.doc === doc)) {
     if (!docs.includes(doc)) return;
     if (running) await sleep(150);   // give translation the main thread first
@@ -808,6 +1283,16 @@ async function makeThumbs(doc) {
 }
 
 async function renderCanvas(p, longSide) {
+  if (p.doc.img) {
+    // Small screenshots are enlarged up to 2× so small letters stay readable; big photos are scaled down.
+    const img = p.doc.img, s = Math.min(longSide / Math.max(img.naturalWidth, img.naturalHeight), 2);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(img.naturalWidth * s); canvas.height = Math.round(img.naturalHeight * s);
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }
   const page = await p.doc.pdf.getPage(p.local);
   const vp1 = page.getViewport({ scale: 1 });
   const scale = longSide / Math.max(vp1.width, vp1.height);
@@ -823,8 +1308,10 @@ async function renderCanvas(p, longSide) {
 const toB64 = (c) => c.toDataURL("image/jpeg", 0.85).split(",")[1];
 
 // Split the page into overlapping halves so small Devanagari stays sharp.
+// A small image (a screenshot of a message, a sign) is sent whole: tall is then null.
 async function pageImages(p) {
   const full = await renderCanvas(p, 2000);
+  if (p.doc.img && Math.max(p.doc.img.naturalWidth, p.doc.img.naturalHeight) <= 1600) return { parts: [toB64(full)], tall: null };
   const tall = full.height >= full.width;
   const parts = [];
   for (const [a, b] of [[0, 0.56], [0.44, 1]]) {
@@ -844,6 +1331,8 @@ async function pageImages(p) {
 }
 
 async function textLayer(p) {
+  if (p.doc.parts) return p.source || "";
+  if (p.doc.img) return "";   // images have no text layer
   try {
     const page = await p.doc.pdf.getPage(p.local);
     const tc = await page.getTextContent();
@@ -1077,6 +1566,7 @@ function shortenPrompt(md, limit, words, T) {
     "- Drop repetition, extra examples and minor detail; merge sentences.",
     "- Never add anything that isn't in the text.",
     `- Lines in the original language (not ${T.name}) stay exactly as they are and do not count towards the limit.`,
+    glossaryRule(T.name),
     "Reply with the Markdown only: no preface, no notes, no code fences.",
     "",
     '"""',
@@ -1139,6 +1629,26 @@ function speak(p) {
   speechSynthesis.speak(u);
 }
 
+// Tone chosen in Options; "match" follows the original's own tone.
+function toneRule(tn) {
+  return {
+    match: `Translate faithfully into clear, natural ${tn} that matches the tone of the original (formal for official or academic text, plain for everyday text).`,
+    formal: `Translate faithfully into formal, polished ${tn}, as used in official letters and documents (polite forms of address, no slang or contractions).`,
+    simple: `Translate faithfully into simple, everyday ${tn} that a school student could follow: short sentences and common words, with hard terms explained in plain words.`,
+    academic: `Translate faithfully into precise academic ${tn}, as in a scholarly book or journal: exact terminology, careful and complete sentences.`,
+    literal: `Translate literally into ${tn}: stay as close to the original wording and sentence structure as ${tn} grammar allows, even if it reads less smoothly.`,
+  }[$("#tone").value] || "";
+}
+// Glossary lines like "राग = Raga": the reader's fixed translations for particular words.
+function glossaryPairs() {
+  return $("#glossary").value.split("\n").map((l) => l.split(/\s*(?:=|→|->)\s*/)).filter((x) => x.length === 2 && x[0].trim() && x[1].trim())
+    .map(([a, b]) => [a.trim(), b.trim()]);
+}
+function glossaryRule(tn) {
+  const g = glossaryPairs();
+  return g.length ? `- GLOSSARY (the reader's own choices; these always win over any other rule). Each line is "A → B": wherever A appears in the original, in any grammatical form, translate it as B; and where A is itself a ${tn} word, write B instead of it. Spell B exactly as given every time:\n${g.map(([a, b]) => `  - ${a} → ${b}`).join("\n")}` : "";
+}
+
 function buildPrompt(p, hint, tall, limit) {
   if (p.kind === "word") return wordPrompt(p);
   const subject = $("#subject").value.trim();
@@ -1154,13 +1664,16 @@ function buildPrompt(p, hint, tall, limit) {
   const layout = $("#layout").value === "bi"
     ? `Write the output bilingually: for every heading, list item, paragraph and table cell group, first give the original text exactly as printed (in its own script), then the ${tn} translation on the next line in italics. Keep the Markdown structure.`
     : `Write only the ${tn} translation.`;
-  const isText = p.kind === "text", unit = isText ? "text" : "page";
+  const fileDoc = !p.kind && !!p.doc.parts;   // a part of a Word, PowerPoint or text file
+  const isText = p.kind === "text" || fileDoc, isImage = !isText && !!p.doc.img;
+  const unit = fileDoc ? unitName(p.doc) : isText ? "text" : "page";
+  const detect = S ? "" : " First identify the language (or languages) it is written in.";
   return [
-    isText
-      ? (S ? `Translate the ${S.name} text below into ${tn}.` : `Translate the text below into ${tn}. First identify the language (or languages) it is written in.`)
-      : (S ? `Translate page ${p.local} of ${p.doc.pdf.numPages} of a ${S.name} document into ${tn}.`
-        : `Translate page ${p.local} of ${p.doc.pdf.numPages} of a document into ${tn}. First identify the language (or languages) it is written in.`),
-    isText ? "" : `The page is attached as two overlapping images (${tall ? "top part first, then bottom part" : "left part first, then right part"}). Text in the overlapping strip appears in both: include it only once.`,
+    fileDoc ? `Translate ${unit} ${p.local} of ${pageCount(p.doc)} of the ${S ? S.name + " " : ""}${p.doc.ext === ".pptx" ? "PowerPoint presentation" : "document"} “${p.doc.name}” (given below) into ${tn}.${detect}`
+      : isText ? `Translate the ${S ? S.name + " " : ""}text below into ${tn}.${detect}`
+      : isImage ? `Translate all the ${S ? S.name + " " : ""}text in this image (a photo, scan or screenshot of a page, notice, sign, message or similar) into ${tn}.${detect} Ignore the background and anything that isn't text, and read it in its natural order even if the photo is tilted.`
+      : `Translate page ${p.local} of ${pageCount(p.doc)} of a ${S ? S.name + " " : ""}document into ${tn}.${detect}`,
+    isText || tall === null ? "" : `The ${isImage ? "image" : "page"} is attached as two overlapping parts (${tall ? "top part first, then bottom part" : "left part first, then right part"}). Text in the overlapping strip appears in both: include it only once.`,
     "",
     subject
       ? [
@@ -1176,9 +1689,8 @@ function buildPrompt(p, hint, tall, limit) {
     "Rules:",
     isText ? `- Translate all of the text, keeping its paragraphs and line breaks.`
       : `- Read every piece of text on the page in ${orig}: titles, headings, numbering, paragraphs, lists, tables, captions, notes and footnotes.`,
-    limit
-      ? `- Translate faithfully into clear, natural ${tn} that matches the tone of the original (formal for official or academic text, plain for everyday text). Never add content or change the meaning.`
-      : `- Translate faithfully into clear, natural ${tn} that matches the tone of the original (formal for official or academic text, plain for everyday text). Do not summarise, skip, reorder or add content.`,
+    "- " + toneRule(tn) + (limit ? " Never add content or change the meaning." : " Do not summarise, skip, reorder or add content."),
+    glossaryRule(tn),
     "- Keep the structure in Markdown: # / ## / ### headings, numbered and bulleted lists with the original numbering, and Markdown tables for tables (same rows and columns).",
     T.latin
       ? "- Convert other digits (e.g. Devanagari ०१२३४५६७८९, Arabic-Indic ٠١٢٣٤٥٦٧٨٩) to 0-9. Keep marks, years and numbers exactly."
@@ -1289,6 +1801,7 @@ function liveText(p) {
   if (p.kind && (p.phase === "send" || p.phase === "read" || p.phase === "prep"))
     return p.kind === "word" ? `Looking up “${p.source.trim()}”… ${fmtTime(elapsed)}` : `Sending your text to Google… ${fmtTime(elapsed)}`;
   if (p.kind === "word" && p.phase === "write") return `Writing the dictionary card… ${fmtTime(elapsed)}`;
+  if (p.phase === "refine") return `Applying your change… ${fmtTime(elapsed)}`;
   if (p.phase === "relang") return `Translating the parts still in the original language into ${langOf(p.to).name}… ${fmtTime(elapsed)}`;
   if (p.phase === "shorten") return `Condensing ${p.shortFrom} words to about ${p.limit}… ${fmtTime(elapsed)}`;
   if (p.phase === "write") return `Writing the translation… ${fmtTime(elapsed)}`;
@@ -1320,9 +1833,14 @@ function learnSpeed(sec) {
 }
 
 async function translateOne(p, limit = null) {
-  p.status = "working"; p.md = ""; p.error = ""; p.phase = "prep"; p.tSend = 0; p.took = 0; p.limit = limit;
+  p.status = "working"; p.md = ""; p.error = ""; p.phase = "prep"; p.tSend = 0; p.took = 0; p.limit = limit; p.prevMd = null; p.refineOpen = false;
   p.from = runLangs.from; p.to = runLangs.to; p.settings = runLangs.key; renderPage(p);
-  const isText = !!p.kind, isWord = p.kind === "word";   // Text and Word mode send no images
+  const isText = !!p.kind || !!p.doc.parts, isWord = p.kind === "word";   // Text mode, Word mode and text files send no images
+  // An empty slide (or a part whose text was deleted) needs no request.
+  if (p.doc?.parts && (!p.source?.trim() || p.source === EMPTY_SLIDE)) {
+    p.md = "*(No text on this " + unitName(p.doc) + ".)*"; p.status = "done"; p.words = 0; renderPage(p);
+    return null;
+  }
   const { parts, tall } = isText ? { parts: [], tall: true } : await pageImages(p);
   const prompt = buildPrompt(p, isText ? "" : await textLayer(p), tall, limit);
   let last = 0;
@@ -1397,6 +1915,7 @@ async function finishLanguage(p) {
       ? "- Names of people, works and places: standard roman transliteration. Technical terms with no exact equivalent: roman transliteration with a short meaning in brackets the first time."
       : `- Names of people, works and places: their standard ${T.name} spelling, in ${T.name} script.`,
     "- Never add or drop content.",
+    glossaryRule(T.name),
     "Reply with the Markdown only: no preface, no notes, no code fences.",
     "",
     '"""', first, '"""',
@@ -1569,7 +2088,7 @@ async function runSingle(p) {
 // Everything in the Options panel that changes a translation, as one comparable string.
 function settingsKey() {
   return JSON.stringify([$("#src").value, $("#dst").value, $("#subject").value.trim().toLowerCase(), $("#terms").value,
-    $("#layout").value, $("#limit").value.replace(/[^0-9]/g, ""), $("#limitScope").value]);
+    $("#layout").value, $("#limit").value.replace(/[^0-9]/g, ""), $("#limitScope").value, $("#tone").value, glossaryPairs()]);
 }
 
 $("#go").onclick = () => {
@@ -1587,6 +2106,23 @@ $("#go").onclick = () => {
   runPages(stale.length ? stale : range);
 };
 $("#stop").onclick = () => ctl?.abort();
+function refineAll() {
+  const ins = $("#refineAllIn").value.trim();
+  if (!ins) { toast("Say how it should change, e.g. “more formal”."); return; }
+  if (!apiKey) { toast("Save your access code first."); return; }
+  let items;
+  if (single()) items = single().status === "done" ? [single()] : [];
+  else {
+    const n = pages.length;
+    let a = parseInt($("#from").value, 10) || 1, b = parseInt($("#to").value, 10) || n;
+    a = Math.max(1, a); b = Math.min(n, b);
+    items = pages.filter((p) => p.num >= a && p.num <= b && p.status === "done");
+  }
+  if (!items.length) { toast("Translate something first, then refine it."); return; }
+  refineItems(items, ins);
+}
+$("#refineAllGo").onclick = refineAll;
+$("#refineAllIn").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); refineAll(); } });
 
 /* ---------- Export ---------- */
 // Name used for downloads: the PDF's own name, or "<first> and N more" when several are combined.
@@ -1607,19 +2143,43 @@ function exportGroups() {
     .filter((g) => g.pages.length);
 }
 // "Page 3" label before each page in downloads (none for Text and Word mode).
-const pageLabel = (p) => (p.kind ? "" : `<p class="pg">Page ${p.local}</p>`);
+const pageLabel = (p) => (p.kind || p.doc.img || (p.doc.parts && pageCount(p.doc) === 1) ? ""
+  : `<p class="pg">${unitName(p.doc)[0].toUpperCase() + unitName(p.doc).slice(1)} ${p.local}</p>`);
 // Title at the top of downloads. A dictionary card already starts with the word as its heading.
 const exportTitle = () => (mode === "word" ? "" : `${exportName()} — ${exportLang().name} translation`);
+
+// "Include the originals" in the download bar: each page's original (its text, or a picture of it) goes before its translation.
+const withOriginals = () => $("#exOrig").checked && mode !== "word";
+const hasSourceText = (p) => p.kind === "text" || !!p.doc?.parts;
+async function exportOriginals() {
+  const m = new Map();
+  if (!withOriginals()) return m;
+  for (const g of exportGroups()) for (const p of g.pages) {
+    if (hasSourceText(p)) { m.set(p, { text: p.source }); continue; }
+    try {
+      const c = await renderCanvas(p, 1400);
+      m.set(p, { img: c.toDataURL("image/jpeg", 0.82), w: c.width, h: c.height });
+    } catch { m.set(p, {}); }
+  }
+  return m;
+}
+function origHtml(o) {
+  if (!o || (!o.img && !o.text)) return "";
+  return `<div class="original"><p class="pg">Original</p>${o.img ? `<img src="${o.img}" alt="Original page">` : `<div class="otext" dir="auto">${esc(o.text)}</div>`}</div><p class="pg">Translation</p>`;
+}
 function combinedMd() {
+  const orig = (p) => !withOriginals() ? ""
+    : hasSourceText(p) ? `**Original:**\n\n${p.source.split("\n").map((l) => "> " + l).join("\n")}\n\n**Translation:**\n\n`
+    : "*(The original page is a picture: use Download PDF, Word or .html to include it.)*\n\n";
   return (exportTitle() ? `# ${exportTitle()}\n\n` : "") + exportGroups().map((g) =>
     (g.multi ? `# ${g.doc.name}\n\n` : "") +
-    g.pages.map((p) => (p.kind ? "" : `<!-- Page ${p.local} -->\n\n`) + p.md).join("\n\n---\n\n")
+    g.pages.map((p) => (p.kind ? "" : `<!-- ${unitName(p.doc)} ${p.local} -->\n\n`) + orig(p) + p.md).join("\n\n---\n\n")
   ).join("\n\n---\n\n") + "\n";
 }
-function combinedHtml() {
+function combinedHtml(origs = new Map()) {
   const body = exportGroups().map((g) =>
     (g.multi ? `<h1 class="doc">${esc(g.doc.name)}</h1>` : "") +
-    g.pages.map((p) => `<section ${langAttrs(p.to)}>${pageLabel(p)}${renderMd(p.md).replace(/<div class="tbl">/g, "").replace(/<\/table><\/div>/g, "</table>")}</section>`).join("\n")
+    g.pages.map((p) => `<section ${langAttrs(p.to)}>${pageLabel(p)}${origHtml(origs.get(p))}${renderMd(p.md).replace(/<div class="tbl">/g, "").replace(/<\/table><\/div>/g, "</table>")}</section>`).join("\n")
   ).join("\n");
   const fileName = exportName(), lang = exportLang().name;
   const title = exportTitle() || `${fileName} — ${lang}`;
@@ -1630,7 +2190,8 @@ th,td{border:1px solid #999;padding:4px 7px;text-align:start;vertical-align:top}
 body{font-family:Georgia,"Times New Roman","Nirmala UI","Mangal","Segoe UI",serif}
 h1.doc{margin-top:48px;padding-top:14px;border-top:3px solid #111}
 @page{margin:18mm}@media print{body{margin:0;max-width:none;padding:0}table,tr{break-inside:avoid}h1,h2,h3{break-after:avoid}}
-.pg{font-family:Arial,sans-serif;font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.08em;border-top:1px solid #ccc;padding-top:8px;margin-top:28px}</style>
+.pg{font-family:Arial,sans-serif;font-size:11px;color:#777;text-transform:uppercase;letter-spacing:.08em;border-top:1px solid #ccc;padding-top:8px;margin-top:28px}
+.original img{max-width:100%;border:1px solid #ccc}.otext{white-space:pre-wrap;color:#444;background:#f6f6f6;padding:10px 12px;border-radius:4px}</style>
 </head><body>${exportTitle() ? `<h1>${esc(exportTitle())}</h1>` : ""}${body}</body></html>`;
 }
 // Opens the computer's "Save as" window (Chrome, Edge) so people choose the folder and name.
@@ -1665,11 +2226,11 @@ const PDF_LIBS = [
   "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js",
 ];
 const loaded = new Map();
-function loadScript(src) {
+function loadScript(src, failMsg = "Couldn't load the PDF maker. Check your internet connection.") {
   if (!loaded.has(src)) loaded.set(src, new Promise((ok, bad) => {
     const s = document.createElement("script");
     s.src = src; s.onload = ok;
-    s.onerror = () => { loaded.delete(src); s.remove(); bad(new Error("Couldn't load the PDF maker. Check your internet connection.")); };
+    s.onerror = () => { loaded.delete(src); s.remove(); bad(new Error(failMsg)); };
     document.head.append(s);
   }));
   return loaded.get(src);
@@ -1689,11 +2250,70 @@ function blankRow(canvas, min, ideal) {
   }
   return ideal;
 }
-async function makePdf(onStep) {
-  await Promise.all(PDF_LIBS.map(loadScript));
+/* Selectable text: the PDF's pages are pictures, so an invisible copy of every line is laid over them
+   (like a scanned book with OCR). Search and copy then work, in every script that has a font here. */
+const NOTO = "https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/";
+const SCRIPT_FONTS = [
+  ["Devanagari", "NotoSansDevanagari"], ["Arabic", "NotoNaskhArabic"], ["Bengali", "NotoSansBengali"], ["Hebrew", "NotoSansHebrew"],
+  ["Tamil", "NotoSansTamil"], ["Telugu", "NotoSansTelugu"], ["Kannada", "NotoSansKannada"], ["Malayalam", "NotoSansMalayalam"],
+  ["Gujarati", "NotoSansGujarati"], ["Gurmukhi", "NotoSansGurmukhi"], ["Oriya", "NotoSansOriya"], ["Sinhala", "NotoSansSinhala"],
+  ["Thai", "NotoSansThai"], ["Lao", "NotoSansLao"], ["Khmer", "NotoSansKhmer"], ["Myanmar", "NotoSansMyanmar"],
+  ["Ethiopic", "NotoSansEthiopic"], ["Georgian", "NotoSansGeorgian"], ["Armenian", "NotoSansArmenian"], ["Tibetan", "NotoSerifTibetan"],
+  ["Ol_Chiki", "NotoSansOlChiki"], ["Meetei_Mayek", "NotoSansMeeteiMayek"],
+].map(([script, font]) => [new RegExp(`\\p{Script=${script}}`, "u"), font]);
+const NO_FONT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;   // fonts too big to download; left as picture only
+const fontData = new Map();
+// The font for a line of text: the first script-specific one it needs, else Noto Sans (Latin, Cyrillic, Greek).
+const fontForText = (s) => (NO_FONT.test(s) ? null : (SCRIPT_FONTS.find(([re]) => re.test(s)) || [null, "NotoSans"])[1]);
+async function useFont(doc, name) {
+  if (!fontData.has(name)) fontData.set(name, (async () => {
+    const res = await fetch(`${NOTO}${name}/hinted/ttf/${name}-Regular.ttf`);
+    if (!res.ok) throw new Error("font");
+    const u8 = new Uint8Array(await res.arrayBuffer());
+    let bin = "";
+    for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode(...u8.subarray(i, i + 0x8000));
+    return btoa(bin);
+  })().catch(() => { fontData.delete(name); return null; }));
+  const b64 = await fontData.get(name);
+  if (!b64) return false;
+  if (!doc.getFontList()[name]) { doc.addFileToVFS(name + ".ttf", b64); doc.addFont(name + ".ttf", name, "normal"); }
+  doc.setFont(name, "normal");
+  return true;
+}
+// The lines of text as drawn in `box`, in reading order, with their position relative to the box (CSS pixels).
+// Big gaps (table columns) start a new piece, so each piece sits over its own text.
+function textLines(box) {
+  const origin = box.getBoundingClientRect(), out = [];
+  const walk = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+  let cur = null;
+  for (let node; (node = walk.nextNode());) {
+    for (const m of node.data.matchAll(/\S+/g)) {
+      const r = document.createRange();
+      r.setStart(node, m.index); r.setEnd(node, m.index + m[0].length);
+      const b = r.getClientRects()[0];
+      if (!b || !b.width) continue;
+      const w = { text: m[0], left: b.left - origin.left, right: b.right - origin.left, top: b.top - origin.top, bottom: b.bottom - origin.top };
+      const h = w.bottom - w.top;
+      const sameLine = cur && Math.abs(w.top - cur.top) < h * 0.5 && Math.max(w.left - cur.right, cur.left - w.right) < h * 2.5;
+      if (sameLine) {
+        cur.text += " " + w.text; cur.words.push(w);
+        cur.left = Math.min(cur.left, w.left); cur.right = Math.max(cur.right, w.right); cur.bottom = Math.max(cur.bottom, w.bottom);
+      } else { if (cur) out.push(cur); cur = { ...w, words: [w] }; }
+    }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+async function makePdf(onStep, origs = new Map()) {
+  await Promise.all(PDF_LIBS.map((s) => loadScript(s)));
   await document.fonts.ready;
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: "pt", format: "a4", compress: true });
+  // jsPDF reshapes Arabic-script text into "presentation forms", which then can't be searched or copied normally.
+  // The text here is invisible, so that step (its only preProcessText hook) is left out.
+  const hooks = jsPDF.API.events;
+  jsPDF.API.events = hooks.filter(([name]) => name !== "preProcessText");
+  let doc;
+  try { doc = new jsPDF({ unit: "pt", format: "a4", compress: true }); } finally { jsPDF.API.events = hooks; }
   const PW = doc.internal.pageSize.getWidth(), PH = doc.internal.pageSize.getHeight();
   const M = 46, CSS_W = 640, SCALE = 2;
   const ptPerPx = (PW - 2 * M) / (CSS_W * SCALE);   // PDF points per canvas pixel
@@ -1705,7 +2325,8 @@ async function makePdf(onStep) {
   const parts = exportTitle() ? [`<h1>${esc(exportTitle())}</h1>`] : [];
   for (const g of exportGroups()) g.pages.forEach((p, i) => parts.push(
     (g.multi && i === 0 ? `<h1 class="doc">${esc(g.doc.name)}</h1>` : "") +
-    `<section ${langAttrs(p.to)}>${pageLabel(p)}${renderMd(p.md)}</section>`));
+    `<section ${langAttrs(p.to)}>${pageLabel(p)}${origHtml(origs.get(p))}${renderMd(p.md)}</section>`));
+  const pending = [];   // invisible text, written after the pictures: {page, x, y, size, width, text}
   let y = M;
   try {
     for (let i = 0; i < parts.length; i++) {
@@ -1722,7 +2343,10 @@ async function makePdf(onStep) {
         }
         list.style.listStyle = "none";
       }
+      // Wait for the original-page pictures (onload: img.decode() can hang in a background tab).
+      await Promise.all([...box.querySelectorAll("img")].map((im) => im.complete ? null : new Promise((ok) => { im.onload = im.onerror = ok; setTimeout(ok, 5000); })));
       const canvas = await html2canvas(box, { scale: SCALE, backgroundColor: "#ffffff", logging: false });
+      const slices = [];
       let sy = 0;
       while (sy < canvas.height) {
         const room = (PH - M - y) / ptPerPx;            // canvas pixels that still fit on this PDF page
@@ -1734,16 +2358,44 @@ async function makePdf(onStep) {
         slice.width = canvas.width; slice.height = h;
         slice.getContext("2d").drawImage(canvas, 0, sy, canvas.width, h, 0, 0, canvas.width, h);
         doc.addImage(slice.toDataURL("image/jpeg", 0.9), "JPEG", M, y, PW - 2 * M, h * ptPerPx);
+        slices.push({ sy, cut, y, page: doc.getNumberOfPages() });
         y += h * ptPerPx; sy = cut;
         if (sy < canvas.height) { doc.addPage(); y = M; }
+      }
+      // Where each line landed: the slice holding its middle gives the PDF page and position.
+      for (const l of textLines(box)) {
+        const mid = ((l.top + l.bottom) / 2) * SCALE;
+        const s = slices.find((q) => mid >= q.sy && mid < q.cut);
+        if (!s) continue;
+        const hPt = (l.bottom - l.top) * SCALE * ptPerPx;
+        // Each font covers one script, so a line mixing scripts is written in runs, one per font.
+        // Words without letters (numbers, signs) join the run before them.
+        const runs = [];
+        for (const w of l.words) {
+          const font = /\p{L}/u.test(w.text) ? fontForText(w.text) : runs.at(-1)?.font ?? fontForText(w.text);
+          const last = runs.at(-1);
+          if (last && last.font === font) { last.text += " " + w.text; last.left = Math.min(last.left, w.left); last.right = Math.max(last.right, w.right); }
+          else runs.push({ font, text: w.text, left: w.left, right: w.right });
+        }
+        for (const r of runs) if (r.font) pending.push({ page: s.page, font: r.font, x: M + r.left * SCALE * ptPerPx,
+          y: s.y + (l.top * SCALE - s.sy) * ptPerPx + hPt * 0.78, size: hPt * 0.78, width: (r.right - r.left) * SCALE * ptPerPx, text: r.text });
       }
       y += 8;
     }
   } finally {
     box.remove();
   }
+  onStep?.("text");
+  for (const t of pending) {
+    if (!(await useFont(doc, t.font))) continue;
+    doc.setPage(t.page); doc.setFontSize(t.size);
+    const natural = doc.getTextWidth(t.text);
+    try {
+      doc.text(t.text, t.x, t.y, { renderingMode: "invisible", horizontalScale: natural ? Math.min(Math.max(t.width / natural, 0.3), 3) : 1 });
+    } catch {}
+  }
   const n = doc.getNumberOfPages();
-  doc.setFontSize(8); doc.setTextColor(140);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(140);
   for (let i = 1; i <= n; i++) { doc.setPage(i); doc.text(`${i} / ${n}`, PW / 2, PH - 22, { align: "center" }); }
   return doc.output("blob");
 }
@@ -1758,27 +2410,146 @@ function readyToExport() {
   toast(running ? "Wait for the first page to finish, then download." : "Translate some pages first, then download.");
   return false;
 }
-$("#exMd").onclick = () => readyToExport() && download(`${exportName()} - ${exportLang().name}.md`, combinedMd(), "text/markdown;charset=utf-8", ".md", "Markdown file");
-$("#exHtml").onclick = () => readyToExport() && download(`${exportName()} - ${exportLang().name}.html`, combinedHtml(), "text/html;charset=utf-8", ".html", "Web page (opens in Word)");
+/* ---------- Word (.docx) ---------- */
+// Built from the Markdown: headings, bold and italic, lists, tables and right-to-left text become real Word formatting.
+const xmlEsc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "");
+const unEnt = (s) => s.replace(/&(amp|lt|gt|quot|#39);/g, (m) => ({ "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'" })[m]);
+function wRun(text, f, ctx) {
+  // Word rejects run properties in any order but the schema's: fonts, bold, italic, strike, colour, size, underline, rtl, language.
+  const pr = (f.code ? '<w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/>' : "") + (f.b ? "<w:b/><w:bCs/>" : "") + (f.i ? "<w:i/><w:iCs/>" : "")
+    + (f.s ? "<w:strike/>" : "") + (f.grey ? '<w:color w:val="777777"/>' : "") + (f.sz ? `<w:sz w:val="${f.sz}"/><w:szCs w:val="${f.sz}"/>` : "")
+    + (f.u ? '<w:u w:val="single"/>' : "") + (ctx.rtl ? "<w:rtl/>" : "")
+    + `<w:lang w:val="${ctx.lang}" w:bidi="${ctx.lang}" w:eastAsia="${ctx.lang}"/>`;
+  return text.split("\n").map((line, i) => `<w:r><w:rPr>${pr}</w:rPr>${i ? "<w:br/>" : ""}<w:t xml:space="preserve">${xmlEsc(line)}</w:t></w:r>`).join("");
+}
+function wRuns(tokens = [], f, ctx) {
+  return tokens.map((t) => {
+    if (t.type === "strong") return wRuns(t.tokens, { ...f, b: 1 }, ctx);
+    if (t.type === "em") return wRuns(t.tokens, { ...f, i: 1 }, ctx);
+    if (t.type === "del") return wRuns(t.tokens, { ...f, s: 1 }, ctx);
+    if (t.type === "link") return wRuns(t.tokens, { ...f, u: 1 }, ctx);
+    if (t.type === "codespan") return wRun(unEnt(t.text), { ...f, code: 1 }, ctx);
+    if (t.type === "br") return "<w:r><w:br/></w:r>";
+    if (t.type === "html") return "";
+    if (t.tokens) return wRuns(t.tokens, f, ctx);
+    return t.text ? wRun(unEnt(t.text), f, ctx) : "";
+  }).join("");
+}
+function wPara(inner, ctx, { style = "", ind = 0, border = false } = {}) {
+  // Schema order again: style, border, bidi, indent.
+  const ppr = (style ? `<w:pStyle w:val="${style}"/>` : "") + (border ? '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="999999"/></w:pBdr>' : "")
+    + (ctx.rtl ? "<w:bidi/>" : "") + (ind ? `<w:ind w:start="${ind}" w:hanging="${Math.min(ind, 360)}"/>` : "");
+  return `<w:p>${ppr ? `<w:pPr>${ppr}</w:pPr>` : ""}${inner}</w:p>`;
+}
+function wBlocks(tokens, ctx, depth = 0) {
+  return tokens.map((t) => {
+    switch (t.type) {
+      case "heading": return wPara(wRuns(t.tokens, {}, ctx), ctx, { style: "Heading" + Math.min(t.depth, 3) });
+      case "paragraph": return wPara(wRuns(t.tokens, {}, ctx), ctx);
+      case "text": return wPara(wRuns(t.tokens || [t], {}, ctx), ctx);
+      case "hr": return wPara("", ctx, { border: true });
+      case "code": return wPara(wRun(t.text, { code: 1 }, ctx), ctx);
+      case "blockquote": return wBlocks(t.tokens, ctx, depth + 1);
+      case "list": return t.items.map((it, i) => {
+        const mark = t.ordered ? `${(Number(t.start) || 1) + i}.` : "•";
+        const [first, ...rest] = it.tokens;
+        const lead = first && (first.type === "text" || first.type === "paragraph")
+          ? wPara(wRun(mark + " ", {}, ctx) + wRuns(first.tokens || [first], {}, ctx), ctx, { ind: 360 * (depth + 1) })
+          : wPara(wRun(mark, {}, ctx), ctx, { ind: 360 * (depth + 1) }) + (first ? wBlocks([first], ctx, depth + 1) : "");
+        return lead + wBlocks(rest, ctx, depth + 1);
+      }).join("");
+      case "table": {
+        const cell = (c, head) => `<w:tc><w:tcPr>${head ? '<w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/>' : ""}</w:tcPr>${wPara(wRuns(c.tokens, head ? { b: 1 } : {}, ctx), ctx)}</w:tc>`;
+        const border = ["top", "left", "bottom", "right", "insideH", "insideV"].map((s) => `<w:${s} w:val="single" w:sz="4" w:space="0" w:color="999999"/>`).join("");
+        return `<w:tbl><w:tblPr>${ctx.rtl ? "<w:bidiVisual/>" : ""}<w:tblW w:w="5000" w:type="pct"/><w:tblBorders>${border}</w:tblBorders></w:tblPr>`
+          + `<w:tblGrid>${t.header.map(() => "<w:gridCol/>").join("")}</w:tblGrid>`
+          + `<w:tr>${t.header.map((c) => cell(c, true)).join("")}</w:tr>`
+          + t.rows.map((r) => `<w:tr>${r.map((c) => cell(c, false)).join("")}</w:tr>`).join("") + "</w:tbl>" + wPara("", ctx);
+      }
+      case "html": return /^\s*<!--/.test(t.text) ? "" : wPara(wRun(t.text.replace(/<[^>]+>/g, ""), {}, ctx), ctx);
+      default: return "";
+    }
+  }).join("");
+}
+async function makeDocx(origs = new Map()) {
+  await loadScript(DOC_LIBS.jszip, "Couldn't load the Word maker. Check your internet connection.");
+  const images = [];
+  const picture = (o, ctx) => {
+    const n = images.length + 1;
+    images.push(o.img.split(",")[1]);
+    let cx = 5486400, cy = Math.round(cx * o.h / o.w);   // 6 inches wide, at most 8 tall
+    if (cy > 7315200) { cx = Math.round(cx * 7315200 / cy); cy = 7315200; }
+    return wPara(`<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${n}" name="Original ${n}"/>`
+      + `<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">`
+      + `<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${n}" name="original${n}.jpeg"/><pic:cNvPicPr/></pic:nvPicPr>`
+      + `<pic:blipFill><a:blip r:embed="rImg${n}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>`
+      + `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>`
+      + `</a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`, ctx);
+  };
+  const L = exportLang(), base = { rtl: L.rtl, lang: L.code };
+  const label = (text, ctx) => wPara(wRun(text.toUpperCase(), { grey: 1, sz: 16 }, ctx), ctx);
+  let body = exportTitle() ? wPara(wRun(exportTitle(), {}, base), base, { style: "Title" }) : "";
+  for (const g of exportGroups()) {
+    if (g.multi) body += wPara(wRun(g.doc.name, {}, base), base, { style: "Heading1" });
+    for (const p of g.pages) {
+      const T = langOf(p.to), ctx = { rtl: T.rtl, lang: T.code };
+      const lab = pageLabel(p).replace(/<[^>]+>/g, "");
+      if (lab) body += label(lab, ctx);
+      const o = origs.get(p);
+      if (o?.img || o?.text) {
+        body += label("Original", ctx);
+        body += o.img ? picture(o, ctx) : wPara(wRun(o.text, { grey: 1 }, { rtl: false, lang: "und" }), { rtl: false });
+        body += label("Translation", ctx);
+      }
+      body += wBlocks(marked.lexer(p.md), ctx);
+    }
+  }
+  const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main", R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+  const zip = new JSZip();
+  const add = zip.file.bind(zip);
+  zip.file = (name, data, opts) => add(name, data, { ...opts, createFolders: false });   // no folder entries, like files Word saves
+  zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`);
+  zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/officeDocument" Target="word/document.xml"/></Relationships>`);
+  zip.file("word/_rels/document.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rStyles" Type="${R}/styles" Target="styles.xml"/>${images.map((_, i) => `<Relationship Id="rImg${i + 1}" Type="${R}/image" Target="media/original${i + 1}.jpeg"/>`).join("")}</Relationships>`);
+  images.forEach((b64, i) => zip.file(`word/media/original${i + 1}.jpeg`, b64, { base64: true }));
+  const heading = (n, sz) => `<w:style w:type="paragraph" w:styleId="Heading${n}"><w:name w:val="heading ${n}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="80"/><w:outlineLvl w:val="${n - 1}"/></w:pPr><w:rPr><w:b/><w:bCs/><w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/></w:rPr></w:style>`;
+  zip.file("word/styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="${W}"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Georgia" w:hAnsi="Georgia" w:cs="Nirmala UI" w:eastAsia="Microsoft YaHei"/><w:sz w:val="23"/><w:szCs w:val="23"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="300" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>`
+    + `<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>`
+    + `<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="240"/></w:pPr><w:rPr><w:b/><w:bCs/><w:sz w:val="40"/><w:szCs w:val="40"/></w:rPr></w:style>`
+    + heading(1, 32) + heading(2, 28) + heading(3, 25) + `</w:styles>`);
+  zip.file("word/document.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="${W}" xmlns:r="${R}" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>${body}`
+    + `<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`);
+  return zip.generateAsync({ type: "blob", mimeType: TEXT_TYPES[".docx"] });
+}
+
+/* ---------- Download buttons ---------- */
+const fileBase = () => `${exportName()} - ${exportLang().name}`;
+$("#exMd").onclick = () => readyToExport() && download(`${fileBase()}.md`, combinedMd(), "text/markdown;charset=utf-8", ".md", "Markdown file");
 $("#copyAll").onclick = () => readyToExport() && copyText(combinedMd());
-let makingPdf = false;
-$("#exPdf").onclick = async () => {
-  if (makingPdf || !readyToExport()) return;
-  const name = `${exportName()} - ${exportLang().name}.pdf`;
-  // Ask where to save first: the browser only allows this window straight after the click.
-  const handle = await pickFile(name, "application/pdf", ".pdf", "PDF document");
+// PDF, Word and .html can take a moment to make (pictures of the originals), so the Save window comes first:
+// the browser only allows it straight after the click.
+let making = false;
+async function exportFile(button, label, ext, type, description, make) {
+  if (making || !readyToExport()) return;
+  const name = `${fileBase()}${ext}`;
+  const handle = await pickFile(name, type, ext, description);
   if (handle === false) return;
-  const b = $("#exPdf");
-  makingPdf = true; b.disabled = true;
+  making = true; button.disabled = true; button.textContent = "Making…";
   try {
-    const blob = await makePdf((i, n) => { b.textContent = `Making PDF… ${i} of ${n}`; });
+    const blob = await make((i, n) => { button.textContent = i === "text" ? "Adding text…" : `Making… ${i} of ${n}`; });
     await saveFile(handle, blob, name);
   } catch (e) {
-    toast(e.message?.startsWith("Couldn't") ? e.message : "Couldn't make the PDF. Try again, or use Download .html.");
+    toast(e.message?.startsWith("Couldn't") ? e.message : `Couldn't make the ${label} file. Try again, or use Download .html.`);
   } finally {
-    makingPdf = false; b.textContent = "Download PDF"; updateButtons();
+    making = false; button.textContent = label === "PDF" ? "Download PDF" : `Download ${label}`; updateButtons();
   }
-};
+}
+$("#exPdf").onclick = () => exportFile($("#exPdf"), "PDF", ".pdf", "application/pdf", "PDF document",
+  async (step) => makePdf(step, await exportOriginals()));
+$("#exDocx").onclick = () => exportFile($("#exDocx"), "Word", ".docx", TEXT_TYPES[".docx"], "Word document",
+  async () => makeDocx(await exportOriginals()));
+$("#exHtml").onclick = () => exportFile($("#exHtml"), ".html", ".html", "text/html", "Web page",
+  async () => new Blob([combinedHtml(await exportOriginals())], { type: "text/html;charset=utf-8" }));
 
 /* ---------- File input & zoom ---------- */
 $("#fileIn").addEventListener("change", (e) => {
@@ -1790,6 +2561,21 @@ const drop = $("#drop");
 ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
 ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
 drop.addEventListener("drop", (e) => loadFiles(e.dataTransfer.files));
+$("#cameraIn").addEventListener("change", (e) => {
+  const files = [...e.target.files];
+  e.target.value = "";
+  // Phone cameras name every photo "image.jpg", so number them instead.
+  loadFiles(files.map((f) => new File([f], `Photo ${++pasteSeq}${(f.name.match(/\.[a-z0-9]+$/i) || [".jpg"])[0]}`, { type: f.type })));
+});
+// Ctrl + V with a screenshot (or a copied image) anywhere on the page adds it, switching to Files if needed.
+document.addEventListener("paste", (e) => {
+  const imgs = [...(e.clipboardData?.files || [])].filter(isImageFile);
+  if (!imgs.length) return;   // plain text pastes go to the text boxes as usual
+  e.preventDefault();
+  if (running) { toast("Stop the current translation first."); return; }
+  if (mode !== "pdf") setMode("pdf");
+  loadFiles(imgs.map((f) => new File([f], `Screenshot ${++pasteSeq}.${(f.type.split("/")[1] || "png").replace("jpeg", "jpg")}`, { type: f.type })));
+});
 async function openZoom(p) {
   const c = await renderCanvas(p, 1400);
   $("#zoomImg").src = c.toDataURL("image/jpeg", 0.85);
@@ -1804,6 +2590,7 @@ restoreOptions();
 restoreText();
 updateButtons();
 restoreWork();
+renderHistory();
 (async () => {
   avgSec = parseFloat(store.get(AVG_STORE)) || 20;
   apiKey = store.get(KEY_STORE);

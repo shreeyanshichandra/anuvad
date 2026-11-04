@@ -1,6 +1,6 @@
 # अनुवाद Anuvad
 
-**Translate PDFs between 117 languages into clean, structured text — free, right in your browser.**
+**Translate PDFs, photos and text between 117 languages into clean, structured text — free, right in your browser.**
 
 Upload one or more PDFs (a book, syllabus, notice, letter or form), pick the languages and pages, and Anuvad gives you a translation that keeps the headings, lists and tables of the original. It started as a Hindi → English tool and still shines there, but any pair works: Hindi → Urdu, Bengali → English, French → Hindi and so on. Edit anything you want, then download it as a PDF, a Word-ready `.html` file or Markdown.
 
@@ -29,6 +29,8 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
 ## Features
 
 - **Any language → any language**: 117 languages, with the original language detected automatically, a swap button, and your recent languages pinned at the top
+- **Photos, scans and screenshots**: add JPG, PNG or WebP images alongside PDFs, paste a screenshot with **Ctrl + V**, or tap **Take a photo** on a phone. Each image is translated like a page, with the original beside it; big phone photos are scaled down first so they send quickly
+- **Word, PowerPoint and text files**: add `.docx`, `.pptx` or `.txt` files too. They're split into parts (one per slide for PowerPoint), shown side by side with their translation, and the original text can be corrected with **Edit original**
 - **Text mode**: no PDF? Switch to **Text**, type or paste up to 20,000 characters and translate it with the same options and downloads
 - **Word mode**: type a single word or short phrase and get a dictionary card: meanings by part of speech, example sentences with translations, transliteration, pronunciation (IPA, plus a **Listen** button), synonyms, opposites and usage notes. With a subject set, the subject's meaning comes first
 - **Right-to-left output** for Urdu, Arabic, Persian, Hebrew and others, on screen and in downloads
@@ -41,8 +43,12 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
 - **Subject field**: type the subject (music, history, law…) and it translates with that field's own terminology in the target language; left empty, it works out the field from the page
 - **Optional word limit**: condense the translation to about N words, per page or in total, while keeping every main point, key fact, name, number and subject term. If a page comes out over the limit, Anuvad condenses it in a quick second step. Word counts are shown per page and in total
 - **Bilingual mode**: each original line followed by its translation, handy for checking
+- **Tone**: like the original, formal, simple, academic or literal
+- **Glossary**: list your own translations for particular words (e.g. `राग = Raga`) and every translation follows them; **Fix a word everywhere** replaces a word in all finished translations at once
+- **Refine with an instruction**: select part of a translation (or none, for all of it), click **Refine…** and say *"more formal"* or *"simpler English"*; only that part is rewritten, with **Undo change** if you don't like it. **Refine the translation** does the same for every page at once
 - **Edit, copy or redo** any page
-- **Download** as **PDF**, `.html` (opens in Word) or `.md`, or copy everything, from the download bar at the top right. In Chrome and Edge, a Save window lets you choose the folder
+- **History**: everything you translate is kept in your browser, so you can reopen past documents, texts and words later
+- **Download** as **PDF**, **Word (.docx)**, `.html` or `.md`, or copy everything, from the download bar at the top right. The PDF's text can be selected, searched and copied. Tick **Include the originals** for a bilingual download with each original page (or its text) before its translation. In Chrome and Edge, a Save window lets you choose the folder
 - **Nothing lost on refresh**: your PDFs, translations and settings are kept in your browser, so a refresh or reopening the tab picks up where you left off
 - **Private by design**: no server and no sign-up. Your PDFs, translations and access code stay in your browser and go only to Google for the translation.
 
@@ -54,7 +60,7 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
    2. Sign in with your Google (Gmail) account.
    3. Accept the terms if asked, then click **Create API key**.
    4. Copy the code (it starts with `AIza`), paste it into Anuvad and click **Save**.
-3. **Upload one or more PDFs**, optionally type the subject (for example *History* or *Law*), and click **Translate pages**.
+3. **Upload one or more PDFs, images, Word, PowerPoint or .txt files** (or paste a screenshot), optionally type the subject (for example *History* or *Law*), and click **Translate pages**.
 4. **Review and download** the translation.
 
 No card or payment is needed. The code is remembered on your device, so you only do step 2 once.
@@ -71,8 +77,11 @@ No card or payment is needed. The code is remembered on your device, so you only
 PDF ──▶ PDF.js renders each page to an image (split into two overlapping halves so small Devanagari stays sharp)
      ──▶ Gemini reads the text from the images and translates it into the chosen language, keeping the layout as Markdown
      ──▶ the answer streams back as Markdown and is shown with marked.js
-     ──▶ export as PDF (built in the browser with html2canvas + jsPDF), .html or .md
+     ──▶ export as PDF (built in the browser with html2canvas + jsPDF, plus an invisible text layer in Noto fonts so it can be searched),
+         Word (.docx, built with JSZip), .html or .md
 ```
+
+Word files are read with [mammoth](https://github.com/mwilson/mammoth.js) and PowerPoint files with [JSZip](https://stuk.github.io/jszip/); both load only when such a file is added.
 
 The PDF's own text layer is sent along as a hint for numbers and spellings, but the images are treated as the source of truth.
 

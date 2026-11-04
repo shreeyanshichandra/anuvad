@@ -2,19 +2,51 @@
 
 What's done, what's being worked on, and what's next. The bigger plan is in [ROADMAP.md](ROADMAP.md).
 
-Last updated: 2 November 2026
+Last updated: 4 November 2026
 
 ---
 
 ## 🚧 In progress
 
-- Nothing right now.
+- [ ] Check v1.7 and v1.8 on the live site: real translations with a real access code, the Word download opened in Word, and **Take a photo** on a phone (tested so far with sample replies only)
 
 ## ⏭️ Next up
 
-- [ ] Decide whether to move to a Vite + React + TypeScript project (on a `v2` branch) before Phase 2, or keep growing the single-file site
+- [ ] Decide on moving to Vite + TypeScript: `index.html` is now about 2,560 lines, close to the 3,000-line point set on 2 November 2026
+- [ ] Later ideas in ROADMAP.md (on-device translation, Explain mode, voice input, other AI engines): not scheduled
 
 ## ✅ Done
+
+### v1.8: documents, refining and downloads (Phases 2–4)
+**More inputs**
+- [x] **Word (.docx), PowerPoint (.pptx) and .txt** files in the same upload box; Word keeps headings, lists and tables; PowerPoint gives one page per slide; long text is split into parts of about 3,500 characters at paragraph breaks
+- [x] Their pages show the original text beside the translation, with **Edit original** (a changed original is translated again with the next Translate)
+- [x] Empty PowerPoint slides are marked "No text" without asking Google; old .doc/.ppt files get a message to save them as .docx/.pptx
+- [x] The first tab is now called **Files**
+
+**Editing and refining**
+- [x] **Refine…** on every translation: select part of it (or nothing, for all of it) and give an instruction; **Undo change** brings the previous version back
+- [x] **Refine the translation** (Translate panel): the same for every translated page in the From–To range at once
+- [x] **Tone**: Like the original, Formal, Simple, Academic, Literal
+- [x] **Glossary** (original = translation, one per line) followed by every translation, the language check and the condensing step
+- [x] **Fix a word everywhere**: replaces a word in all finished translations at once, and can add it to the glossary
+- [x] Text mode shows your text and its translation side by side on wide screens
+- [x] **History** (bottom of the left column): the last 30 translated file sets, texts and words, with Open and ✕; adding a file to a set updates its entry
+
+**Downloads**
+- [x] **Download Word** (.docx): headings, bold/italic, lists, tables and right-to-left text as real Word formatting
+- [x] **PDF text can be selected, searched and copied** (invisible text in Noto fonts over the page pictures; all scripts except Chinese, Japanese and Korean)
+- [x] **Include the originals (bilingual)**: each page's original picture or text before its translation, in PDF, Word, .html and .md (pictures only in PDF, Word and .html)
+
+### v1.7: Images and photos (Phase 2, step 1)
+- [x] Add JPG, PNG, WebP, GIF, BMP or AVIF images in the same upload box as PDFs (choose, drop, or several at once); they mix with PDFs into one combined translation
+- [x] **Ctrl + V** pastes a screenshot or copied image from anywhere on the page (switches to PDF / Image if needed), named "Screenshot 1", "Screenshot 2"…
+- [x] **📷 Take a photo** button on phones and tablets opens the camera
+- [x] Each image shows as a bubble with ✕ and as one page, with the original beside the translation
+- [x] Photos over 3000 px are scaled down before saving and sending; small screenshots are sent whole, large images in two overlapping halves
+- [x] Instructions tuned for photos: ignore the background, read tilted text in order
+- [x] Images are kept after a refresh, like PDFs
+- [x] The first tab is now called **PDF / Image**
 
 ### v1.6: Word mode (Phase 1, step 3)
 - [x] **Word** added to the PDF / Text switch
