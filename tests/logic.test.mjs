@@ -61,6 +61,16 @@ test("tidyCard removes only a stray dot under the heading", () => {
   assert.equal(tidy("# a\ntext\n· later dot"), "# a\ntext\n· later dot");
 });
 
+test("romanizedShare spots Hindi written in English letters, not real English", () => {
+  const share = grab("romanizedShare");
+  // Text from a real page that came back transliterated instead of translated.
+  const romanized = "hindustani tala paddhati men adhikatar khyal gayan ke sath tabale ki sangat hoti hai. yahan talon men tilvada ekatal jhumbra vital adachar-tal aur ispatal adi tala khyal gayan ke sath tabale par bajaye jate hain. hindustani sangita men tala asimita hai, kintu karnatak tala paddhati men talon ki sankhya simita hai.";
+  const english = "In the Hindustani tala system, khyal singing is mostly accompanied by the tabla. Here, talas such as tilwada, ektal, jhumra, adachautal and jhaptal are played on the tabla with khyal singing. Hindustani music has countless talas, but the number of talas in the Karnatak system is limited, and their symbols differ.";
+  assert.ok(share(romanized) > 0.08, "romanized scored " + share(romanized));
+  assert.ok(share(english) < 0.03, "English scored " + share(english));
+  assert.equal(share("hai ke men"), 0, "too short to judge");
+});
+
 test("the page keeps its security policy and library checks", () => {
   assert.match(html, /http-equiv="Content-Security-Policy"/);
   assert.match(html, /default-src 'none'/);

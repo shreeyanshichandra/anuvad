@@ -2040,6 +2040,7 @@ function buildPrompt(p, hint, tall, limit) {
       : `- Names of people, books, institutions and places: their standard ${tn} spelling, transliterated into ${tn} script where needed.`,
     "- " + terms,
     `- Text already in ${tn} stays as is.`,
+    T.latin && (!S || !S.latin) ? `- Translate the meaning into ${tn}. Never just write the original words out in roman letters (transliteration): that is not a translation. This applies to handwritten text too.` : "",
     isText ? "" : "- Leave out the book's printed page numbers and repeated running headers or footers (the same title or chapter name at the top or bottom of every page).",
     isText ? "" : "- Write [illegible] for anything you cannot read. If the page has no text, reply only: (blank page)",
     "- " + layout,
@@ -2263,7 +2264,7 @@ async function translateOne(p, limit = null) {
       }
       // The card quotes the word and its examples in the original language on purpose, so it skips this check.
       const plainTranslation = !isWord && p.task !== "explain" && !p.doc?.audio;   // a card, an explanation or a transcript quotes the original on purpose
-      if (plainTranslation && !res.truncated && !runLangs.bilingual && targetShare(p.md, langOf(p.to)) < 0.8) await finishLanguage(p);
+      if (plainTranslation && !res.truncated && !runLangs.bilingual && needsSecondPass(p.md, langOf(p.to))) await finishLanguage(p);
       p.words = countWords(p.md, langOf(p.to));
       if (plainTranslation && limit && !res.truncated && p.words > limit * 1.15) await shorten(p, limit);
       p.took = (Date.now() - p.tSend) / 1000;
@@ -2302,6 +2303,19 @@ function targetShare(md, T) {
   if (letters.length < 20) return 1;
   return letters.filter((ch) => T.letter.test(ch)).length / letters.length;
 }
+// Share of the words that are common Hindi/Urdu words written in roman letters ("men", "hai", "ke").
+// Hard pages (handwriting especially) sometimes come back transliterated rather than translated; that passes the
+// script check for English and other roman-script languages, so it's checked separately. Real English scores near 0.
+function romanizedShare(md) {
+  const COMMON = new Set(("hai hain ke ki ka ko men mein aur nahin nahi bhi se jo yah yahan vah ek tatha evam lie liye hota hoti hote " +
+    "jata jati jate karna gaya gayi raha rahe sakta sakte unke inke iske uske apne kintu parantu athava arthat dvara dwara sath").split(" "));
+  const words = md.toLowerCase().match(/[a-z]+/g) || [];
+  if (words.length < 30) return 0;
+  return words.filter((w) => COMMON.has(w)).length / words.length;
+}
+// How fully a page is in the target language: its script share, minus any roman-letter Hindi left in it.
+const translatedScore = (md, T) => targetShare(md, T) - (T.latin ? romanizedShare(md) : 0);
+const needsSecondPass = (md, T) => targetShare(md, T) < 0.8 || (T.latin && romanizedShare(md) > 0.08);
 // Second, text-only step for a page that came back partly untranslated. If it fails, the first answer is kept.
 async function finishLanguage(p) {
   const T = langOf(p.to), subject = $("#subject").value.trim();
@@ -2309,6 +2323,7 @@ async function finishLanguage(p) {
   p.phase = "relang"; renderPage(p);
   const prompt = [
     `The text below should be a translation into ${T.name} of one page of a document, but parts of it are still in the original language.`,
+    T.latin ? `Some of it may be the original words only written out in roman letters (for example Hindi as "yah pustak sangeet ke bare men hai") rather than translated: translate those into real ${T.name} too.` : "",
     `Rewrite it so that all of it is in ${T.name}: translate every heading, sentence, list item and table cell that is not in ${T.name} yet.${subject ? ` It is a ${subject} document: use the standard ${T.name} terminology of ${subject}.` : ""}`,
     "- Keep the parts that are already translated, the Markdown structure (headings, lists, tables with the same rows and columns), and all numbers, symbols and marks exactly.",
     T.latin
@@ -2327,7 +2342,7 @@ async function finishLanguage(p) {
       if (now - last > 250) { last = now; p.md = text; renderPage(p); }
     });
     const md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
-    p.md = !res.truncated && targetShare(md, T) > targetShare(first, T) ? md : first;
+    p.md = !res.truncated && translatedScore(md, T) > translatedScore(first, T) ? md : first;
   } catch (e) {
     if (e.name === "AbortError" || ctl.signal.aborted) throw e;
     p.md = first;
