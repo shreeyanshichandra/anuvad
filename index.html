@@ -219,6 +219,7 @@ button.dl:disabled { opacity: 1; background: transparent; border-color: var(--li
 @keyframes blink { 0%, 80%, 100% { opacity: .25; transform: scale(.8); } 40% { opacity: 1; transform: scale(1); } }
 .took { font-size: 0.78rem; color: var(--muted); margin-right: auto; align-self: center; font-variant-numeric: tabular-nums; }
 .err { color: var(--bad); font-size: 0.9rem; margin: 0; }
+.warn { margin: 0; font-size: 0.88rem; background: var(--marigold-soft); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
 .srcbox { display: grid; gap: 8px; justify-items: start; }
 .srctext { font-family: var(--font-read); font-size: 0.86rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 340px; overflow: auto; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 8px; }
 .srcbox textarea { min-height: 260px; font-size: 0.86rem; resize: vertical; }
@@ -497,7 +498,7 @@ select.needed { border-color: var(--marigold); }
 
   <footer>
     <p>Your PDFs, images, translations and access code stay in this browser (so a refresh loses nothing; ✕ removes a file) and are sent only to the AI engine you choose (Chrome's translator sends nothing). On Google's free plan, Google may use what you send to improve its services, so don't upload private documents.</p>
-    <p>© 2026 Shreeyanshi Chandra · <a href="https://github.com/shreeyanshichandra/anuvad" target="_blank" rel="noopener">View code on GitHub</a></p>
+    <p>Version 1.13 · © 2026 Shreeyanshi Chandra · <a href="https://github.com/shreeyanshichandra/anuvad" target="_blank" rel="noopener">View code on GitHub</a></p>
   </footer>
 </div>
 
@@ -676,7 +677,7 @@ function fillResult(p, tools, body) {
     tools.append(btn("Save", () => { p.md = body.querySelector("textarea").value; p.editing = false; renderPage(p); }));
     tools.append(btn("Cancel", () => { p.editing = false; renderPage(p); }));
   } else if (p.status === "done") {
-    body.innerHTML = `<div class="md" ${langAttrs(p.to)}>${renderMd(p.md)}</div>`;
+    body.innerHTML = (p.warn ? `<p class="warn" role="status">${esc(p.warn)}</p>` : "") + `<div class="md" ${langAttrs(p.to)}>${renderMd(p.md)}</div>`;
   } else if (p.status === "working") {
     body.innerHTML = (p.md ? `<div class="md" ${langAttrs(p.to)}>${renderMd(p.md)}</div>` : "") +
       `<div class="live${p.phase === "wait" ? " waiting" : ""}"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="live-text">${esc(liveText(p))}</span></div>`;
@@ -2007,7 +2008,7 @@ function buildPrompt(p, hint, tall, limit) {
   const fileDoc = !p.kind && !!p.doc.parts;   // a part of a Word, PowerPoint or text file
   const isText = p.kind === "text" || fileDoc, isImage = !isText && !!p.doc.img;
   const unit = fileDoc ? unitName(p.doc) : isText ? "text" : "page";
-  const detect = S ? "" : " First identify the language (or languages) it is written in.";
+  const detect = S ? "" : " Work out for yourself which language (or languages) it is written in, without writing that down.";
   return [
     fileDoc ? `Translate ${unit} ${p.local} of ${pageCount(p.doc)} of the ${S ? S.name + " " : ""}${p.doc.ext === ".pptx" ? "PowerPoint presentation" : "document"} “${p.doc.name}” (given below) into ${tn}.${detect}`
       : isText ? `Translate the ${S ? S.name + " " : ""}text below into ${tn}.${detect}`
@@ -2231,7 +2232,7 @@ function learnSpeed(sec) {
 
 async function translateOne(p, limit = null) {
   p.sample = false;
-  p.status = "working"; p.md = ""; p.error = ""; p.phase = "prep"; p.tSend = 0; p.took = 0; p.limit = limit; p.prevMd = null; p.refineOpen = false;
+  p.status = "working"; p.md = ""; p.error = ""; p.warn = ""; p.phase = "prep"; p.tSend = 0; p.took = 0; p.limit = limit; p.prevMd = null; p.refineOpen = false;
   p.task = p.kind !== "word" && $("#task").value === "explain" ? "explain" : "translate";
   p.from = runLangs.from; p.to = runLangs.to; p.settings = runLangs.key; renderPage(p);
   const isText = !!p.kind || !!p.doc.parts, isWord = p.kind === "word";   // Text mode, Word mode and text files send no images
@@ -2256,6 +2257,7 @@ async function translateOne(p, limit = null) {
       p.took = (Date.now() - p.tSend) / 1000;
       if (!isText && !p.doc.audio) learnSpeed(p.took);   // the countdown is for pages only
       p.md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
+      if (!isWord) p.md = dropLanguageNote(p.md);
       if (isWord) {
         // The card starts with a hidden note of the word's language, used by Listen.
         const m = p.md.match(/^<!--\s*lang:\s*([a-z]{2,3}(?:-[A-Za-z]+)?)\s*-->\s*/i);
@@ -2265,6 +2267,9 @@ async function translateOne(p, limit = null) {
       // The card quotes the word and its examples in the original language on purpose, so it skips this check.
       const plainTranslation = !isWord && p.task !== "explain" && !p.doc?.audio;   // a card, an explanation or a transcript quotes the original on purpose
       if (plainTranslation && !res.truncated && !runLangs.bilingual && needsSecondPass(p.md, langOf(p.to))) await finishLanguage(p);
+      // If a page still isn't translated after the second pass, say so rather than show it as if it were fine.
+      p.warn = plainTranslation && !res.truncated && !runLangs.bilingual && needsSecondPass(p.md, langOf(p.to))
+        ? "Parts of this page may still not be translated. Try Translate again, or choose a more careful model under AI model." : "";
       p.words = countWords(p.md, langOf(p.to));
       if (plainTranslation && limit && !res.truncated && p.words > limit * 1.15) await shorten(p, limit);
       p.took = (Date.now() - p.tSend) / 1000;
@@ -2316,12 +2321,27 @@ function romanizedShare(md) {
 // How fully a page is in the target language: its script share, minus any roman-letter Hindi left in it.
 const translatedScore = (md, T) => targetShare(md, T) - (T.latin ? romanizedShare(md) : 0);
 const needsSecondPass = (md, T) => targetShare(md, T) < 0.8 || (T.latin && romanizedShare(md) > 0.08);
+// Asked to identify the language first, the AI sometimes writes it down ("Language: Hindi"); that line isn't part of the page.
+function dropLanguageNote(md) { return md.replace(/^\s*\**\s*(?:detected\s+)?languages?\s*\**\s*:[^\n]*\n+/i, ""); }
 // Second, text-only step for a page that came back partly untranslated. If it fails, the first answer is kept.
 async function finishLanguage(p) {
   const T = langOf(p.to), subject = $("#subject").value.trim();
   const first = p.md;
   p.phase = "relang"; renderPage(p);
-  const prompt = [
+  const roman = T.latin && romanizedShare(first) > 0.08;
+  const S = p.from && p.from !== "auto" ? langOf(p.from) : null;
+  // Roman-letter Hindi looks "already translated" to the AI, so it gets a prompt that says plainly what it is.
+  const prompt = roman ? [
+    `The text below is NOT ${T.name}. It is one page of a ${S ? S.name : "Hindi (or another Indian language)"} document, written out in roman letters (transliterated) instead of translated. For example, "yahan talon mein" means "here, in the talas".`,
+    `Translate all of it into natural, fluent ${T.name}, sentence by sentence. Every sentence must come out in ${T.name}.${subject ? ` It is about ${subject}: use the standard ${T.name} terminology of ${subject}.` : ""}`,
+    "- Keep the Markdown structure (headings, numbered points, lists, tables) and all numbers, symbols and marks exactly.",
+    "- Names of people, works and places, and technical terms with no exact equivalent: keep them in roman letters, with a short meaning in brackets the first time.",
+    "- Never add or drop content.",
+    glossaryRule(T.name),
+    "Reply with the translation only: no preface, no notes, no code fences.",
+    "",
+    '"""', first, '"""',
+  ].join("\n") : [
     `The text below should be a translation into ${T.name} of one page of a document, but parts of it are still in the original language.`,
     T.latin ? `Some of it may be the original words only written out in roman letters (for example Hindi as "yah pustak sangeet ke bare men hai") rather than translated: translate those into real ${T.name} too.` : "",
     `Rewrite it so that all of it is in ${T.name}: translate every heading, sentence, list item and table cell that is not in ${T.name} yet.${subject ? ` It is a ${subject} document: use the standard ${T.name} terminology of ${subject}.` : ""}`,
@@ -2341,7 +2361,7 @@ async function finishLanguage(p) {
       const now = Date.now();
       if (now - last > 250) { last = now; p.md = text; renderPage(p); }
     });
-    const md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
+    const md = dropLanguageNote(res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1"));
     p.md = !res.truncated && translatedScore(md, T) > translatedScore(first, T) ? md : first;
   } catch (e) {
     if (e.name === "AbortError" || ctl.signal.aborted) throw e;

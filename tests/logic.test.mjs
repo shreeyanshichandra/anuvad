@@ -71,6 +71,14 @@ test("romanizedShare spots Hindi written in English letters, not real English", 
   assert.equal(share("hai ke men"), 0, "too short to judge");
 });
 
+test("dropLanguageNote removes only a leading language label", () => {
+  const drop = grab("dropLanguageNote");
+  assert.equal(drop("Language: Hindi\n\nabhyas ke liye"), "abhyas ke liye");
+  assert.equal(drop("**Language:** Hindi\nText"), "Text");
+  assert.equal(drop("## Languages of India\n\nText"), "## Languages of India\n\nText");
+  assert.equal(drop("Intro\nLanguage: Hindi"), "Intro\nLanguage: Hindi");
+});
+
 test("the page keeps its security policy and library checks", () => {
   assert.match(html, /http-equiv="Content-Security-Policy"/);
   assert.match(html, /default-src 'none'/);
