@@ -409,6 +409,13 @@ select.needed { border-color: var(--marigold); }
           </div>
           <small class="help">Condenses the translation to about this many words, keeping the main points, facts and subject terms. Leave empty for a full translation.</small>
         </div>
+        <label class="field pdfonly"><span>Page type</span>
+          <select id="hand">
+            <option value="print">Printed or typed</option>
+            <option value="hand">Handwritten</option>
+          </select>
+          <small class="help">Choose Handwritten for notes and photos of writing: it uses a more careful reader and a sharper picture.</small>
+        </label>
         <div class="row2 pdfonly">
           <label class="field"><span>From page</span><input type="text" inputmode="numeric" id="from" value="1"></label>
           <label class="field"><span>To page</span><input type="text" inputmode="numeric" id="to" value=""></label>
@@ -498,7 +505,7 @@ select.needed { border-color: var(--marigold); }
 
   <footer>
     <p>Your PDFs, images, translations and access code stay in this browser (so a refresh loses nothing; ✕ removes a file) and are sent only to the AI engine you choose (Chrome's translator sends nothing). On Google's free plan, Google may use what you send to improve its services, so don't upload private documents.</p>
-    <p>Version 1.13 · © 2026 Shreeyanshi Chandra · <a href="https://github.com/shreeyanshichandra/anuvad" target="_blank" rel="noopener">View code on GitHub</a></p>
+    <p>Version 1.14 · © 2026 Shreeyanshi Chandra · <a href="https://github.com/shreeyanshichandra/anuvad" target="_blank" rel="noopener">View code on GitHub</a></p>
   </footer>
 </div>
 
@@ -649,7 +656,7 @@ function fillResult(p, tools, body) {
       t.textContent = isWord ? `${langOf(p.to).name} · looked up in ${fmtTime(p.took)}`
         : `${langOf(p.to).name} · ${p.task === "explain" ? "explained" : "translated"} in ${fmtTime(p.took)}` + (p.words ? ` · ${p.words.toLocaleString()} ${unitOf(langOf(p.to))}${p.limit ? ` (limit ${p.limit})` : ""}` : "");
       // Hover to see where the time went: waiting for the first words, or the AI writing them.
-      if (p.tText) t.title = `${aiName()} sent its first words after ${p.tText.toFixed(1)}s and finished after ${p.took.toFixed(1)}s.${engine === "gemini" && thinkingUnsupported.has($("#model").value) ? " This model refused the fast setting, so it thought for longer. Try another under AI model." : ""}`;
+      if (p.tText) t.title = `${aiName()} sent its first words after ${p.tText.toFixed(1)}s and finished after ${p.took.toFixed(1)}s.${engine === "gemini" && p.model ? ` Read by ${p.model.replace("models/", "")}.` : ""}${engine === "gemini" && thinkingUnsupported.has($("#model").value) ? " This model refused the fast setting, so it thought for longer. Try another under AI model." : ""}`;
       tools.append(t);
     }
     if (p.sample) {
@@ -1290,7 +1297,7 @@ function scheduleSave() {
     saveHistory(keep);
   }, 600);
 }
-const OPTION_IDS = ["subject", "task", "terms", "tone", "glossary", "layout", "limit", "limitScope"];
+const OPTION_IDS = ["subject", "hand", "task", "terms", "tone", "glossary", "layout", "limit", "limitScope"];
 function saveOptions() {
   store.set(OPTS_STORE, JSON.stringify(Object.fromEntries(OPTION_IDS.map((id) => [id, $("#" + id).value]))));
 }
@@ -1298,7 +1305,7 @@ function restoreOptions() {
   let o = {};
   try { o = JSON.parse(store.get(OPTS_STORE) || "{}"); } catch {}
   for (const id of OPTION_IDS) if (typeof o[id] === "string") $("#" + id).value = o[id];
-  for (const id of ["task", "terms", "tone", "layout", "limitScope"]) if (!$("#" + id).value) $("#" + id).selectedIndex = 0;
+  for (const id of ["hand", "task", "terms", "tone", "layout", "limitScope"]) if (!$("#" + id).value) $("#" + id).selectedIndex = 0;
   showGlossaryCount();
 }
 function showGlossaryCount() {
@@ -1559,9 +1566,28 @@ const toB64 = (c) => c.toDataURL("image/jpeg", 0.85).split(",")[1];
 
 // Split the page into overlapping halves so small Devanagari stays sharp.
 // A small image (a screenshot of a message, a sign) is sent whole: tall is then null.
+const handwritten = () => $("#hand").value === "hand";
+// Where the ink and the paper sit on the 0-255 scale: the darkest 2% and the lightest 30% of the page.
+function inkRange(hist) {
+  const total = hist.reduce((a, b) => a + b, 0);
+  let lo = 0, hi = 255, sum = 0;
+  for (let i = 0; i < 256; i++) { sum += hist[i]; if (sum >= total * 0.02) { lo = i; break; } }
+  sum = 0;
+  for (let i = 255; i >= 0; i--) { sum += hist[i]; if (sum >= total * 0.3) { hi = i; break; } }
+  return hi - lo < 40 ? [0, 255] : [lo, hi];   // an almost blank page is left alone
+}
+// Faint pen on grey paper: greyscale, then stretched so the paper is white and the ink is dark.
+function sharpenInk(c) {
+  const ctx = c.getContext("2d"), img = ctx.getImageData(0, 0, c.width, c.height), d = img.data, hist = new Array(256).fill(0);
+  for (let i = 0; i < d.length; i += 4) hist[d[i] = Math.round(d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11)]++;
+  const [lo, hi] = inkRange(hist);
+  for (let i = 0; i < d.length; i += 4) d[i] = d[i + 1] = d[i + 2] = Math.max(0, Math.min(255, (d[i] - lo) * 255 / (hi - lo)));
+  ctx.putImageData(img, 0, 0);
+}
 async function pageImages(p) {
   if (p.doc.audio) return { parts: [{ mime: p.doc.audio.type, data: bytesToB64(p.doc.audio.bytes) }], tall: null };
-  const full = await renderCanvas(p, 2000);
+  const full = await renderCanvas(p, handwritten() ? 2600 : 2000);
+  if (handwritten()) sharpenInk(full);
   if (p.doc.img && Math.max(p.doc.img.naturalWidth, p.doc.img.naturalHeight) <= 1600) return { parts: [toB64(full)], tall: null };
   const tall = full.height >= full.width;
   const parts = [];
@@ -2043,6 +2069,7 @@ function buildPrompt(p, hint, tall, limit) {
     `- Text already in ${tn} stays as is.`,
     T.latin && (!S || !S.latin) ? `- Translate the meaning into ${tn}. Never just write the original words out in roman letters (transliteration): that is not a translation. This applies to handwritten text too.` : "",
     isText ? "" : "- Leave out the book's printed page numbers and repeated running headers or footers (the same title or chapter name at the top or bottom of every page).",
+    !isText && handwritten() ? `- The page is handwritten. Read it line by line; work out unclear words from the sentence, the spelling of nearby words and the subject. Translate only what is written: never fill a gap with made-up content. Where a word stays doubtful, give your best reading followed by [?]. Ignore crossed-out words.` : "",
     isText ? "" : "- Write [illegible] for anything you cannot read. If the page has no text, reply only: (blank page)",
     "- " + layout,
     "Reply with the Markdown only: no preface, no notes, no code fences.",
@@ -2070,8 +2097,14 @@ function thinkingFor(model) {
 }
 
 // Streams one Gemini answer; calls onText with the whole text so far.
-async function gemini(prompt, images, signal, onText, onReading) {
-  const model = $("#model").value;
+// The better reader for hard pages: the newest stable Flash, when the chosen model is a Flash-Lite ("" = no better one to use).
+function carefulModel() {
+  if (engine !== "gemini" || !/flash-lite/.test($("#model").value)) return "";
+  const names = [...$("#model").options].map((o) => o.value).filter((n) => /flash/.test(n) && !/lite/.test(n));
+  return names.find((n) => !/preview/.test(n)) || names[0] || "";
+}
+async function gemini(prompt, images, signal, onText, onReading, use = "") {
+  const model = use || $("#model").value;
   const thinking = thinkingFor(model);
   const body = {
     // A plain string is a page picture; audio comes as { mime, data }.
@@ -2086,7 +2119,7 @@ async function gemini(prompt, images, signal, onText, onReading) {
     // A model that rejects the thinking setting: remember that and ask again without it.
     if (thinking && e.status === 400 && /think/i.test(e.message)) {
       thinkingUnsupported.add(model);
-      return gemini(prompt, images, signal, onText, onReading);
+      return gemini(prompt, images, signal, onText, onReading, use);
     }
     const kp = keyProblem(e);
     if (kp) throw new RunError(kp, { stopAll: true });
@@ -2243,9 +2276,10 @@ async function translateOne(p, limit = null) {
   }
   const { parts, tall } = isText ? { parts: [], tall: true } : await pageImages(p);
   const prompt = buildPrompt(p, isText ? "" : await textLayer(p), tall, limit);
-  let last = 0;
+  let last = 0, use = !isText && !p.doc.audio && handwritten() ? carefulModel() : "", simpler = false;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
+      p.model = use || $("#model").value;
       p.phase = "send"; p.tSend = Date.now(); p.tText = 0; renderPage(p);
       const res = await ai(prompt, parts, ctl.signal, (text) => {
         p.md = isWord ? tidyCard(text.replace(/^\s*<!--[\s\S]*?(?:-->\s*|$)/, "")) : text;   // hide the card's language note while it streams
@@ -2253,7 +2287,7 @@ async function translateOne(p, limit = null) {
         if (p.phase !== "write") { p.phase = "write"; last = 0; }
         const now = Date.now();
         if (now - last > 250) { last = now; renderPage(p); }
-      }, () => { p.phase = "read"; updateLive(); });
+      }, () => { p.phase = "read"; updateLive(); }, use);
       p.took = (Date.now() - p.tSend) / 1000;
       if (!isText && !p.doc.audio) learnSpeed(p.took);   // the countdown is for pages only
       p.md = res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1");
@@ -2266,10 +2300,16 @@ async function translateOne(p, limit = null) {
       }
       // The card quotes the word and its examples in the original language on purpose, so it skips this check.
       const plainTranslation = !isWord && p.task !== "explain" && !p.doc?.audio;   // a card, an explanation or a transcript quotes the original on purpose
-      if (plainTranslation && !res.truncated && !runLangs.bilingual && needsSecondPass(p.md, langOf(p.to))) await finishLanguage(p);
+      if (plainTranslation && !res.truncated && !runLangs.bilingual && needsSecondPass(p.md, langOf(p.to))) {
+        // The better reader looks at the page itself again: a text-only repair can't undo a misread word.
+        const better = isText || use || simpler ? "" : carefulModel();
+        if (better) await readAgain(p, prompt, parts, better);
+        if (needsSecondPass(p.md, langOf(p.to))) await finishLanguage(p);
+      }
       // If a page still isn't translated after the second pass, say so rather than show it as if it were fine.
       p.warn = plainTranslation && !res.truncated && !runLangs.bilingual && needsSecondPass(p.md, langOf(p.to))
-        ? "Parts of this page may still not be translated. Try Translate again, or choose a more careful model under AI model." : "";
+        ? "Parts of this page may still not be translated. Try Translate again, or choose a more careful model under AI model."
+        : simpler ? "The careful reader wasn't available just now, so the fast one read this page. Check it, or try Translate again later." : "";
       p.words = countWords(p.md, langOf(p.to));
       if (plainTranslation && limit && !res.truncated && p.words > limit * 1.15) await shorten(p, limit);
       p.took = (Date.now() - p.tSend) / 1000;
@@ -2283,6 +2323,8 @@ async function translateOne(p, limit = null) {
         p.status = p.md ? "failed" : "idle"; p.error = "Stopped."; renderPage(p);
         return "cancelled";
       }
+      // The careful reader is busy, limited or not offered: use the chosen model straight away rather than wait.
+      if (use && e instanceof RunError && attempt < 2) { use = ""; simpler = true; p.md = ""; continue; }
       // Free plan per-minute limit: run fewer pages at once, wait, then try again.
       if (e.rate && attempt < 2) {
         slots = Math.max(1, slots - 1);
@@ -2323,6 +2365,18 @@ const translatedScore = (md, T) => targetShare(md, T) - (T.latin ? romanizedShar
 const needsSecondPass = (md, T) => targetShare(md, T) < 0.8 || (T.latin && romanizedShare(md) > 0.08);
 // Asked to identify the language first, the AI sometimes writes it down ("Language: Hindi"); that line isn't part of the page.
 function dropLanguageNote(md) { return md.replace(/^\s*\**\s*(?:detected\s+)?languages?\s*\**\s*:[^\n]*\n+/i, ""); }
+// Reads the page picture again with a better model. The first answer is kept if that fails or is no better.
+async function readAgain(p, prompt, parts, model) {
+  const T = langOf(p.to), first = p.md;
+  p.phase = "relang"; renderPage(p);
+  try {
+    const res = await ai(prompt, parts, ctl.signal, () => {}, null, model);
+    const md = dropLanguageNote(res.text.trim().replace(/^```(?:markdown|md)?\n([\s\S]*?)\n```$/, "$1"));
+    if (!res.truncated && translatedScore(md, T) > translatedScore(first, T)) { p.md = md; p.model = model; }
+  } catch (e) {
+    if (e.name === "AbortError" || ctl.signal.aborted) throw e;
+  }
+}
 // Second, text-only step for a page that came back partly untranslated. If it fails, the first answer is kept.
 async function finishLanguage(p) {
   const T = langOf(p.to), subject = $("#subject").value.trim();
@@ -2571,7 +2625,8 @@ async function runSingle(p) {
 // Everything in the Options panel that changes a translation, as one comparable string.
 function settingsKey() {
   return JSON.stringify([$("#src").value, $("#dst").value, $("#subject").value.trim().toLowerCase(), $("#terms").value,
-    $("#layout").value, $("#limit").value.replace(/[^0-9]/g, ""), $("#limitScope").value, $("#tone").value, glossaryPairs(), $("#task").value]);
+    $("#layout").value, $("#limit").value.replace(/[^0-9]/g, ""), $("#limitScope").value, $("#tone").value, glossaryPairs(), $("#task").value,
+    ...(handwritten() ? ["hand"] : [])]);   // added only when chosen, so pages already translated stay up to date
 }
 
 $("#go").onclick = async () => {

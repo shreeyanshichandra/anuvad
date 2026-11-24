@@ -79,6 +79,14 @@ test("dropLanguageNote removes only a leading language label", () => {
   assert.equal(drop("Intro\nLanguage: Hindi"), "Intro\nLanguage: Hindi");
 });
 
+test("inkRange finds ink and paper, and leaves blank pages alone", () => {
+  const range = grab("inkRange"), hist = new Array(256).fill(0);
+  hist[90] = 50; hist[200] = 950;
+  assert.deepEqual(range(hist), [90, 200]);
+  const blank = new Array(256).fill(0); blank[250] = 1000;
+  assert.deepEqual(range(blank), [0, 255]);
+});
+
 test("the page keeps its security policy and library checks", () => {
   assert.match(html, /http-equiv="Content-Security-Policy"/);
   assert.match(html, /default-src 'none'/);
