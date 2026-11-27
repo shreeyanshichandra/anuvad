@@ -8,6 +8,10 @@ Add a PDF, photo, Word or PowerPoint file, a recording or some typed text, choos
 
 **▶ Try it:** https://shreeyanshichandra.github.io/anuvad/
 
+**📖 Portfolio (how it was built, with pictures):** https://shreeyanshichandra.github.io/anuvad/portfolio/
+
+Anuvad is an AI-powered web app: it doesn't train its own model. It prepares each file, gives the AI model (Google Gemini by default, or Anthropic Claude) careful instructions, checks the answer, and handles editing and downloads.
+
 ---
 
 ## Why Anuvad
@@ -28,6 +32,8 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
 
 - **Any language → any language**: 117 languages, with the original language detected automatically, a swap button, and your recent languages pinned at the top
 - **Photos, scans and screenshots**: add JPG, PNG or WebP images alongside PDFs, paste a screenshot with **Ctrl + V**, or tap **Take a photo** on a phone. Each image is translated like a page, with the original beside it; big phone photos are scaled down first so they send quickly
+- **Handwritten pages**: set **Page type** to **Handwritten** and Anuvad sharpens the ink, sends bigger pictures and uses a more careful Gemini reader for handwriting (with a note if it has to fall back to the faster one). Hover over "translated in…" to see which model read the page
+- **Checks for untranslated text**: if a page comes back still in the original language, or in that language written in English letters (such as Hindi typed as "tabale ki sangat hoti hai"), Anuvad translates it again on its own, and shows a warning if any of it is still untranslated
 - **Word, PowerPoint and text files**: add `.docx`, `.pptx` or `.txt` files too. They're split into parts (one per slide for PowerPoint), shown side by side with their translation, and the original text can be corrected with **Edit original**
 - **Text mode**: no PDF? Switch to **Text**, type or paste up to 20,000 characters and translate it with the same options and downloads
 - **Voice and audio**: click **Record your voice** or add an audio file (MP3, WAV, M4A and others, up to about 14 MB) to get a transcript and its translation (Gemini only)
@@ -41,7 +47,7 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
 - **Live progress**: each page shows what is happening (preparing, reading, writing) with a countdown, plus an overall time-left estimate that learns from real page times
 - **Keeps the structure**: headings, numbered lists, line breaks and tables; skips the book's printed page numbers and running headers
 - **Subject-aware terms**: keep terms like *Panchayat* or *Raag* with a meaning in brackets, keep them as they are, or fully translate them
-- **Optional subject**: name the subject (music, history, law…) and most translations will use that field's own keywords and terminology; left empty, it works out the field from your content
+- **Optional subject**: name the subject (music, history, law…) and Anuvad tells the AI to translate the way an expert in that field would, using the field's own keywords and terminology; left empty, the AI works out the field from your content. This comes from the AI's own knowledge, not a web search or a terminology database
 - **Guided first visit**: a short tour points at each part of the page the first time you open Anuvad, and **How it works** replays it
 - **You choose the language**: the language to translate into is required and never assumed; if it's empty, a pop-up asks for it, and your choice is remembered
 - **Optional word limit**: condense the translation to about N words, per page or in total, while keeping every main point, key fact, name, number and subject term. If a page comes out over the limit, Anuvad condenses it in a quick second step. Word counts are shown per page and in total
@@ -63,7 +69,7 @@ Ordinary translators can't do anything with that. Anuvad **reads each page as an
    2. Sign in with your Google (Gmail) account.
    3. Accept the terms if asked, then click **Create API key**.
    4. Copy the code (it starts with `AIza`), paste it into Anuvad and click **Save**.
-3. **Upload one or more PDFs, images, Word, PowerPoint or .txt files** (or paste a screenshot), optionally type the subject (for example *History* or *Law*), and choose the language under **Translate to**, and click **Translate**.
+3. **Upload one or more PDFs, images, Word, PowerPoint or .txt files** (or paste a screenshot), optionally type the subject (for example *History* or *Law*) and, for handwritten pages, set **Page type** to **Handwritten**; then choose the language under **Translate to**, and click **Translate**.
 4. **Review and download** the translation.
 
 No card or payment is needed. The code is remembered on your device, so you only do step 2 once.

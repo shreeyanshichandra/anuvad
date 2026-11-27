@@ -2,7 +2,7 @@
 
 What's done, what's being worked on, and what's next. The bigger plan is in [ROADMAP.md](ROADMAP.md).
 
-Last updated: 4 November 2026
+Last updated: 27 November 2026
 
 ---
 
@@ -11,13 +11,30 @@ Last updated: 4 November 2026
 - [ ] Check v1.7 and v1.8 on the live site: real translations with a real access code, the Word download opened in Word, and **Take a photo** on a phone (tested so far with sample replies only)
 - [ ] Check v1.9 on the live site with real services: a real recording through Gemini, a real Anthropic key, and Chrome's translator in real Chrome (tested so far with stand-ins)
 
+- [ ] Check v1.14 on a real handwritten page (page 6 of the Hindi music notes): speed and accuracy with **Page type: Handwritten**
+
 ## ⏭️ Next up
 
 - [ ] Optional: finish Try a sample (see below)
-- [ ] Add new screenshots to the README, taken from real translations (the old ones showed the first design and were removed)
-- [ ] Decide on moving to Vite + TypeScript: `index.html` is now about 2,560 lines, close to the 3,000-line point set on 2 November 2026
+- [ ] Add new screenshots to the README, taken from real translations (the old ones showed the first design and were removed; real ones are in the portfolio)
+- [ ] Decide on moving to Vite + TypeScript: `index.html` is now about 3,200 lines, past the 3,000-line point set on 2 November 2026
 
 ## ✅ Done
+
+### Portfolio
+- [x] A portfolio page at /portfolio/ explaining the problem, the subject-specific translation, 11 features and how it was built, with 14 real pictures of the app
+
+### v1.14: handwriting mode
+- [x] **Page type** option: Printed or Handwritten
+- [x] Handwritten pages use a more careful Gemini reader (the first stable Flash model when a Flash-Lite one is chosen), with an automatic fall back to the chosen model and a note if that happens
+- [x] Ink is sharpened and pictures are sent bigger (2,600 px) so faint handwriting reads better; blank pages are left alone
+- [x] Hovering over "translated in…" also shows which model read the page
+
+### v1.13: Hindi in English letters
+- [x] Pages that come back as Hindi written in English letters ("romanized") are spotted and translated in a dedicated second step
+- [x] If a page still isn't translated, it shows a warning instead of passing silently
+- [x] A stray "Language: Hindi" label at the top of a translation is removed
+- [x] The footer shows the version number
 
 ### v1.12: small fixes after the first real tests
 - [x] Word cards no longer start their second line with a stray dot
